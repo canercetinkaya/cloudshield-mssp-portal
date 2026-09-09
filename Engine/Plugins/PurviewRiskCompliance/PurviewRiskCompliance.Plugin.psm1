@@ -1,4 +1,4 @@
-﻿﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Insider Risk Management (IRM) & Communication Compliance Service Plugin (Isolated Privacy App).
 [CmdletBinding()]
 param()

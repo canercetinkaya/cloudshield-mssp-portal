@@ -15,6 +15,11 @@ import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 
+try:
+    from report_generator import render_and_save_report
+except ImportError:
+    from Portal.api.report_generator import render_and_save_report
+
 PORT = 8080
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 WEB_DIR = os.path.join(ROOT_DIR, "Portal", "web")
@@ -565,48 +570,83 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             # Determine PowerShell binary (Linux Docker uses 'pwsh', Windows uses 'pwsh' or 'powershell.exe')
             pwsh_bin = "pwsh" if shutil.which("pwsh") else "powershell.exe"
             script_path = os.path.join(ROOT_DIR, "Engine", "Invoke-CloudShieldSecurityReporting.ps1")
-            pwsh_args = [
-                pwsh_bin, "-NoProfile", "-ExecutionPolicy", "Bypass", 
-                "-File", script_path, 
-                "-ConfigPath", cust_cfg_path, 
-                "-Mode", mode, "-Pdf"
-            ]
+            if not os.path.exists(script_path):
+                script_path = os.path.join(ROOT_DIR, "Engine", "Invoke-KocSistemSecurityReporting.ps1")
+
+            if sys.platform == "win32":
+                pwsh_args = [
+                    pwsh_bin, "-NoProfile", "-ExecutionPolicy", "Bypass", 
+                    "-File", script_path, 
+                    "-ConfigPath", cust_cfg_path, 
+                    "-Mode", mode, "-Pdf"
+                ]
+            else:
+                pwsh_args = [
+                    pwsh_bin, "-NoProfile", 
+                    "-File", script_path, 
+                    "-ConfigPath", cust_cfg_path, 
+                    "-Mode", mode, "-Pdf"
+                ]
             
             # If simulation or dry run requested, run with -DryRun
             if is_simulation or is_dry_run:
                 pwsh_args.append("-DryRun")
 
+            latest_pdf_path = None
+            latest_html_path = None
+            proc_log = ""
+
             try:
-                proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=180)
-                
-                # Dynamically locate the newest generated PDF and HTML reports specifically for this customer
-                latest_pdf_path = None
-                latest_html_path = None
-                latest_pdf_mtime = 0
-                latest_html_mtime = 0
+                try:
+                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=45)
+                    proc_log = (proc.stdout or "") + (proc.stderr or "")
 
-                # Search specifically in the customer-isolated output directory
-                safe_folder = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-                search_roots = [os.path.join(OUTPUT_DIR, safe_folder), OUTPUT_DIR]
+                    # Dynamically locate the newest generated PDF and HTML reports specifically for this customer
+                    latest_pdf_mtime = 0
+                    latest_html_mtime = 0
 
-                for s_root in search_roots:
-                    if os.path.exists(s_root):
-                        for r_dir, _, files in os.walk(s_root):
-                            for f in files:
-                                full_p = os.path.join(r_dir, f)
-                                try:
-                                    mtime = os.path.getmtime(full_p)
-                                    if f.lower().endswith(".pdf") and mtime > latest_pdf_mtime:
-                                        latest_pdf_path = full_p
-                                        latest_pdf_mtime = mtime
-                                    elif f.lower().endswith(".html") and mtime > latest_html_mtime:
-                                        latest_html_path = full_p
-                                        latest_html_mtime = mtime
-                                except Exception:
-                                    pass
-                        if latest_html_path and s_root != OUTPUT_DIR:
-                            # Found in customer-specific directory
-                            break
+                    safe_folder = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+                    search_roots = [os.path.join(OUTPUT_DIR, safe_folder), OUTPUT_DIR]
+
+                    for s_root in search_roots:
+                        if os.path.exists(s_root):
+                            for r_dir, _, files in os.walk(s_root):
+                                for f in files:
+                                    full_p = os.path.join(r_dir, f)
+                                    try:
+                                        mtime = os.path.getmtime(full_p)
+                                        if f.lower().endswith(".pdf") and mtime > latest_pdf_mtime:
+                                            latest_pdf_path = full_p
+                                            latest_pdf_mtime = mtime
+                                        elif f.lower().endswith(".html") and mtime > latest_html_mtime:
+                                            latest_html_path = full_p
+                                            latest_html_mtime = mtime
+                                    except Exception:
+                                        pass
+                            if latest_html_path and s_root != OUTPUT_DIR:
+                                break
+                except Exception as pe:
+                    proc_log += f"\n[WARN] PowerShell execution: {pe}"
+
+                # If PowerShell failed or did not produce report files, invoke Python fallback engine
+                if not latest_html_path:
+                    try:
+                        py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR)
+                        if py_html and os.path.exists(py_html):
+                            latest_html_path = py_html
+                        if py_pdf and os.path.exists(py_pdf):
+                            latest_pdf_path = py_pdf
+                        proc_log += "\n[OK] CloudShield Kurumsal Rapor Motoru ile rapor başarıyla derlendi."
+                    except Exception as pye:
+                        proc_log += f"\n[ERROR] Python report engine error: {pye}"
+
+                # If still neither exists, return clear error
+                if not latest_html_path and not latest_pdf_path:
+                    self.send_json_response({
+                        "success": False,
+                        "error": f"Rapor dosyaları oluşturulamadı. Konsol izi: {proc_log[-300:]}"
+                    }, status=500)
+                    return
 
                 pdf_rel_path = os.path.relpath(latest_pdf_path, OUTPUT_DIR).replace("\\", "/") if latest_pdf_path else ""
                 html_rel_path = os.path.relpath(latest_html_path, OUTPUT_DIR).replace("\\", "/") if latest_html_path else ""
@@ -625,7 +665,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "services": services,
                     "pdfUrl": f"/api/reports/download?file={quoted_pdf}" if quoted_pdf else "",
                     "htmlUrl": f"/api/reports/download?file={quoted_html}" if quoted_html else "",
-                    "outputLog": proc.stdout[-500:] if proc.stdout else ""
+                    "outputLog": proc_log[-500:] if proc_log else "Rapor başarıyla tamamlandı."
                 })
             except Exception as e:
                 self.send_json_response({"success": False, "error": str(e)}, status=500)

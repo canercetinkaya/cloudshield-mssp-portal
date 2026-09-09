@@ -1,4 +1,4 @@
-﻿﻿# Core/ReportRenderer.psm1 - CloudShield Security Reporting Platform
+# Core/ReportRenderer.psm1 - CloudShield Security Reporting Platform
 # HTML assembly, Base64 embedding, and Headless Edge vector PDF generation.
 [CmdletBinding()]
 param()
@@ -53,6 +53,8 @@ function Convert-HtmlToPdf {
     $uri = [System.Uri]::new((Resolve-Path $HtmlPath).Path).AbsoluteUri
     $argList = @(
         '--headless',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-pdf-header-footer',
         '--run-all-compositor-stages-before-draw',

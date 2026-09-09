@@ -1,4 +1,4 @@
-﻿﻿# Core/MailEngine.psm1 - CloudShield Security Reporting Platform
+﻿# Core/MailEngine.psm1 - CloudShield Security Reporting Platform
 # Multi-protocol report delivery: Microsoft Graph API (Mail.Send) and Modern SMTP with attachment handling.
 [CmdletBinding()]
 param()

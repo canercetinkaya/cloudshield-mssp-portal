@@ -51,8 +51,8 @@
             <!-- Logo & Marka -->
             <div class="flex items-center space-x-3">
                 <div class="bg-white px-2.5 py-1 rounded shadow-sm flex items-center">
-                    <span class="text-ks-navy font-extrabold text-base tracking-tight">Koç</span>
-                    <span class="text-ks-red font-extrabold text-base tracking-tight">Sistem</span>
+                    <span class="text-ks-navy font-extrabold text-base tracking-tight">Cloud</span>
+                    <span class="text-ks-red font-extrabold text-base tracking-tight">Shield</span>
                 </div>
                 <div class="h-6 w-px bg-slate-600"></div>
                 <div class="flex flex-col">
@@ -378,11 +378,11 @@
                             </div>
 
                             <div id="reportActionButtons" class="hidden pt-2 space-y-2">
-                                <a id="linkDownloadPdf" href="#" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg flex items-center justify-center space-x-2 transition shadow">
+                                <a id="linkDownloadPdf" href="javascript:void(0)" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg flex items-center justify-center space-x-2 transition shadow">
                                     <i class="fa-solid fa-file-pdf"></i>
                                     <span>Raporu İndir (Vektörel PDF)</span>
                                 </a>
-                                <a id="linkPreviewHtml" href="#" target="_blank" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center space-x-2 transition">
+                                <a id="linkPreviewHtml" href="javascript:void(0)" target="_blank" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center space-x-2 transition">
                                     <i class="fa-solid fa-eye"></i>
                                     <span>HTML Önizleme</span>
                                 </a>
@@ -1517,28 +1517,45 @@
                 });
 
                 const data = await res.json();
-                if (data.success) {
+                if (data.success && (data.pdfUrl || data.htmlUrl)) {
                     title.innerText = '✅ Raporlama Başarıyla Tamamlandı!';
-                    desc.innerText = `${data.customer} için PDF ve HTML çıktıları hazırlandı.`;
+                    desc.innerText = `${data.customer} için rapor çıktıları hazırlandı.`;
                     spinner.classList.add('hidden');
                     actionBtns.classList.remove('hidden');
 
+                    const pdfBtn = document.getElementById('linkDownloadPdf');
+                    const htmlBtn = document.getElementById('linkPreviewHtml');
+
                     if (data.pdfUrl) {
-                        document.getElementById('linkDownloadPdf').href = data.pdfUrl;
+                        pdfBtn.href = data.pdfUrl;
+                        pdfBtn.style.display = 'flex';
+                    } else {
+                        pdfBtn.removeAttribute('href');
+                        pdfBtn.style.display = 'none';
                     }
+
                     if (data.htmlUrl) {
-                        document.getElementById('linkPreviewHtml').href = data.htmlUrl;
+                        htmlBtn.href = data.htmlUrl;
+                        htmlBtn.style.display = 'flex';
+                    } else {
+                        htmlBtn.removeAttribute('href');
+                        htmlBtn.style.display = 'none';
                     }
-                    logPre.innerText += '\n[OK] Vektörel PDF üretildi: ' + (data.pdfUrl || 'Tamam');
+                    logPre.innerText += '\n[OK] Rapor linki: ' + (data.htmlUrl || data.pdfUrl);
                 } else {
                     title.innerText = '❌ Rapor Üretim Hatası';
-                    desc.innerText = data.error || 'Bilinmeyen hata oluştu.';
+                    desc.innerText = data.error || 'Rapor dosyası üretilemedi. Lütfen konsol kaydını kontrol ediniz.';
                     spinner.classList.add('hidden');
+                    actionBtns.classList.add('hidden');
+                    if (data.outputLog) {
+                        logPre.innerText += '\n[LOG]:\n' + data.outputLog;
+                    }
                 }
             } catch (e) {
                 title.innerText = '❌ İletişim Hatası';
                 desc.innerText = String(e);
                 spinner.classList.add('hidden');
+                actionBtns.classList.add('hidden');
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');

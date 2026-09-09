@@ -1,4 +1,4 @@
-﻿﻿# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender XDR Unified Incidents & SLA Service Plugin.
 [CmdletBinding()]
 param()

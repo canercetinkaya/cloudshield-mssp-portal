@@ -1,4 +1,4 @@
-﻿﻿# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Classification & Sensitivity Labels Service Plugin.
 [CmdletBinding()]
 param()

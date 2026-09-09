@@ -1,4 +1,4 @@
-﻿﻿<#
+﻿<#
 .SYNOPSIS
     CloudShield Microsoft Security Managed Services Reporting Platform - Kapsamlı Test Süiti
 .DESCRIPTION

@@ -1,4 +1,4 @@
-﻿﻿# Core/PrivacyEngine.psm1 - CloudShield Security Reporting Platform
+﻿# Core/PrivacyEngine.psm1 - CloudShield Security Reporting Platform
 # Differential privacy, k-anonymity (k=5), salted SHA256 hashing, and sensitive data masking.
 [CmdletBinding()]
 param()

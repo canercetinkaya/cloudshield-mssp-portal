@@ -1,4 +1,4 @@
-﻿﻿# Core/Logging.psm1 - CloudShield Security Reporting Platform
+﻿# Core/Logging.psm1 - CloudShield Security Reporting Platform
 # Structured JSONL logging, SIEM compatibility, and colored CLI output.
 [CmdletBinding()]
 param()

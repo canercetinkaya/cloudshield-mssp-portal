@@ -1,4 +1,4 @@
-﻿﻿<#
+﻿<#
 .SYNOPSIS
     CloudShield Microsoft Security Reporting Platform - Advanced KQL & Hunting Query Engine
 .DESCRIPTION

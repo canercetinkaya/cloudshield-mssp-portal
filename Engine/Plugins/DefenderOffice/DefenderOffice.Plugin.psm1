@@ -1,4 +1,4 @@
-﻿﻿# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Office 365 (MDO & EOP) Service Plugin.
 [CmdletBinding()]
 param()

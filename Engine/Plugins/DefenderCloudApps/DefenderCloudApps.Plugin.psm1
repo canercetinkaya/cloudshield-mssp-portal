@@ -1,4 +1,4 @@
-﻿﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Cloud Apps (CASB) Service Plugin.
 [CmdletBinding()]
 param()

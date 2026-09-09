@@ -1,4 +1,4 @@
-﻿﻿# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Endpoint (EDR) Service Plugin.
 [CmdletBinding()]
 param()

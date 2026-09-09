@@ -1,4 +1,4 @@
-﻿﻿# Core/HealthCheck.psm1 - CloudShield Security Reporting Platform
+# Core/HealthCheck.psm1 - CloudShield Security Reporting Platform
 # Pre-flight environment, network, credential, and engine validation.
 [CmdletBinding()]
 param()
@@ -9,12 +9,24 @@ function Find-EdgeExecutable {
         "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
         "$env:LOCALAPPDATA\Microsoft\Edge\Application\msedge.exe",
         "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
-        "$env:ProgramFiles (x86)\Google\Chrome\Application\chrome.exe"
+        "$env:ProgramFiles (x86)\Google\Chrome\Application\chrome.exe",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/microsoft-edge"
     )
 
     foreach ($c in $candidates) {
         if (Test-Path $c) { return $c }
     }
+
+    # PATH kontrolü (Linux / Windows)
+    try {
+        $found = Get-Command chromium-browser, chromium, google-chrome, msedge, chrome -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found -and $found.Source) { return $found.Source }
+    } catch {}
+
     return $null
 }
 

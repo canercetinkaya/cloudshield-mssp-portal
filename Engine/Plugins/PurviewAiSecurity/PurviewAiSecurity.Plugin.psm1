@@ -1,4 +1,4 @@
-﻿﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview DSPM for AI & Copilot Data Security Service Plugin.
 [CmdletBinding()]
 param()

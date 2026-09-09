@@ -1,4 +1,4 @@
-﻿﻿# Plugins/PurviewGovernance/PurviewGovernance.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewGovernance/PurviewGovernance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Lifecycle & Records Management Service Plugin.
 [CmdletBinding()]
 param()

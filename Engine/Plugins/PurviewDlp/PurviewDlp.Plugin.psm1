@@ -1,4 +1,4 @@
-﻿﻿# Plugins/PurviewDlp/PurviewDlp.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewDlp/PurviewDlp.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Loss Prevention (DLP) Service Plugin.
 [CmdletBinding()]
 param()

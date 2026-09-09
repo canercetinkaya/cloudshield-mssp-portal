@@ -1,4 +1,4 @@
-﻿﻿# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Identity (MDI) Service Plugin.
 [CmdletBinding()]
 param()

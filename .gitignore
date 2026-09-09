@@ -18,9 +18,12 @@ Engine/Data/temp/
 *.pem
 *.key
 
-# Output artifacts
+# Output artifacts & Logs
 Engine/Output/*
 !Engine/Output/.gitkeep
+Engine/Logs/*
+!Engine/Logs/.gitkeep
+Engine/Data/KPI_*.json
 
 # OS / IDE
 .DS_Store
