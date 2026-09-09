@@ -41,6 +41,6 @@ jobs:
           registryPassword: ${{ secrets.CSMSSPPOCAPP_REGISTRY_PASSWORD }}
           containerAppName: cs-mssp-poc-app
           resourceGroup: cloudshield
-          imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal/cs-mssp-poc-app:${{ github.sha }}
+          imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}
 
 
