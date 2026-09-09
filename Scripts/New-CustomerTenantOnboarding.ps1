@@ -1,4 +1,4 @@
-﻿﻿<#
+﻿<#
 .SYNOPSIS
     CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)
     Otomatik Müşteri Tenant Onboarding ve Yetkilendirme Betiği
