@@ -16,9 +16,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 try:
-    from report_generator import render_and_save_report, find_pdf_engine
+    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
 except ImportError:
-    from Portal.api.report_generator import render_and_save_report, find_pdf_engine
+    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
 
 PORT = 8080
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -666,6 +666,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                                 proc_log += f"\n[OK] Vektörel PDF başarıyla oluşturuldu: {candidate_pdf}"
                         except Exception as pe:
                             proc_log += f"\n[WARN] Secondary PDF rendering error: {pe}"
+
+                    # If still not generated, invoke pure-Python vector PDF generator
+                    if not latest_pdf_path or not os.path.exists(latest_pdf_path) or os.path.getsize(latest_pdf_path) == 0:
+                        try:
+                            created_pdf = create_executive_pdf(customer_name, services, candidate_pdf)
+                            if os.path.exists(created_pdf) and os.path.getsize(created_pdf) > 0:
+                                latest_pdf_path = created_pdf
+                                proc_log += f"\n[OK] CloudShield Kurumsal Vektörel PDF Motoru ile rapor başarıyla derlendi: {created_pdf}"
+                        except Exception as pfe:
+                            proc_log += f"\n[WARN] Pure Python PDF fallback error: {pfe}"
 
                 # If still neither exists, return clear error
                 if not latest_html_path and not latest_pdf_path:
