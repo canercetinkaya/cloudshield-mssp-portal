@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  packages: write
 
 jobs:
   validate-and-test:
@@ -35,7 +35,6 @@ jobs:
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
           
           echo "=== 3. Zero SOC İzolasyon Denetimi ==="
-          # SOC veya (SOC) ifadesi kontrolü
           if grep -rnw --exclude-dir={.git,.github} --exclude={README.md,walkthrough.md} . -e "\(SOC\)" -e "SVC-SOC"; then
             echo "HATA: Kod tabanında yetkisiz SOC ifadesi bulundu!"
             exit 1
@@ -63,3 +62,30 @@ jobs:
         shell: bash
         run: |
           python -c "import json; data = json.load(open('Azure/azuredeploy.json', encoding='utf-8')); assert '\$schema' in data; assert len(data['resources']) >= 4; print('ARM Şablonu Geçerli!')"
+
+  build-and-push-docker:
+    name: 🐳 Build & Publish Docker Image to GHCR
+    needs: azure-arm-validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🔑 Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Docker İmajını Derle ve GHCR'a Gönder
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}

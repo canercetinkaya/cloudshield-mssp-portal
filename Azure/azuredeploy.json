@@ -231,6 +231,13 @@
                   "name": "ENVIRONMENT",
                   "value": "[parameters('environmentType')]"
                 }
+              ],
+              "command": [
+                "/bin/bash",
+                "-c"
+              ],
+              "args": [
+                "if [ -f /app/Docker/entrypoint.sh ]; then bash /app/Docker/entrypoint.sh; else apt-get update && apt-get install -y git python3 curl ca-certificates && git clone https://github.com/canercetinkaya/cloudshield-mssp-portal.git /app && bash /app/Docker/entrypoint.sh; fi"
               ]
             }
           ],
