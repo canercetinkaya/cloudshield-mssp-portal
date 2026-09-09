@@ -3,199 +3,199 @@
     {
       "name": "Core ModÃ¼l YÃ¼kleme: Authentication.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: Configuration.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: HealthCheck.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: KqlQueryEngine.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: Logging.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: MailEngine.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: PluginLoader.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: PrivacyEngine.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: ReportRenderer.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Core ModÃ¼l YÃ¼kleme: TrendEngine.psm1",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Servis KataloÄŸu (service-catalog.json) GeÃ§erliliÄŸi",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Global YapÄ±landÄ±rma Å�ablonu GeÃ§erliliÄŸi",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "MÃ¼ÅŸteri YapÄ±landÄ±rma Å�ablonu GeÃ§erliliÄŸi",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "DPAPI Secret Å�ifreleme ve Ã‡Ã¶zme DÃ¶ngÃ¼sÃ¼ (Round-Trip)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "PrivacyEngine: k-Anonymity (k=5) EÅŸik DoÄŸrulamasÄ±",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "PrivacyEngine: Deterministik Tuzlu SHA256 Maskeleme",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "PrivacyEngine: E-posta Maskeleme (a***.y***@sirket.com)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "PrivacyEngine: Dosya AdÄ± Maskeleme (Mali_Rapor_***.xlsx)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Logging: KVKK ve GDPR Kriptografik Denetim Ä°zi (Audit Log)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: DefenderCloudApps",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: DefenderEndpoint",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: DefenderIdentity",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: DefenderOffice",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: DefenderXdr",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: EntraGovernance",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: IntuneCompliance",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: PurviewAiSecurity",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: PurviewClassification",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: PurviewDlp",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: PurviewGovernance",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Eklenti Standart SÃ¶zleÅŸmesi: PurviewRiskCompliance",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Invoke-CloudShieldSecurityReporting (DryRun + PDF)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     },
     {
       "name": "Invoke-CloudShieldSecurityReporting Standalone Mod (Tekil MDO Servisi)",
       "status": "PASS",
-      "duration_ms": 151.11,
+      "duration_ms": 140.32,
       "details": "Executed via Test-Platform.ps1"
     }
   ],
@@ -203,85 +203,85 @@
     {
       "name": "GET /api/health - Sistem Sağlık Durumu (v2.5.0)",
       "status": "PASS",
-      "duration_ms": 2022.13,
+      "duration_ms": 2061.6,
       "details": "Status=200, Version=2.5.0"
     },
     {
       "name": "GET /api/version - Platform Sürüm ve Sürüm Başlığı Doğrulaması",
       "status": "PASS",
-      "duration_ms": 2028.06,
+      "duration_ms": 2041.61,
       "details": "Status=200, Release=v2.5.0-LIVE, Build=2026.09.09.live-pipeline"
     },
     {
       "name": "POST /api/auth/login - Platform Admin Oturum Açma (Sıfır Hardcode)",
       "status": "PASS",
-      "duration_ms": 2018.18,
+      "duration_ms": 2041.24,
       "details": "Status=200, Role=PlatformAdmin"
     },
     {
       "name": "POST /api/auth/login - 401 Yetkisiz Giriş & Hata Mesajında Sıfır Sızıntı",
       "status": "PASS",
-      "duration_ms": 2024.77,
+      "duration_ms": 2034.57,
       "details": "Status=401, GenericError=Geçersiz kullanıcı adı veya parola."
     },
     {
       "name": "POST /api/auth/sso - Entra ID Kurumsal SSO Oturum Doğrulaması",
       "status": "PASS",
-      "duration_ms": 2031.21,
+      "duration_ms": 2023.2,
       "details": "Status=200, User=KoçSistem Güvenlik Mimarı"
     },
     {
       "name": "GET /api/services - Servis Kataloğu (10+ Servis)",
       "status": "PASS",
-      "duration_ms": 2032.55,
+      "duration_ms": 2051.11,
       "details": "Status=200, ServicesCount=14"
     },
     {
       "name": "GET /api/tenants - Sadece Canlı Kiracı (Sıfır Sahte/Mock Müşteri)",
       "status": "PASS",
-      "duration_ms": 2036.42,
+      "duration_ms": 2040.36,
       "details": "Status=200, Count=1, HasSandbox=False, AllLive=True"
     },
     {
       "name": "GET /api/users/me - RBAC Rol ve İzin Doğrulaması",
       "status": "PASS",
-      "duration_ms": 2040.55,
+      "duration_ms": 2045.19,
       "details": "Status=200, Role=PlatformAdmin"
     },
     {
       "name": "POST /api/auth/test - Entra ID Federasyon Testi",
       "status": "PASS",
-      "duration_ms": 2018.44,
+      "duration_ms": 2038.57,
       "details": "Status=200, Provider=EntraID_OIDC"
     },
     {
       "name": "POST /api/tenants/tenant-002/test - Canlı Kiracı OAuth Doğrulaması (200 OK)",
       "status": "PASS",
-      "duration_ms": 3130.37,
+      "duration_ms": 3237.62,
       "details": "Status=200, StatusText=LiveConnected, Badge=Canlı Kiracı Bağlandı"
     },
     {
       "name": "POST /api/tenants/tenant-999-invalid/test - Bilinmeyen Kiracı 404 Reddi",
       "status": "PASS",
-      "duration_ms": 2056.28,
+      "duration_ms": 2029.38,
       "details": "Status=404, Error=Tenant bulunamadı"
     },
     {
       "name": "POST /api/reports/generate - Bilinmeyen Kiracı Rapor 404 Reddi",
       "status": "PASS",
-      "duration_ms": 2040.06,
+      "duration_ms": 2031.53,
       "details": "Status=404, Error=Tenant bulunamadı: tenant-999-unknown"
     },
     {
       "name": "POST /api/reports/generate - Canlı Kiracı Rapor Üretimi (200 OK)",
       "status": "PASS",
-      "duration_ms": 4615.95,
+      "duration_ms": 4767.79,
       "details": "Status=200, Customer=Emre-TestTenant, PdfUrl=/api/reports/download?file=Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf"
     },
     {
       "name": "GET /api/reports/download - PDF/HTML Vektörel Dosya Bütünlüğü",
       "status": "PASS",
-      "duration_ms": 4090.02,
+      "duration_ms": 4053.46,
       "details": "PdfSize=280289B, HtmlSize=29073B, ValidPdfHeader=True"
     }
   ],
@@ -289,20 +289,20 @@
     {
       "name": "Eşzamanlı 5 Yetkisiz/Bilinmeyen İstek İzolasyonu ve 404 Reddi",
       "status": "PASS",
-      "duration_ms": 2035.77,
-      "details": "5/5 istek 404 döndü, süre: 2035.8ms"
+      "duration_ms": 2041.57,
+      "details": "5/5 istek 404 döndü, süre: 2041.6ms"
     },
     {
       "name": "2 Eşzamanlı Rapor Üretimi (Multi-Thread Concurrency)",
       "status": "PASS",
-      "duration_ms": 4382.49,
-      "details": "Both returned 200 OK, Total execution: 4.38s"
+      "duration_ms": 4315.04,
+      "details": "Both returned 200 OK, Total execution: 4.32s"
     },
     {
       "name": "Geçici Yapılandırma Dosyası İzolasyonu (UUID Ayrışımı)",
       "status": "PASS",
       "duration_ms": 10,
-      "details": "Farklı UUID'li 2 adet izole müşteri konfigi gözlemlendi: ['customer.c4ca4d6d.json', 'customer.f4331d5e.json']"
+      "details": "Farklı UUID'li 2 adet izole müşteri konfigi gözlemlendi: ['customer.9dea8247.json', 'customer.6f130b4a.json']"
     },
     {
       "name": "Geçici Dosya Temizliği & Sıfır İz Garantisi (Zero Leak)",
@@ -315,6 +315,6 @@
     "total": 51,
     "passed": 51,
     "failed": 0,
-    "execution_time_sec": 46.59
+    "execution_time_sec": 46.49
   }
 }
