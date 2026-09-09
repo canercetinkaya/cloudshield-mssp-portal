@@ -1343,7 +1343,7 @@
                         <div class="grid grid-cols-2 gap-2 my-3 text-xs bg-slate-50 p-2.5 rounded-lg">
                             <div><span class="text-slate-500">Uç Noktalar:</span> <strong>${t.TotalEndpoints || 0}</strong></div>
                             <div><span class="text-slate-500">Hayalet Cihaz:</span> <strong class="text-amber-600">${t.GhostDevices || 0}</strong></div>
-                            <div><span class="text-slate-500">Secure Score:</span> <strong class="text-emerald-600">%${t.SecureScore || 75}</strong></div>
+                            <div><span class="text-slate-500">Secure Score:</span> <strong class="text-emerald-600">%${t.SecureScore !== undefined && t.SecureScore !== null ? t.SecureScore : 0}</strong></div>
                             <div><span class="text-slate-500">Kritik Uyarı:</span> <strong class="text-ks-red">${t.OpenHighAlerts || 0}</strong></div>
                         </div>
 
