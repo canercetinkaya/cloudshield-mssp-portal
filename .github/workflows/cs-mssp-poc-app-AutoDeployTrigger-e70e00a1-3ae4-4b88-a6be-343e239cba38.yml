@@ -36,7 +36,7 @@ jobs:
         with:
           appSourcePath: ${{ github.workspace }}
           dockerfilePath: Docker/Dockerfile
-          registryUrl: ghcr.io/canercetinkaya/cloudshield-mssp-portal
+          registryUrl: ghcr.io
           registryUsername: ${{ secrets.CSMSSPPOCAPP_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.CSMSSPPOCAPP_REGISTRY_PASSWORD }}
           containerAppName: cs-mssp-poc-app

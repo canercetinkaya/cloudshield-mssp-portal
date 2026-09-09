@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         run: |
           Import-Module ./Engine/Core/KqlQueryEngine.psm1 -Force
-          $queries = Get-StandardHuntQueries
+          $queries = Get-StandardHuntQueries -StartDate (Get-Date).AddDays(-30) -EndDate (Get-Date)
           Write-Host "KQL Motoru Başarıyla Yüklendi. Tanımlı Sorgu Sayısı: $($queries.Count)"
 
   azure-arm-validate:

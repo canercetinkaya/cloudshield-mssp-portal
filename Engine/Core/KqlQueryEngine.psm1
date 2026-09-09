@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     CloudShield Microsoft Security Reporting Platform - Advanced KQL & Hunting Query Engine
 .DESCRIPTION
@@ -51,11 +51,11 @@ function Invoke-GraphHuntingQuery {
 function Get-StandardHuntQueries {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [datetime] $StartDate,
+        [Parameter(Mandatory = $false)]
+        [datetime] $StartDate = (Get-Date).AddDays(-30),
 
-        [Parameter(Mandatory = $true)]
-        [datetime] $EndDate
+        [Parameter(Mandatory = $false)]
+        [datetime] $EndDate = (Get-Date)
     )
 
     $s = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
