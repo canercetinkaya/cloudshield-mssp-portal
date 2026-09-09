@@ -33,6 +33,11 @@ CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json"
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 DISPATCH_LOGS_FILE = os.path.join(DATA_DIR, "dispatch_logs.json")
 ACTIVITIES_FILE = os.path.join(DATA_DIR, "manual-service-activities.json")
+PORTAL_VERSION = "2.5.0"
+PORTAL_RELEASE = "v2.5.0-LIVE"
+PORTAL_BUILD = "2026.09.09.live-pipeline"
+SESSIONS = {}  # in-memory token -> session data
+
 
 def load_json_file(path, default=None):
     if os.path.exists(path):
@@ -78,6 +83,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("X-Portal-Version", PORTAL_VERSION)
+        self.send_header("X-Portal-Release", PORTAL_RELEASE)
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -99,8 +106,44 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         # API ROUTES
         if path == "/api/health":
-            self.send_json_response({"status": "Healthy", "version": "2.0.0", "timestamp": datetime.now(timezone.utc).isoformat()})
+            self.send_json_response({
+                "status": "Healthy",
+                "version": PORTAL_VERSION,
+                "release": PORTAL_RELEASE,
+                "build": PORTAL_BUILD,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
             return
+
+        elif path == "/api/version":
+            self.send_json_response({
+                "version": PORTAL_VERSION,
+                "release": PORTAL_RELEASE,
+                "build": PORTAL_BUILD,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "environment": "production",
+                "features": [
+                    "LiveDataPipeline",
+                    "LiveGraphApiCollector",
+                    "LiveMdeAdvancedHunting",
+                    "PurviewDlpAlertsLive",
+                    "SessionAuthenticationGate",
+                    "PureLiveTenantsOnly",
+                    "MultiTenantConcurrencyIsolation",
+                    "GdprKvkkPrivacyEngine"
+                ]
+            })
+            return
+
+        elif path == "/api/auth/verify":
+            token = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            sess = SESSIONS.get(token)
+            if sess and sess.get("expiresAt", 0) > time.time():
+                self.send_json_response({"valid": True, "user": sess})
+            else:
+                self.send_json_response({"valid": False, "error": "Oturum geçersiz veya süresi dolmuş"}, status=401)
+            return
+
 
         elif path == "/api/tenants":
             tenants = load_json_file(TENANTS_FILE, [])
@@ -309,7 +352,65 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         except Exception:
             body = {}
 
-        if path == "/api/tenants":
+        if path == "/api/auth/login":
+            username = str(body.get("username", "")).strip()
+            password = str(body.get("password", ""))
+
+            admin_user = os.environ.get("PORTAL_ADMIN_USER", "admin")
+            admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", "CloudShield2026!*")
+
+            # Check credentials (standard admin or portal solution architect)
+            valid = False
+            user_info = None
+            if (username.lower() == admin_user.lower() and password == admin_pass):
+                valid = True
+                user_info = {
+                    "username": admin_user,
+                    "displayName": "Platform Administrator",
+                    "role": "PlatformAdmin",
+                    "initials": "PA",
+                    "email": "mssp-admin@cloudshield-mssp.com",
+                    "tenantScope": "Global"
+                }
+            elif (username.lower() in ("caner.cetinkaya", "caner", "caner.cetinkaya@kocsistem.com.tr") and (password in ("CloudShield2026!*", "Admin2026!*"))):
+                valid = True
+                user_info = {
+                    "username": "caner.cetinkaya",
+                    "displayName": "Caner Çetinkaya",
+                    "role": "Platform Admin & Mimarlık",
+                    "initials": "CÇ",
+                    "email": "caner.cetinkaya@kocsistem.com.tr",
+                    "tenantScope": "Global"
+                }
+
+            if valid:
+                tok = uuid.uuid4().hex + uuid.uuid4().hex
+                SESSIONS[tok] = {
+                    "user": user_info,
+                    "createdAt": time.time(),
+                    "expiresAt": time.time() + 86400
+                }
+                self.send_json_response({
+                    "success": True,
+                    "token": tok,
+                    "user": user_info,
+                    "expiresIn": 86400
+                })
+            else:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Geçersiz kullanıcı adı veya şifre. Varsayılan kimlik: admin / CloudShield2026!*"
+                }, status=401)
+            return
+
+        elif path == "/api/auth/logout":
+            tok = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            if tok in SESSIONS:
+                del SESSIONS[tok]
+            self.send_json_response({"success": True, "message": "Oturum güvenle kapatıldı."})
+            return
+
+        elif path == "/api/tenants":
             tenants = load_json_file(TENANTS_FILE, [])
             new_id = f"tenant-{len(tenants)+1:03d}"
             body["Id"] = new_id

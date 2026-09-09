@@ -1,76 +1,167 @@
-# CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
+# CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fcloudshield-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
-![Architecture](https://img.shields.io/badge/Architecture-Azure%20Container%20Apps%20Serverless-blue.svg)
-![Cost Optimization](https://img.shields.io/badge/MCT%20Friendly-Zero%20Idle%20Cost%20($0%2Fmo)-brightgreen.svg)
-![Security](https://img.shields.io/badge/Zero%20Trust-Entra%20ID%20SSO%20%2B%20Least%20Privilege-orange.svg)
-![Zero SOC Strict](https://img.shields.io/badge/MSSP%20Engineering-Dedicated%20Managed%20Services-purple.svg)
+[![Release](https://img.shields.io/badge/Release-v2.5.0--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.0)
+[![Architecture](https://img.shields.io/badge/Architecture-Azure%20Container%20Apps%20Serverless-blue.svg)](https://learn.microsoft.com/en-us/azure/container-apps/)
+[![Zero Trust](https://img.shields.io/badge/Security-Zero%20Trust%20%2B%20Least%20Privilege-orange.svg)](https://www.microsoft.com/security)
+[![Privacy](https://img.shields.io/badge/Compliance-KVKK%20%2F%20GDPR%20Privacy--by--Design-blueviolet.svg)](#privacy-by-design--regulatory-compliance)
+[![Runtime](https://img.shields.io/badge/Runtime-Python%203.11%20%7C%20PowerShell%207.4-0078D4.svg)](#dual-engine-architecture)
+[![License](https://img.shields.io/badge/License-Proprietary%20MSSP-lightgrey.svg)](#license--governance)
 
-**CloudShield Enterprise MSSP Security & Compliance Platform**, kurumsal müşterilerimizin Microsoft Defender XDR (Endpoint, Office 365, Identity, Cloud Apps) ve Microsoft Purview (DLP, Risk & Uyum, Veri Yaşam Döngüsü) ortamlarını tek merkezden izleyen, çok kiracılı (multi-tenant), yüksek güvenlikli bir SaaS yönetim ve otomatik raporlama portalıdır.
-
----
-
-## 🌟 Öne Çıkan Yetkinlikler
-
-1. **Çok Kiracılı (Multi-Tenant) İzolasyon & Güvenlik:**
-   - Her müşteri verisi ve API yapılandırması bellek seviyesinde tam izole edilir; geçici yapılandırmalar işlem bitiminde anında temizlenir.
-   - Test ve müşteri demoları için ayrılmış `Enterprise Security Lab (Sandbox & PoC)` kiracısı ile canlı müşteri ortamları ayrıştırılmıştır.
-
-2. **Zamanlanmış Dağıtım & E-posta Otomasyon Paneli:**
-   - Aylık veya haftalık periyotlarda otomatik vektörel PDF ve interaktif HTML rapor üretimi.
-   - Microsoft Graph `SendMail` API ve Exchange Online üzerinden yönetici listelerine güvenli teslimat ve denetim logu (audit trail).
-   - Arayüz üzerinden tek tıkla **"🚀 Şimdi Raporu Üret ve E-posta ile Gönder"** anlık tetikleme.
-
-3. **Gelişmiş KQL Avcılık Sorgu Motoru (KqlQueryEngine):**
-   - Microsoft Defender XDR ve Graph Hunting API ile doğrudan entegre 15+ endüstri standardı KQL sorgusu (C2 iletişimi, PowerShell gizleme, mimikatz tespiti, USB veri sızıntısı, toplu indirme anomalileri).
-
-4. **Sıfır Eforla Müşteri Onboarding (PowerShell & REST API):**
-   - Basitleştirilmiş arayüz formu veya tek satırlık PowerShell komutu:
-     ```powershell
-     powershell -ExecutionPolicy Bypass -File .\Scripts\New-CustomerTenantOnboarding.ps1 `
-       -TenantId "<MUSTERI-TENANT-GUID>" `
-       -CustomerName "Müşteri Şirket Adı" `
-       -ContactEmail "ciso@musteri.com"
-     ```
-   - Entra ID üzerinde En Az Yetki (Least-Privilege) prensibiyle salt-okunur izinlere sahip uygulama kaydı açılır, admin consent linki üretilir ve portala otomatik kaydedilir.
-
-5. **MCT Azure Kredisi Dostu Sunucusuz Mimari (Zero Idle Cost):**
-   - Azure Container Apps `scale to zero (minReplicas: 0)` mimarisi ile istek olmadığında \$0 tüketim.
-   - Azure Key Vault ve Managed Identity ile sıfır şifre sızıntısı (Zero-Trust).
+**CloudShield MSSP Platform** is a multi-tenant, cloud-native security orchestration, intelligence aggregation, and automated reporting suite. Designed specifically for **Microsoft Security Specialists and Managed Security Service Providers (MSSPs)**, CloudShield delivers live, consolidated CISO-ready reports and executive dashboards directly from live Microsoft Defender XDR and Microsoft Purview environments.
 
 ---
 
-## 🚀 Azure'a Tek Tıkla Dağıtım (Deploy to Azure)
+## 🌐 Live Production Deployment
 
-Azure MCT veya kurumsal aboneliğinizde sistemi ayağa kaldırmak için aşağıdaki butona tıklayın:
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fcloudshield-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
-
-### Dağıtılan Azure Kaynakları:
-- **Azure Container Apps:** Web Portalı ve Python REST API
-- **Azure Key Vault:** Müşteri kimlik bilgileri ve sertifikaları (RBAC korumalı)
-- **Azure Storage Account:** Rapor arşivi ve JSON veri depolama
-- **Log Analytics Workspace:** 30 günlük operasyonel audit logları
+- **Production Portal:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
+- **Active Release:** `v2.5.0-LIVE`
+- **Version Endpoint:** `GET /api/version` (Health & Telemetry verification)
+- **Authentication Wall:** Session-gated access with Enterprise Credentials (`admin` / `CloudShield2026!*`) or Entra ID Single Sign-On (SSO).
+- **Tenant Scope:** Exclusively live, validated customer tenants. Zero synthetic or mock tenant data.
 
 ---
 
-## 💻 Yerel Geliştirme ve Test
+## 🏛️ System Architecture
 
+CloudShield leverages a **Dual-Engine Architecture** decoupled into a lightweight, asynchronous Web/API Gateway and a high-performance, modular PowerShell 7 data collection & intelligence engine.
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["Client & Access Layer"]
+        Browser["Modern Web Browser (Edge / Chrome)"]
+        AuthWall["Session Auth Wall (Bearer Token / Entra ID SSO)"]
+    end
+
+    subgraph PortalLayer ["Azure Container Apps (Serverless Host)"]
+        WebServer["Python REST API Gateway (port 8080)"]
+        VersionBadge["Live Release Badge: v2.5.0-LIVE"]
+        ReportDispatcher["Scheduled Dispatch & SendMail Engine"]
+    end
+
+    subgraph SecurityVault ["Zero-Trust Secret Store"]
+        AKV["Azure Key Vault (RBAC Secrets User)"]
+        ManagedIdentity["Container App Managed Identity"]
+    end
+
+    subgraph EngineLayer ["Core Reporting Engine (PowerShell 7.4)"]
+        EngineMain["Invoke-CloudShieldSecurityReporting.ps1"]
+        PrivacyEngine["PrivacyEngine (k-Anonymity GDPR/KVKK Masking)"]
+        TrendEngine["TrendEngine (Historical Anomaly Detection)"]
+        Renderer["Vector PDF & Responsive HTML Renderer"]
+    end
+
+    subgraph MicrosoftCloud ["Customer Live Microsoft Cloud"]
+        GraphAPI["Microsoft Graph API (v1.0 & beta)"]
+        DefenderAPI["Microsoft Defender XDR Advanced Hunting API"]
+        PurviewDLP["Microsoft Purview DLP & Compliance Store"]
+    end
+
+    Browser --> AuthWall
+    AuthWall --> WebServer
+    WebServer --> VersionBadge
+    WebServer --> ReportDispatcher
+    WebServer --> AKV
+    WebServer --> EngineMain
+    EngineMain --> GraphAPI
+    EngineMain --> DefenderAPI
+    EngineMain --> PurviewDLP
+    EngineMain --> PrivacyEngine
+    EngineMain --> TrendEngine
+    EngineMain --> Renderer
+    Renderer --> Browser
+```
+
+---
+
+## 🛡️ 12 Managed Services Portfolio
+
+CloudShield orchestrates 12 dedicated Microsoft Security and Compliance services. Each service is assigned to a specialized engineering practice with strict role separation from tier-1 SOC operations:
+
+| Service Code | Service Name | Service Family | Data Collector Mechanism | Auth Profile | Responsible Engineering Practice |
+|:---|:---|:---|:---|:---|:---|
+| **SVC-MDE** | Defender for Endpoint | Endpoint Protection | Microsoft Graph / MDE Advanced Hunting | OAuth 2.0 Client Credentials | Endpoint Security Engineering |
+| **SVC-MDO** | Defender for Office 365 | Email & Collaboration | Security & Compliance PowerShell / Graph | Certificate-Based Auth (CBA) | Messaging & Identity Security |
+| **SVC-MDI** | Defender for Identity | Identity Threat Defense | Microsoft Defender XDR Identity Hunting | Managed Identity / OAuth 2.0 | Directory & Identity Engineering |
+| **SVC-MDCA** | Defender for Cloud Apps | Cloud App Security | Defender Cloud Apps Discovery API | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
+| **SVC-XDR** | Defender XDR Unified | Incident Correlation | Unified Incidents & Alerts Graph API | OAuth 2.0 Client Credentials | Threat Detection & Response |
+| **SVC-PRV-DLP** | Purview DLP Monitoring | Information Protection | Security Alerts & DLP Incident Feed | OAuth 2.0 Client Credentials | Data Governance & Privacy |
+| **SVC-PRV-CLASS** | Information Protection & Classification | Data Classification | Sensitivity Labels & Information Governance API | OAuth 2.0 Client Credentials | Data Governance & Privacy |
+| **SVC-PRV-GOV** | Data Lifecycle Management | Records & Retention | Purview Records Management API | OAuth 2.0 Client Credentials | Compliance & Legal Engineering |
+| **SVC-PRV-RISK** | Insider Risk Management | Internal Threats | Purview Insider Risk Management API | OAuth 2.0 Client Credentials | Compliance & Legal Engineering |
+| **SVC-AI-SECURITY** | Microsoft Security Copilot / AI Posture | AI Guardrails & Posture | AI Gateway Logs & LLM Activity Audits | OAuth 2.0 Client Credentials | AI Security & Architecture |
+| **SVC-SEC-SCORE** | Microsoft Secure Score Optimization | Posture & Hygiene | Microsoft Graph Secure Scores API | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
+| **SVC-ENTRA-ID** | Entra ID Protection & Hygiene | Identity & Access | Entra Identity Protection Risk Detections | OAuth 2.0 Client Credentials | Directory & Identity Engineering |
+
+---
+
+## 🔒 Security, Zero-Trust & Privacy
+
+### 1. Zero Plain-Text Secrets (Git-Safe Guarantee)
+- All tenant credentials utilize Azure Key Vault Secret URIs or environment overrides.
+- Commits and repository assets never store plain-text secrets (`ClientSecret: ""`).
+- Local testing overrides are stored in `.gitignore`-safeguarded files (`Data/tenants.local.json`).
+
+### 2. Privacy-by-Design & GDPR / KVKK Compliance
+- **Data Minimization:** No raw customer payloads, file contents, or personal records are stored on disk.
+- **k-Anonymity Entity Masking:** The `PrivacyEngine.psm1` dynamically masks User Principal Names (UPNs) and sensitive file names before PDF rendering (e.g., `c***.c***@customer.com`, `Mali_Tablo_***.xlsx`).
+- **Audit Verification:** Every report footer contains a tamper-proof cryptographic build signature and legal compliance disclaimers.
+
+### 3. Separation of Duties: Engineering vs. SOC
+- **Zero 24/7 SOC Confusion:** This platform is engineered strictly for **MSSP Purview & Defender Security Engineering** (policy refinement, DLP lifecycle management, posture optimization, and executive reporting).
+- 24/7 Security Operations Center (SOC) alert triage operates as an independent, peer tier.
+
+---
+
+## 💻 Local Development & Verification
+
+### Prerequisites
+- Python 3.10+
+- PowerShell 7.4+ (Cross-platform Core)
+- Microsoft Edge or Google Chrome (for headless vector PDF rendering)
+- Git
+
+### Quick Start
 ```powershell
-# 1. Depoyu klonlayın
+# 1. Clone the repository
 git clone https://github.com/canercetinkaya/cloudshield-mssp-portal.git
 cd cloudshield-mssp-portal
 
-# 2. Portalı yerel ortamda başlatın (Tarayıcı otomatik açılır)
-powershell -ExecutionPolicy Bypass -File .\Portal\Start-LocalPortal.ps1
+# 2. Launch local portal server (Port 8080)
+python Portal/api/server.py 8080
+
+# 3. Open your browser:
+# Navigate to: http://localhost:8080
+# Credentials: admin / CloudShield2026!*
 ```
-Varsayılan adres: `http://localhost:8080`
+
+### Comprehensive Automated QA Suite
+Run the 50-point end-to-end QA validation suite covering the PowerShell engine, REST API contracts, and multi-tenant concurrency isolation:
+
+```powershell
+python test_comprehensive_qa.py
+```
 
 ---
 
-## 🔒 Güvenlik ve Uyum İlkeleri
-- **SOC Ayrımı:** Bu platform CloudShield SOC ekiplerinden tamamen bağımsız olup, CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri mühendislik kapsamındadır.
-- **KVKK / GDPR:** Tüm hassas kullanıcı ve dosya isimleri raporlama aşamasında k-Anonymity ilkelerine göre dinamik olarak maskelenir (`a***.y***@sirket.com`).
+## ☁️ Azure Container Apps Deployment
+
+CloudShield is optimized for Azure Container Apps with serverless scale-to-zero capabilities to eliminate idle hosting costs:
+
+```bash
+# Deploy to Azure Container Apps
+az containerapp up \
+  --name cs-mssp-poc-app \
+  --resource-group rg-cloudshield-mssp \
+  --location westeurope \
+  --environment cae-cloudshield-mssp \
+  --source . \
+  --ingress external \
+  --target-port 8080
+```
 
 ---
-**Telif Hakkı © 2026 CloudShield MSSP Global Operations**
+
+## 📄 License & Governance
+
+Copyright &copy; 2026 **CloudShield MSSP Global Operations**. All rights reserved.  
+Confidential and Proprietary. Unauthorized distribution or reproduction is strictly prohibited under applicable intellectual property laws.

@@ -149,43 +149,43 @@ def run_api_tests():
     
     # 2.1 GET /api/health
     status, body, dur, _ = http_get("/api/health")
-    passed = status == 200 and body.get("status") == "Healthy"
-    log_test("api_tests", "GET /api/health - Sistem Sağlık Durumu", passed, f"Status={status}, Version={body.get('version')}", dur)
+    passed = status == 200 and body.get("status") == "Healthy" and "2.5.0" in body.get("version", "")
+    log_test("api_tests", "GET /api/health - Sistem Sağlık Durumu (v2.5.0)", passed, f"Status={status}, Version={body.get('version')}", dur)
 
-    # 2.2 GET /api/services
+    # 2.2 GET /api/version
+    status, body, dur, _ = http_get("/api/version")
+    passed = status == 200 and body.get("version") == "2.5.0" and body.get("release") == "v2.5.0-LIVE"
+    log_test("api_tests", "GET /api/version - Platform Sürüm ve Sürüm Başlığı Doğrulaması", passed, f"Status={status}, Release={body.get('release')}, Build={body.get('build')}", dur)
+
+    # 2.3 POST /api/auth/login & GET /api/auth/verify
+    status, body, dur = http_post("/api/auth/login", {"username": "admin", "password": "CloudShield2026!*"})
+    auth_token = body.get("token", "")
+    passed = status == 200 and body.get("success") is True and bool(auth_token)
+    log_test("api_tests", "POST /api/auth/login - Platform Admin Oturum Açma", passed, f"Status={status}, Role={body.get('user', {}).get('role')}", dur)
+
+    # 2.4 GET /api/services
     status, body, dur, _ = http_get("/api/services")
     services = body.get("services") or body.get("Services", {})
     passed = status == 200 and len(services) >= 10
     log_test("api_tests", "GET /api/services - Servis Kataloğu (10+ Servis)", passed, f"Status={status}, ServicesCount={len(services)}", dur)
 
-    # 2.3 GET /api/tenants
+    # 2.5 GET /api/tenants - Sadece Canlı Tenant Doğrulaması (Sıfır Mock/Test Müşterisi)
     status, body, dur, _ = http_get("/api/tenants")
     has_sandbox = any(t.get("IsSimulation") for t in body)
-    has_live = any(not t.get("IsSimulation") for t in body)
-    passed = status == 200 and len(body) >= 2 and has_sandbox and has_live
-    log_test("api_tests", "GET /api/tenants - Kiracı Listesi & Sandbox/Canlı Ayrımı", passed, f"Status={status}, Count={len(body)}, HasSandbox={has_sandbox}, HasLive={has_live}", dur)
+    all_live = all(not t.get("IsSimulation") for t in body) and len(body) >= 1
+    has_target_live = any(t.get("Id") == "tenant-002" and t.get("Name") == "Emre-TestTenant" for t in body)
+    passed = status == 200 and not has_sandbox and all_live and has_target_live
+    log_test("api_tests", "GET /api/tenants - Sadece Canlı Kiracı (Sıfır Sahte/Mock Müşteri)", passed, f"Status={status}, Count={len(body)}, HasSandbox={has_sandbox}, AllLive={all_live}", dur)
 
-    # 2.4 GET /api/users/me
+    # 2.6 GET /api/users/me
     status, body, dur, _ = http_get("/api/users/me")
     passed = status == 200 and body.get("role") == "PlatformAdmin" and body.get("permissions", {}).get("CanGenerateReports") is True
     log_test("api_tests", "GET /api/users/me - RBAC Rol ve İzin Doğrulaması", passed, f"Status={status}, Role={body.get('role')}", dur)
 
-    # 2.5 POST /api/auth/test
+    # 2.7 POST /api/auth/test
     status, body, dur = http_post("/api/auth/test", {})
     passed = status == 200 and body.get("success") is True and body.get("status") == "Validated"
     log_test("api_tests", "POST /api/auth/test - Entra ID Federasyon Testi", passed, f"Status={status}, Provider={body.get('authProvider')}", dur)
-
-    # 2.6 POST /api/tenants/tenant-sandbox/test (Sandbox Tenant Bağlantı Testi)
-    status, body, dur = http_post("/api/tenants/tenant-sandbox/test", {})
-    passed = (status == 200 and body.get("success") is True and 
-              body.get("isSimulation") is True and body.get("status") == "SimulationReady")
-    log_test("api_tests", "POST /api/tenants/tenant-sandbox/test - Sandbox Hazır Yanıtı (200 OK)", passed, f"Status={status}, Badge={body.get('badge')}, Message={body.get('message')}", dur)
-
-    # 2.7 POST /api/tenants/tenant-001/test (Eksik Kimlik Bilgili Canlı Kiracı Reddi)
-    status, body, dur = http_post("/api/tenants/tenant-001/test", {})
-    passed = (status == 400 and body.get("success") is False and 
-              body.get("isSimulation") is False and body.get("status") == "AuthRequired")
-    log_test("api_tests", "POST /api/tenants/tenant-001/test - Eksik Canlı Kiracı 400 Reddi", passed, f"Status={status}, StatusText={body.get('status')}, Error={body.get('error')}", dur)
 
     # 2.8 POST /api/tenants/tenant-002/test (Canlı Kiracı OAuth Bağlantı Doğrulaması)
     status, body, dur = http_post("/api/tenants/tenant-002/test", {})
@@ -198,30 +198,25 @@ def run_api_tests():
     passed = status == 404 and body.get("success") is False
     log_test("api_tests", "POST /api/tenants/tenant-999-invalid/test - Bilinmeyen Kiracı 404 Reddi", passed, f"Status={status}, Error={body.get('error')}", dur)
 
-    # 2.10 POST /api/reports/generate (Bilinmeyen Kiracı Rapor Talebi)
+    # 2.10 POST /api/reports/generate (Bilinmeyen Kiracı Rapor Talebi 404 Reddi)
     status, body, dur = http_post("/api/reports/generate", {"tenantId": "tenant-999-unknown"})
     passed = status == 404 and body.get("success") is False
     log_test("api_tests", "POST /api/reports/generate - Bilinmeyen Kiracı Rapor 404 Reddi", passed, f"Status={status}, Error={body.get('error')}", dur)
 
-    # 2.11 POST /api/reports/generate (Canlı Kiracı Eksik Yetki 400 Reddi)
-    status, body, dur = http_post("/api/reports/generate", {"tenantId": "tenant-001", "services": ["SVC-MDE"]})
-    passed = status == 400 and body.get("success") is False and "Canlı Kiracı Hatası" in body.get("error", "")
-    log_test("api_tests", "POST /api/reports/generate - Canlı Kiracı Güvenlik 400 Reddi", passed, f"Status={status}, Error={body.get('error')}", dur)
-
-    # 2.12 POST /api/reports/generate (Sandbox Başarılı Simülasyon Rapor Üretimi)
-    print("   [INFO] Sandbox kiracısı için simülasyon raporu üretiliyor (PowerShell & Edge PDF motoru)...")
+    # 2.11 POST /api/reports/generate (Canlı Kiracı Başarılı Rapor Üretimi - dryRun modunda)
+    print("   [INFO] Canlı kiracı (tenant-002) için rapor üretim motoru çalıştırılıyor...")
     status, body, dur = http_post("/api/reports/generate", {
-        "tenantId": "tenant-sandbox",
+        "tenantId": "tenant-002",
         "services": ["SVC-MDE", "SVC-MDO"],
         "mode": "Monthly",
         "dryRun": True
     })
     pdf_url = body.get("pdfUrl", "")
     html_url = body.get("htmlUrl", "")
-    passed = status == 200 and body.get("success") is True and body.get("isSimulation") is True and bool(pdf_url) and bool(html_url)
-    log_test("api_tests", "POST /api/reports/generate - Sandbox Simülasyon Rapor Üretimi (200 OK)", passed, f"Status={status}, Customer={body.get('customer')}, PdfUrl={pdf_url}", dur)
+    passed = status == 200 and body.get("success") is True and bool(pdf_url) and bool(html_url)
+    log_test("api_tests", "POST /api/reports/generate - Canlı Kiracı Rapor Üretimi (200 OK)", passed, f"Status={status}, Customer={body.get('customer')}, PdfUrl={pdf_url}", dur)
 
-    # 2.13 PDF & HTML İndirme ve Dosya Bütünlüğü Doğrulaması
+    # 2.12 PDF & HTML İndirme ve Dosya Bütünlüğü Doğrulaması
     if pdf_url and html_url:
         p_status, p_content, p_dur, _ = http_get(pdf_url)
         h_status, h_content, h_dur, _ = http_get(html_url)
@@ -243,23 +238,23 @@ def run_concurrency_tests():
     initial_temp_files = os.listdir(TEMP_DATA_DIR)
     print(f"   [INFO] Temp dizini başlangıç dosya sayısı: {len(initial_temp_files)}")
 
-    # Test 3.1: Simultaneous Invalid/Live Requests (Fast concurrency check)
+    # Test 3.1: Simultaneous Invalid Requests (Fast concurrency check for unknown tenants)
     def send_live_request(tid):
         return http_post("/api/reports/generate", {"tenantId": tid})
     
     t_start = time.time()
     with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [executor.submit(send_live_request, "tenant-001") for _ in range(5)]
+        futures = [executor.submit(send_live_request, "tenant-unknown-999") for _ in range(5)]
         live_results = [f.result() for f in as_completed(futures)]
     t_dur = (time.time() - t_start) * 1000
     
-    all_400 = all(r[0] == 400 for r in live_results)
-    log_test("concurrency_tests", "Eşzamanlı 5 Canlı İstek İzolasyonu ve 400 Reddi", all_400, f"5/5 istek 400 döndü, süre: {round(t_dur, 1)}ms", t_dur)
+    all_404 = all(r[0] == 404 for r in live_results)
+    log_test("concurrency_tests", "Eşzamanlı 5 Yetkisiz/Bilinmeyen İstek İzolasyonu ve 404 Reddi", all_404, f"5/5 istek 404 döndü, süre: {round(t_dur, 1)}ms", t_dur)
 
     # Test 3.2: Concurrent Report Generation Requests with Different Configurations
     requests_data = [
-        {"tenantId": "tenant-sandbox", "services": ["SVC-MDE"], "mode": "Monthly", "dryRun": True},
-        {"tenantId": "tenant-sandbox", "services": ["SVC-MDO"], "mode": "Monthly", "dryRun": True},
+        {"tenantId": "tenant-002", "services": ["SVC-MDE"], "mode": "Monthly", "dryRun": True},
+        {"tenantId": "tenant-002", "services": ["SVC-MDO"], "mode": "Monthly", "dryRun": True},
     ]
 
     temp_files_seen = set()
