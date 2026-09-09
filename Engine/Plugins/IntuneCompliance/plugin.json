@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-INTUNE",
+  "Name": "IntuneCompliance",
+  "DisplayName": "Microsoft Intune Managed Device Compliance",
+  "Category": "EndpointManagement",
+  "Version": "1.0.0",
+  "Author": "CloudShield MSSP Automation Team",
+  "Description": "Microsoft Intune yönetilen cihaz envanteri, uyumluluk ilkeleri, BitLocker/FileVault şifreleme ve işletim sistemi hijyeni."
+}

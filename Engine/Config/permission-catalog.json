@@ -1,0 +1,332 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "catalogVersion": "2.0.0",
+  "lastUpdated": "2026-09-09",
+  "permissions": {
+    "PERM-MDE-001": {
+      "id": "PERM-MDE-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "ThreatHunting.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Endpoint Plan 2 / Microsoft 365 E5",
+      "reason": "Tehdit avı KQL sorguları, sensör telemetrisi ve cihaz izolasyon olayları",
+      "services": [
+        "SVC-MDE",
+        "SVC-MDO",
+        "SVC-MDI",
+        "SVC-MDCA"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/permissions-reference#security-permissions"
+    },
+    "PERM-MDE-002": {
+      "id": "PERM-MDE-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Endpoint Plan 1/2",
+      "reason": "Uç nokta güvenlik alarmları ve otomatik analiz bulguları",
+      "services": [
+        "SVC-MDE",
+        "SVC-MDO",
+        "SVC-MDI",
+        "SVC-MDCA",
+        "SVC-XDR",
+        "SVC-PRV-DLP"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-MDE-003": {
+      "id": "PERM-MDE-003",
+      "resource": "WindowsDefenderATP",
+      "resourceAppId": "fc780465-2017-40d4-a0c5-307022471b92",
+      "permission": "Machine.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Endpoint Plan 1/2",
+      "reason": "MDE doğrudan makineler API'si (Sağlık durumu, sensör versiyonu, siber hijyen)",
+      "services": [
+        "SVC-MDE"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/machines-api"
+    },
+    "PERM-MDE-004": {
+      "id": "PERM-MDE-004",
+      "resource": "WindowsDefenderATP",
+      "resourceAppId": "fc780465-2017-40d4-a0c5-307022471b92",
+      "permission": "AdvancedQuery.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Endpoint Plan 2",
+      "reason": "Defender SecurityCenter API doğrudan KQL sorgulama yetkisi",
+      "services": [
+        "SVC-MDE"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/run-advanced-query-api"
+    },
+    "PERM-MDO-001": {
+      "id": "PERM-MDO-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Office 365 Plan 1/2",
+      "reason": "MDO e-posta tehdit alarmları, kimlik avı ve kötü amaçlı yazılım bildirimleri",
+      "services": [
+        "SVC-MDO"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-MDO-002": {
+      "id": "PERM-MDO-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "ThreatHunting.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Office 365 Plan 2",
+      "reason": "EmailEvents, EmailUrlInfo ve ZAP aksiyonlarının KQL ile incelenmesi",
+      "services": [
+        "SVC-MDO"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-MDI-001": {
+      "id": "PERM-MDI-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Identity",
+      "reason": "MDI Active Directory saldırı ve anomali alarmları",
+      "services": [
+        "SVC-MDI"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-MDI-002": {
+      "id": "PERM-MDI-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "IdentityRiskyUser.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Entra ID P2",
+      "reason": "Entra ID ve MDI korelasyonlu riskli kullanıcı telemetrisi",
+      "services": [
+        "SVC-MDI"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/riskyuser"
+    },
+    "PERM-MDCA-001": {
+      "id": "PERM-MDCA-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender for Cloud Apps",
+      "reason": "CASB bulut uygulaması şüpheli aktivite ve uyarıları",
+      "services": [
+        "SVC-MDCA"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-MDCA-002": {
+      "id": "PERM-MDCA-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "Application.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Entra ID P1/P2 / MDCA",
+      "reason": "OAuth App Governance risk analizi ve aşırı izinli üçüncü taraf uygulamalar",
+      "services": [
+        "SVC-MDCA"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/application"
+    },
+    "PERM-XDR-001": {
+      "id": "PERM-XDR-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityIncident.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender XDR",
+      "reason": "Çok alanlı (Multi-stage) XDR incidentları, SLA ve MTTR hesaplaması",
+      "services": [
+        "SVC-XDR"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-incident"
+    },
+    "PERM-XDR-002": {
+      "id": "PERM-XDR-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Defender XDR",
+      "reason": "Incidentlara bağlı alarmların korelasyon detayları",
+      "services": [
+        "SVC-XDR"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-INTUNE-001": {
+      "id": "PERM-INTUNE-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "DeviceManagementManagedDevices.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Intune Plan 1",
+      "reason": "Yönetilen mobil ve masaüstü cihazların uyumluluk, şifreleme ve envanter durumu",
+      "services": [
+        "SVC-INTUNE"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/intune-devices-manageddevice"
+    },
+    "PERM-INTUNE-002": {
+      "id": "PERM-INTUNE-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "DeviceManagementConfiguration.Read.All",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Intune Plan 1",
+      "reason": "Intune uyumluluk politikası ayarları ve cihaz yapılandırma profilleri",
+      "services": [
+        "SVC-INTUNE"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/intune-deviceconfig-deviceconfiguration"
+    },
+    "PERM-PIM-001": {
+      "id": "PERM-PIM-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "RoleManagement.Read.Directory",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Entra ID P1/P2",
+      "reason": "Microsoft Entra ID dizin rolleri, atamaları ve kalıcı ayrıcalıklı hesap denetimi",
+      "services": [
+        "SVC-ENTRA-PIM"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/unifiedroleassignment"
+    },
+    "PERM-PIM-002": {
+      "id": "PERM-PIM-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "PrivilegedAccess.Read.AzureADGroup",
+      "type": "Application",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Entra ID Governance / P2",
+      "reason": "PIM rol aktivasyon geçmişi, Just-in-Time (JIT) yükseltmeleri ve süre analizi",
+      "services": [
+        "SVC-ENTRA-PIM"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/privilegedaccessgroupassignmentapproval"
+    },
+    "PERM-PRV-001": {
+      "id": "PERM-PRV-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "InformationProtectionPolicy.Read.All",
+      "type": "Application",
+      "authProfile": "PurviewReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Purview Information Protection (MIP) E3/E5",
+      "reason": "DLP kuralları, Duyarlılık Etiketleri (Sensitivity Labels) ve SIT envanteri",
+      "services": [
+        "SVC-PRV-DLP",
+        "SVC-PRV-CLASS",
+        "SVC-AI-SECURITY"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/informationprotection"
+    },
+    "PERM-PRV-002": {
+      "id": "PERM-PRV-002",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "PurviewReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Purview DLP E5",
+      "reason": "DLP ilke ihlalleri, Endpoint DLP dosya kopyalama/yükleme engellemeleri",
+      "services": [
+        "SVC-PRV-DLP"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+    },
+    "PERM-PRV-003": {
+      "id": "PERM-PRV-003",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "RecordsManagement.Read.All",
+      "type": "Application",
+      "authProfile": "PurviewReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Purview Data Lifecycle Management / Records Management E5",
+      "reason": "Saklama etiketleri (Retention Labels) ve saklama politikaları",
+      "services": [
+        "SVC-PRV-GOV"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/recordsmanagement"
+    },
+    "PERM-PRV-004": {
+      "id": "PERM-PRV-004",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "SecurityAlert.Read.All",
+      "type": "Application",
+      "authProfile": "SensitiveComplianceReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft Purview Insider Risk Management E5",
+      "reason": "İç risk ve iletişim uyumu alarmlarının izole ortamda k-anonymity ile agregasyonu",
+      "services": [
+        "SVC-PRV-RISK"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/purview/insider-risk-management"
+    },
+    "PERM-AI-001": {
+      "id": "PERM-AI-001",
+      "resource": "Microsoft Graph",
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "permission": "AuditLog.Read.All",
+      "type": "Application",
+      "authProfile": "PurviewReporting",
+      "requiresAdminConsent": true,
+      "licenseRequired": "Microsoft 365 Copilot / Microsoft Purview Audit (Premium)",
+      "reason": "CopilotInteraction ve yapay zeka denetim kayıtları (AuditLog) analizi",
+      "services": [
+        "SVC-AI-SECURITY"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/auditlogroot"
+    }
+  }
+}

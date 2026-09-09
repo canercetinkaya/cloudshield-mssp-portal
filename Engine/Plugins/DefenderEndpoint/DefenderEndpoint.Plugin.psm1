@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Endpoint (EDR) Service Plugin.
 [CmdletBinding()]
 param()
@@ -133,27 +133,68 @@ function Get-ServiceRawData {
         }
     }
 
-    # Canlı API Çağrıları (MdeApi + Hunting)
-    $mdeToken = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'MDE'
-    $mdeApi = $PlatformConfig.GlobalConfig.Endpoints.Mde
-    $startZ = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-    $endZ   = $EndDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    # Canlı API Çağrıları (MdeApi + Graph Hunting Fallback)
+    $devices = @()
+    $actions = @()
+    $hunt = @{}
+    $availabilityState = 'SupportedAppOnly'
 
-    # Cihazlar
-    $devResp = Invoke-PlatformRestApi -Uri "$mdeApi/api/machines" -AccessToken $mdeToken
-    $devices = @($devResp.value | Where-Object { $_.onboardingStatus -eq 'Onboarded' })
+    try {
+        $mdeToken = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'MDE'
+        $mdeApi = $PlatformConfig.GlobalConfig.Endpoints.Mde
+        $startZ = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        $endZ   = $EndDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
-    # Response aksiyonları
-    $actResp = Invoke-PlatformRestApi -Uri "$mdeApi/api/machineactions?`$filter=creationDateTimeUtc ge $startZ and creationDateTimeUtc lt $endZ" -AccessToken $mdeToken
-    $actions = @($actResp.value)
+        $devResp = Invoke-PlatformRestApi -Uri "$mdeApi/api/machines" -AccessToken $mdeToken
+        $devices = @($devResp.value | Where-Object { $_.onboardingStatus -eq 'Onboarded' })
+
+        $actResp = Invoke-PlatformRestApi -Uri "$mdeApi/api/machineactions?`$filter=creationDateTimeUtc ge $startZ and creationDateTimeUtc lt $endZ" -AccessToken $mdeToken
+        $actions = @($actResp.value)
+    }
+    catch {
+        Write-Verbose "MDE Dedicated API kullanılamadı, Graph Advanced Hunting deneniyor: $($_.Exception.Message)"
+        try {
+            $graphToken = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'CoreSecurityReporting'
+            $kqlDevices = @{
+                Query = "DeviceInfo | summarize arg_max(Timestamp, *) by DeviceId | project DeviceId, DeviceName, OSPlatform, SensorHealthState, Timestamp | take 500"
+            } | ConvertTo-Json -Compress
+
+            $huntResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/runHuntingQuery" -AccessToken $graphToken -Method POST -Body $kqlDevices
+            if ($huntResp.results) {
+                foreach ($row in $huntResp.results) {
+                    $devices += [pscustomobject]@{
+                        id               = $row.DeviceId
+                        computerDnsName  = $row.DeviceName
+                        osPlatform       = $row.OSPlatform
+                        healthStatus     = if ($row.SensorHealthState) { $row.SensorHealthState } else { 'Active' }
+                        lastSeen         = $row.Timestamp
+                        onboardingStatus = 'Onboarded'
+                    }
+                }
+                $availabilityState = 'SupportedAdvancedHunting'
+            }
+        }
+        catch {
+            $errMsg = $_.Exception.Message
+            $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                                 elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                                 else { 'CollectionFailed' }
+            Write-Warning "Cihaz telemetrisi toplanamadı ($availabilityState): $errMsg"
+        }
+    }
+
+    if ($devices.Count -eq 0 -and $availabilityState -eq 'SupportedAppOnly') {
+        $availabilityState = 'NoData'
+    }
 
     return [pscustomobject]@{
-        Devices   = $devices
-        Actions   = $actions
-        Hunt      = @{}
-        StartDate = $StartDate
-        EndDate   = $EndDate
-        IsMock    = $false
+        Devices           = $devices
+        Actions           = $actions
+        Hunt              = $hunt
+        StartDate         = $StartDate
+        EndDate           = $EndDate
+        AvailabilityState = $availabilityState
+        IsMock            = $false
     }
 }
 
@@ -170,17 +211,19 @@ function Get-ServiceKpis {
 
     $d = @($RawData.Devices)
     $ac = @($RawData.Actions)
-    $h = $RawData.Hunt
+    $h = if ($RawData.Hunt) { $RawData.Hunt } else { @{} }
 
     $ghostThreshold = $RawData.EndDate.AddDays(-7)
     $hayaletCihazlar = @($d | Where-Object {
-        $last = [DateTime]::Parse($_.lastSeen)
-        $last -lt $ghostThreshold
+        if ($_.lastSeen) {
+            try { [DateTime]::Parse($_.lastSeen) -lt $ghostThreshold } catch { $false }
+        } else { $false }
     })
 
     $aktifCihazlar = @($d | Where-Object {
-        $last = [DateTime]::Parse($_.lastSeen)
-        $last -ge $ghostThreshold
+        if ($_.lastSeen) {
+            try { [DateTime]::Parse($_.lastSeen) -ge $ghostThreshold } catch { $true }
+        } else { $true }
     })
 
     # Otonom ve Manuel Response Aksiyonları

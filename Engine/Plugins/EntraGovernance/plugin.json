@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-ENTRA-PIM",
+  "Name": "EntraGovernance",
+  "DisplayName": "Microsoft Entra ID Privileged Identity Management",
+  "Category": "IdentityGovernance",
+  "Version": "1.0.0",
+  "Author": "CloudShield MSSP Automation Team",
+  "Description": "Microsoft Entra ID Privileged Identity Management (PIM) rol aktivasyonları, kalıcı Global Admin hijyeni ve acil durum hesapları denetimi."
+}

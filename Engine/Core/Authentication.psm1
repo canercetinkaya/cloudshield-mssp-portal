@@ -1,4 +1,4 @@
-﻿# Core/Authentication.psm1 - CloudShield Security Reporting Platform
+# Core/Authentication.psm1 - CloudShield Security Reporting Platform
 # RFC 7523 Certificate-Based Authentication (JWT Assertion), Client Secret, Token Caching, and Resilient REST Invoker.
 [CmdletBinding()]
 param()
@@ -218,21 +218,24 @@ function Get-ServiceToken {
         [ValidateSet('Graph', 'MDE', 'MDCA', 'Exchange')]
         [string] $TargetResource = 'Graph',
         [Parameter(Mandatory = $false)]
+        [ValidateSet('CoreSecurityReporting', 'PurviewReporting', 'SensitiveComplianceReporting', 'ReportMailSender')]
+        [string] $AppProfile = 'CoreSecurityReporting',
+        [Parameter(Mandatory = $false)]
         [switch] $UseIsolatedApp
     )
 
     $cust = $PlatformConfig.CustomerConfig
     $tenantId = $cust.Customer.TenantId
 
-    # İlgili uygulama ayarlarını seç
-    $appConfig = if ($UseIsolatedApp -and $cust.Authentication.IsolatedApp.Enabled) {
+    # İlgili uygulama ayarlarını seç (SensitiveComplianceReporting veya IsolatedApp talebi)
+    $appConfig = if (($UseIsolatedApp -or $AppProfile -eq 'SensitiveComplianceReporting') -and $cust.Authentication.IsolatedApp.Enabled) {
         $cust.Authentication.IsolatedApp
     } else {
         $cust.Authentication.CoreApp
     }
 
     $clientId = $appConfig.ClientId
-    $authMethod = $appConfig.AuthMethod
+    $authMethod = if ($appConfig.AuthMethod) { $appConfig.AuthMethod } else { 'ClientSecret' }
 
     # Hedef scope belirleme
     $scope = switch ($TargetResource) {
@@ -242,7 +245,7 @@ function Get-ServiceToken {
         default    { "https://graph.microsoft.com/.default" }
     }
 
-    $cacheKey = "$tenantId|$clientId|$scope"
+    $cacheKey = "$tenantId|$clientId|$TargetResource|$AppProfile"
 
     # Önbellek kontrolü (Süresi bitmeye 5 dakika kalana kadar geçerli)
     if ($Script:TokenCache.ContainsKey($cacheKey)) {
@@ -288,10 +291,19 @@ function Get-ServiceToken {
         $body['client_assertion'] = $assertion
     }
     else {
-        # Secret Çözme (Azure Key Vault Managed Identity veya yerel Windows DPAPI)
+        # Secret Çözme (Doğrudan ClientSecret, Azure Key Vault Managed Identity veya yerel Windows DPAPI)
         $plainSecret = $null
-        if ($appConfig.KeyVaultSecretName -and $env:AZURE_KEYVAULT_URL) {
-            $plainSecret = Get-PlatformKeyVaultSecret -SecretName $appConfig.KeyVaultSecretName
+        if ($appConfig.ClientSecret) {
+            $plainSecret = $appConfig.ClientSecret
+        }
+        elseif ($appConfig.KeyVaultSecretName) {
+            $vaultUrl = if ($env:AZURE_KEYVAULT_URL) { $env:AZURE_KEYVAULT_URL } else { 'https://cs-kv-qwy6we.vault.azure.net' }
+            try {
+                $plainSecret = Get-PlatformKeyVaultSecret -SecretName $appConfig.KeyVaultSecretName -VaultUrl $vaultUrl
+            }
+            catch {
+                Write-Verbose "Key Vault secret okunamadı ($($appConfig.KeyVaultSecretName)): $($_.Exception.Message)"
+            }
         }
         elseif ($appConfig.SecretEncrypted) {
             $secretScope = if ($appConfig.DataProtectionScope) { $appConfig.DataProtectionScope } else { 'CurrentUser' }
@@ -299,7 +311,26 @@ function Get-ServiceToken {
         }
 
         if (-not $plainSecret) {
-            throw "İstemci secret anahtarı çözülemedi (Key Vault Secret Name: $($appConfig.KeyVaultSecretName))."
+            # Local dev fallback: Check untracked tenants.local.json or env variable
+            if ($env:MSSP_CLIENT_SECRET) {
+                $plainSecret = $env:MSSP_CLIENT_SECRET
+            }
+            else {
+                $localTenantsPath = Join-Path $Script:RootPath '..\..\Data\tenants.local.json'
+                if (Test-Path $localTenantsPath) {
+                    try {
+                        $locData = Get-Content $localTenantsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                        $matchT = $locData | Where-Object { $_.TenantId -eq $tenantId -or $_.Auth.ClientId -eq $clientId }
+                        if ($matchT.Auth.ClientSecret) {
+                            $plainSecret = $matchT.Auth.ClientSecret
+                        }
+                    } catch {}
+                }
+            }
+        }
+
+        if (-not $plainSecret) {
+            throw "İstemci secret anahtarı çözülemedi (ClientSecret boş veya Key Vault erişilemedi: $($appConfig.KeyVaultSecretName))."
         }
         $body['client_secret'] = $plainSecret
     }
@@ -312,6 +343,8 @@ function Get-ServiceToken {
         $Script:TokenCache[$cacheKey] = @{
             AccessToken = $token
             ExpiresAt   = (Get-Date).AddSeconds($expiresIn)
+            Profile     = $AppProfile
+            Resource    = $TargetResource
         }
 
         return $token
@@ -325,8 +358,40 @@ function Get-ServiceToken {
                 $errDetail = $reader.ReadToEnd()
             } catch {}
         }
-        throw "Token alımı başarısız oldu ($TargetResource): $errDetail"
+        throw "Token alımı başarısız oldu ($TargetResource - $AppProfile): $errDetail"
     }
+}
+
+function Invalidate-ServiceToken {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $TenantId,
+        [Parameter(Mandatory = $false)]
+        [string] $ClientId = '',
+        [Parameter(Mandatory = $false)]
+        [string] $TargetResource = 'Graph',
+        [Parameter(Mandatory = $false)]
+        [string] $AppProfile = 'CoreSecurityReporting'
+    )
+
+    $keysToRemove = @()
+    foreach ($k in $Script:TokenCache.Keys) {
+        if ($k.StartsWith("$TenantId|")) {
+            $keysToRemove += $k
+        }
+    }
+    foreach ($k in $keysToRemove) {
+        $Script:TokenCache.Remove($k)
+    }
+}
+
+function Clear-RunTokenCache {
+    [CmdletBinding()]
+    param()
+
+    $Script:TokenCache.Clear()
+    [GC]::Collect()
 }
 
 function Invoke-PlatformRestApi {
@@ -388,10 +453,24 @@ function Invoke-PlatformRestApi {
                 continue
             }
 
+            # HTTP 403 Forbidden tanılaması
+            if ($statusCode -eq 403) {
+                $errBody = ''
+                try {
+                    $stream = $_.Exception.Response.GetResponseStream()
+                    $reader = New-Object System.IO.StreamReader($stream)
+                    $errBody = $reader.ReadToEnd()
+                } catch {}
+                throw "HTTP 403 Forbidden (PermissionMissing / NotConsented): $errBody ($Uri)"
+            }
+
             throw $_
         }
     }
     throw "API isteği maksimum deneme sayısına ulaştı: $Uri"
 }
 
-Export-ModuleMember -Function Get-AvailableCertificates, Get-ServiceToken, Invoke-PlatformRestApi, New-ClientAssertionJwt, Get-AzureManagedIdentityToken, Get-PlatformKeyVaultSecret, Get-PlatformKeyVaultCertificate
+Export-ModuleMember -Function Get-AvailableCertificates, Get-ServiceToken, Invalidate-ServiceToken, Clear-RunTokenCache, `
+                              Invoke-PlatformRestApi, New-ClientAssertionJwt, Get-AzureManagedIdentityToken, `
+                              Get-PlatformKeyVaultSecret, Get-PlatformKeyVaultCertificate
+

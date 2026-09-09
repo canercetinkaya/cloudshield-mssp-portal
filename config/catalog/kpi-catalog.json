@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "catalogVersion": "2.0.0",
+  "lastUpdated": "2026-09-09",
+  "availabilityStates": [
+    "SupportedAppOnly",
+    "SupportedPowerShellAppOnly",
+    "SupportedManagementActivityAPI",
+    "SupportedAdvancedHunting",
+    "DerivedFromSupportedFields",
+    "ManualExportOnly",
+    "PortalOnly",
+    "Preview",
+    "Unsupported",
+    "RequiresValidation",
+    "NotLicensed",
+    "PermissionMissing",
+    "NoData",
+    "CollectionFailed"
+  ],
+  "kpis": {
+    "KPI-MDE-001": {
+      "id": "KPI-MDE-001",
+      "nameTr": "Aktif Uç Nokta Sensör Kapsamı",
+      "nameEn": "Active Endpoint Sensor Coverage",
+      "serviceCode": "SVC-MDE",
+      "unit": "Percentage",
+      "targetThreshold": 98.0,
+      "formula": "(ActiveHealthySensors / TotalOnboardedEndpoints) * 100",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "MDE sensörü aktif ve son 7 günde sinyal ileten uç noktaların oranı."
+    },
+    "KPI-MDE-002": {
+      "id": "KPI-MDE-002",
+      "nameTr": "Otonom Tehdit Engelleme Oranı",
+      "nameEn": "Autonomous Threat Block Rate",
+      "serviceCode": "SVC-MDE",
+      "unit": "Percentage",
+      "targetThreshold": 95.0,
+      "formula": "(PreventedThreatActions / TotalThreatDetections) * 100",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "Microsoft Defender otonom motoru tarafından sıfır-müdahale ile engellenen tehditler."
+    },
+    "KPI-MDE-003": {
+      "id": "KPI-MDE-003",
+      "nameTr": "Hayalet (Ghost) Cihaz Sayısı",
+      "nameEn": "Ghost / Inactive Device Count",
+      "serviceCode": "SVC-MDE",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(Endpoints where LastSeen > 30 days)",
+      "availabilityState": "SupportedAppOnly",
+      "description": "30 günden uzun süredir sinyal üretmeyen ve lisans/hijyen riski oluşturan cihazlar."
+    },
+    "KPI-MDO-001": {
+      "id": "KPI-MDO-001",
+      "nameTr": "E-Posta Otonom Tehdit Engelleme Oranı",
+      "nameEn": "Email Threat Protection Block Rate",
+      "serviceCode": "SVC-MDO",
+      "unit": "Percentage",
+      "targetThreshold": 99.0,
+      "formula": "((PhishBlocked + MalwareBlocked + SpoofBlocked) / TotalInboundThreats) * 100",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "MDO ve EOP filtreleri tarafından gelen kutusuna ulaşmadan engellenen e-postalar."
+    },
+    "KPI-MDO-002": {
+      "id": "KPI-MDO-002",
+      "nameTr": "ZAP Sıfır-Saat Otomatik Karantina Sayısı",
+      "nameEn": "ZAP Zero-Hour Auto Purge Volume",
+      "serviceCode": "SVC-MDO",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(EmailEvents where DeliveryAction == 'Purged')",
+      "availabilityState": "SupportedAdvancedHunting",
+      "description": "Teslimattan sonra MDO zekası tarafından posta kutusundan otomatik çekilip karantinaya alınan e-postalar."
+    },
+    "KPI-MDI-001": {
+      "id": "KPI-MDI-001",
+      "nameTr": "Kritik Kimlik Anomali Sayısı",
+      "nameEn": "Critical Identity Anomalies",
+      "serviceCode": "SVC-MDI",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(MdiAlerts where Severity in ['High', 'Medium'])",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Active Directory ve Kerberos/NTLM düzeyinde tespit edilen şüpheli kimlik eylemleri."
+    },
+    "KPI-MDCA-001": {
+      "id": "KPI-MDCA-001",
+      "nameTr": "Keşfedilen Yüksek Riskli Bulut Uygulamaları",
+      "nameEn": "Discovered High-Risk Cloud Apps (Shadow IT)",
+      "serviceCode": "SVC-MDCA",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(DiscoveredApps where RiskScore <= 4)",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "CASB tarafından tespit edilen ve güvenlik skoru yetersiz olan SaaS uygulamaları."
+    },
+    "KPI-XDR-001": {
+      "id": "KPI-XDR-001",
+      "nameTr": "Ortalama İyileştirme Süresi (MTTR)",
+      "nameEn": "Mean Time to Remediate (MTTR)",
+      "serviceCode": "SVC-XDR",
+      "unit": "Minutes",
+      "targetThreshold": 60,
+      "formula": "Average(ResolvedDateTime - CreatedDateTime) in minutes",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "Defender XDR olaylarının tespitinden KoçSistem mühendisleri veya otonom aksiyonlarca çözümüne kadar geçen süre."
+    },
+    "KPI-INTUNE-001": {
+      "id": "KPI-INTUNE-001",
+      "nameTr": "Yönetilen Cihaz Uyumluluk Oranı",
+      "nameEn": "Managed Device Compliance Rate",
+      "serviceCode": "SVC-INTUNE",
+      "unit": "Percentage",
+      "targetThreshold": 95.0,
+      "formula": "(CompliantDevices / TotalManagedDevices) * 100",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Kurumsal güvenlik uyumluluk ilkelerini başarıyla karşılayan Intune cihazlarının oranı."
+    },
+    "KPI-PIM-001": {
+      "id": "KPI-PIM-001",
+      "nameTr": "Kalıcı Global Admin Hijyeni",
+      "nameEn": "Permanent Global Admin Hygiene",
+      "serviceCode": "SVC-ENTRA-PIM",
+      "unit": "Count",
+      "targetThreshold": 2,
+      "formula": "Count(RoleAssignments where Role == 'Global Administrator' and AssignmentType == 'Permanent')",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Acil durum hesapları (break-glass) hariç kalıcı admin yetkisine sahip kullanıcı sayısı."
+    },
+    "KPI-DLP-001": {
+      "id": "KPI-DLP-001",
+      "nameTr": "Otonom Veri Sızıntısı Engelleme Oranı",
+      "nameEn": "Autonomous Data Leak Block Rate",
+      "serviceCode": "SVC-PRV-DLP",
+      "unit": "Percentage",
+      "targetThreshold": 95.0,
+      "formula": "(BlockedDlpEvents / TotalDlpPolicyMatches) * 100",
+      "availabilityState": "DerivedFromSupportedFields",
+      "description": "Purview DLP ilkeleri doğrultusunda sızıntısı anında engellenen hassas veri aktarımları."
+    },
+    "KPI-CLASS-001": {
+      "id": "KPI-CLASS-001",
+      "nameTr": "Duyarlılık Etiketi Kapsamı",
+      "nameEn": "Sensitivity Label Coverage",
+      "serviceCode": "SVC-PRV-CLASS",
+      "unit": "Count",
+      "targetThreshold": 5,
+      "formula": "Count(PublishedSensitivityLabels)",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Organizasyonda aktif ve yayınlanmış sınıflandırma etiketlerinin sayısı."
+    },
+    "KPI-GOV-001": {
+      "id": "KPI-GOV-001",
+      "nameTr": "Yayınlanmış Saklama Politikası Sayısı",
+      "nameEn": "Published Retention Policies",
+      "serviceCode": "SVC-PRV-GOV",
+      "unit": "Count",
+      "targetThreshold": 3,
+      "formula": "Count(RetentionLabels)",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Yasal ve kurumsal saklama/imha için tanımlanmış saklama ilkeleri."
+    },
+    "KPI-RISK-001": {
+      "id": "KPI-RISK-001",
+      "nameTr": "İç Tehdit Güvenlik Olayları (k>=5 Anonim)",
+      "nameEn": "Insider Risk Security Events (k>=5 Anonymized)",
+      "serviceCode": "SVC-PRV-RISK",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(InsiderRiskAlerts with k-anonymity)",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Kişisel veriler maskelenmiş olarak iç risk ve iletişim uygunsuzluğu olayları."
+    },
+    "KPI-AI-001": {
+      "id": "KPI-AI-001",
+      "nameTr": "Copilot & Üretken Yapay Zeka Risk Sinyali",
+      "nameEn": "Copilot & Generative AI Risk Signals",
+      "serviceCode": "SVC-AI-SECURITY",
+      "unit": "Count",
+      "targetThreshold": 0,
+      "formula": "Count(CopilotAuditLogs where SensitiveDataShared == true)",
+      "availabilityState": "SupportedAppOnly",
+      "description": "Copilot veya kurumsal yapay zekaya yönlendirilen hassas veri etkileşimleri."
+    }
+  }
+}

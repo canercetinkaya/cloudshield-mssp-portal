@@ -61,6 +61,32 @@
     "LastDispatchStatus": "Delivered"
   },
   {
+    "Id": "tenant-001",
+    "Name": "Ornek Kurumsal Holding A.S.",
+    "TenantId": "e1111111-1111-1111-1111-111111111111",
+    "ContactEmail": "ciso@ornekholding.com",
+    "ReportMode": "Consolidated",
+    "SelectedPackage": "PKG-05",
+    "IsSimulation": false,
+    "ConnectionStatus": "AuthRequired",
+    "HealthStatus": "Healthy",
+    "TotalEndpoints": 500,
+    "GhostDevices": 5,
+    "OpenHighAlerts": 1,
+    "SecureScore": 65.0,
+    "LastReportDate": "2026-09-01",
+    "ActiveServices": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "Auth": {
+      "Method": "ClientSecret",
+      "ClientId": "",
+      "KeyVaultSecretName": ""
+    },
+    "Description": "Ornek Kurumsal Holding - Henuz Entra ID baglantisi yapilandirilmamis canli musteri"
+  },
+  {
     "Id": "tenant-002",
     "Name": "Emre-TestTenant",
     "TenantId": "c9c0ee10-6398-473c-9681-d2fffaa55531",
@@ -105,7 +131,8 @@
     "Auth": {
       "Method": "ClientSecret",
       "ClientId": "b715103d-ff46-4717-a9b5-cba6427cbe01",
-      "KeyVaultSecretName": "MSSP-Tenant-EmreTestTenant-Secret"
+      "KeyVaultSecretName": "MSSP-Tenant-EmreTestTenant-Secret",
+      "ClientSecret": ""
     },
     "Description": "Emre-TestTenant - Canlı Müşteri Kiracısı (Otomatik Onboard Edildi)",
     "ScheduleFrequency": "Monthly",

@@ -13,6 +13,7 @@ venv/
 
 # Sensitive credentials & keys
 Engine/Config/*.local.json
+Data/*.local.json
 Engine/Data/temp/
 *.pfx
 *.pem

@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender XDR Unified Incidents & SLA Service Plugin.
 [CmdletBinding()]
 param()
@@ -90,25 +90,41 @@ function Get-ServiceRawData {
         }
     }
 
-    $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph'
+    $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'CoreSecurityReporting'
     $startZ = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     $endZ   = $EndDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
     $uri = "https://graph.microsoft.com/v1.0/security/incidents?`$filter=createdDateTime ge $startZ and createdDateTime lt $endZ&`$top=100"
     $incidents = @()
+    $availabilityState = 'SupportedAppOnly'
     try {
         $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
-        $incidents = @($resp.value)
+        $incidents = if ($resp.value) { @($resp.value) } else { @() }
+        if ($incidents.Count -eq 0) {
+            $uriRecent = "https://graph.microsoft.com/v1.0/security/incidents?`$top=50"
+            try {
+                $respRecent = Invoke-PlatformRestApi -Uri $uriRecent -AccessToken $token
+                if ($respRecent.value) { $incidents = @($respRecent.value) }
+            } catch {}
+        }
+        if ($incidents.Count -eq 0) {
+            $availabilityState = 'NoData'
+        }
     }
     catch {
-        Write-Warning "XDR Incident verisi çekilemedi: $($_.Exception.Message)"
+        $errMsg = $_.Exception.Message
+        $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                             elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                             else { 'CollectionFailed' }
+        Write-Warning "XDR Incident verisi çekilemedi ($availabilityState): $errMsg"
     }
 
     return [pscustomobject]@{
-        Incidents = $incidents
-        StartDate = $StartDate
-        EndDate   = $EndDate
-        IsMock    = $false
+        Incidents         = $incidents
+        StartDate         = $StartDate
+        EndDate           = $EndDate
+        AvailabilityState = $availabilityState
+        IsMock            = $false
     }
 }
 

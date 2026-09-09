@@ -31,7 +31,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_URL = "http://localhost:8080"
-ROOT_DIR = r"c:\Users\CANERCETINKAYA\OneDrive - CETINKAYA\Documents\Microsoft Purview Reports\CloudShieldMSSPPortal"
+ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 ENGINE_DIR = os.path.join(ROOT_DIR, "Engine")
 TEMP_DATA_DIR = os.path.join(ENGINE_DIR, "Data", "temp")
 
@@ -154,7 +154,7 @@ def run_api_tests():
 
     # 2.2 GET /api/services
     status, body, dur, _ = http_get("/api/services")
-    services = body.get("Services", {})
+    services = body.get("services") or body.get("Services", {})
     passed = status == 200 and len(services) >= 10
     log_test("api_tests", "GET /api/services - Servis Kataloğu (10+ Servis)", passed, f"Status={status}, ServicesCount={len(services)}", dur)
 
@@ -187,11 +187,11 @@ def run_api_tests():
               body.get("isSimulation") is False and body.get("status") == "AuthRequired")
     log_test("api_tests", "POST /api/tenants/tenant-001/test - Eksik Canlı Kiracı 400 Reddi", passed, f"Status={status}, StatusText={body.get('status')}, Error={body.get('error')}", dur)
 
-    # 2.8 POST /api/tenants/tenant-002/test (Geçersiz Demo ID Canlı Kiracı Reddi)
+    # 2.8 POST /api/tenants/tenant-002/test (Canlı Kiracı OAuth Bağlantı Doğrulaması)
     status, body, dur = http_post("/api/tenants/tenant-002/test", {})
-    passed = (status == 400 and body.get("success") is False and 
-              body.get("isSimulation") is False and body.get("status") == "AuthRequired")
-    log_test("api_tests", "POST /api/tenants/tenant-002/test - Geçersiz Canlı Kiracı 400 Reddi", passed, f"Status={status}, StatusText={body.get('status')}", dur)
+    passed = (status == 200 and body.get("success") is True and 
+              body.get("isSimulation") is False and body.get("status") == "LiveConnected")
+    log_test("api_tests", "POST /api/tenants/tenant-002/test - Canlı Kiracı OAuth Doğrulaması (200 OK)", passed, f"Status={status}, StatusText={body.get('status')}, Badge={body.get('badge')}", dur)
 
     # 2.9 POST /api/tenants/tenant-999-invalid/test (Bilinmeyen Kiracı 404 Reddi)
     status, body, dur = http_post("/api/tenants/tenant-999-invalid/test", {})

@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.parse
 import urllib.request
 import uuid
@@ -31,12 +32,30 @@ CACHE_FILE = os.path.join(DATA_DIR, "daily_cache.json")
 CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 DISPATCH_LOGS_FILE = os.path.join(DATA_DIR, "dispatch_logs.json")
+ACTIVITIES_FILE = os.path.join(DATA_DIR, "manual-service-activities.json")
 
 def load_json_file(path, default=None):
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if os.path.basename(path) == "tenants.json":
+                    local_path = os.path.join(os.path.dirname(path), "tenants.local.json")
+                    if os.path.exists(local_path):
+                        try:
+                            with open(local_path, "r", encoding="utf-8") as lf:
+                                local_tenants = json.load(lf)
+                                local_map = {t.get("Id"): t for t in local_tenants}
+                                for t in data:
+                                    tid = t.get("Id")
+                                    if tid in local_map:
+                                        lt = local_map[tid]
+                                        l_sec = lt.get("Auth", {}).get("ClientSecret")
+                                        if l_sec and not t.get("Auth", {}).get("ClientSecret"):
+                                            t.setdefault("Auth", {})["ClientSecret"] = l_sec
+                        except Exception:
+                            pass
+                return data
         except Exception as e:
             print(f"[WARN] Error loading {path}: {e}")
     return default if default is not None else []
@@ -80,84 +99,6 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.send_json_response(tenants)
             return
 
-        elif path == "/api/dispatch/schedule":
-            tenant_id = body.get("tenantId")
-            tenants = load_json_file(TENANTS_FILE, [])
-            idx = next((i for i, t in enumerate(tenants) if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
-            if idx is None:
-                self.send_json_response({"success": False, "error": "Tenant bulunamadı"}, status=404)
-                return
-
-            t = tenants[idx]
-            t["ScheduleFrequency"] = body.get("frequency", t.get("ScheduleFrequency", "Monthly"))
-            t["DispatchDay"] = int(body.get("dispatchDay", t.get("DispatchDay", 1)))
-            t["DispatchTime"] = body.get("dispatchTime", t.get("DispatchTime", "09:00"))
-            if "recipients" in body:
-                t["RecipientEmails"] = body["recipients"] if isinstance(body["recipients"], list) else [r.strip() for r in str(body["recipients"]).split(",") if r.strip()]
-            if "subjectTemplate" in body:
-                t["EmailSubjectTemplate"] = body["subjectTemplate"]
-            if "attachPdf" in body:
-                t["AttachPdf"] = bool(body["attachPdf"])
-            if "attachHtml" in body:
-                t["AttachHtml"] = bool(body["attachHtml"])
-            if "isActive" in body:
-                t["IsDispatchActive"] = bool(body["isActive"])
-
-            save_json_file(TENANTS_FILE, tenants)
-            self.send_json_response({"success": True, "tenant": t})
-            return
-
-        elif path == "/api/dispatch/send":
-            tenant_id = body.get("tenantId")
-            recipients = body.get("recipients")
-            subject = body.get("subject")
-            attach_pdf = body.get("attachPdf", True)
-            attach_html = body.get("attachHtml", True)
-
-            tenants = load_json_file(TENANTS_FILE, [])
-            idx = next((i for i, t in enumerate(tenants) if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
-            if idx is None:
-                self.send_json_response({"success": False, "error": "Tenant bulunamadı"}, status=404)
-                return
-
-            t = tenants[idx]
-            customer_name = t.get("Name", "Customer")
-            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])
-            if isinstance(recip_list, str):
-                recip_list = [r.strip() for r in recip_list.split(",") if r.strip()]
-
-            safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-            now_iso = datetime.now(timezone.utc).isoformat()
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-            disp_id = f"disp-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-
-            log_entry = {
-                "id": disp_id,
-                "timestamp": now_iso,
-                "tenantId": t.get("Id"),
-                "tenantName": customer_name,
-                "mode": t.get("ScheduleFrequency", "Monthly"),
-                "recipients": recip_list,
-                "subject": subject or f"[CloudShield MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
-                "pdfAttached": f"{safe_name}_Report.pdf" if attach_pdf else None,
-                "htmlAttached": f"{safe_name}_Summary.html" if attach_html else None,
-                "status": "Delivered",
-                "deliveryChannel": "Microsoft Graph SendMail API (Exchange Online)",
-                "latencyMs": 280,
-                "message": f"Rapor başarıyla derlendi ve {len(recip_list)} alıcıya güvenle teslim edildi."
-            }
-
-            logs = load_json_file(DISPATCH_LOGS_FILE, [])
-            logs.insert(0, log_entry)
-            save_json_file(DISPATCH_LOGS_FILE, logs)
-
-            t["LastDispatchDate"] = now_str
-            t["LastDispatchStatus"] = "Delivered"
-            save_json_file(TENANTS_FILE, tenants)
-
-            self.send_json_response({"success": True, "dispatch": log_entry})
-            return
-
         elif path == "/api/users":
             users = load_json_file(USERS_FILE, [])
             self.send_json_response(users)
@@ -171,6 +112,14 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/services":
             catalog = load_json_file(CATALOG_FILE, {})
             self.send_json_response(catalog)
+            return
+
+        elif path == "/api/activities":
+            activities = load_json_file(ACTIVITIES_FILE, [])
+            tenant_filter = query.get("tenantId", [None])[0]
+            if tenant_filter:
+                activities = [a for a in activities if a.get("tenantId") == tenant_filter or a.get("customerName") == tenant_filter]
+            self.send_json_response(activities)
             return
 
         elif path == "/api/users/me":
@@ -520,11 +469,20 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             })
             return
 
+        elif path == "/api/activities":
+            activities = load_json_file(ACTIVITIES_FILE, [])
+            new_id = f"ACT-{datetime.now().strftime('%Y%m%d')}-{len(activities)+1:03d}"
+            body["activityId"] = new_id
+            body["timestamp"] = datetime.now(timezone.utc).isoformat()
+            activities.insert(0, body)
+            save_json_file(ACTIVITIES_FILE, activities)
+            self.send_json_response({"success": True, "activity": body}, status=201)
+            return
+
         elif path == "/api/reports/generate":
             tenant_id = body.get("tenantId")
             services = body.get("services", [])
             mode = body.get("mode", "Monthly")
-            is_dry_run = body.get("dryRun", True)
 
             tenants = load_json_file(TENANTS_FILE, [])
             target_tenant = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
@@ -535,12 +493,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             customer_name = target_tenant.get("Name", "Customer")
             is_simulation = target_tenant.get("IsSimulation", False)
-            print(f"[INFO] Generating report for {customer_name} (Simulation: {is_simulation}, Mode: {mode}, Services: {services})...")
+            is_dry_run = True if is_simulation else bool(body.get("dryRun", False))
+            print(f"[INFO] Generating report for {customer_name} (Simulation: {is_simulation}, DryRun: {is_dry_run}, Mode: {mode}, Services: {services})...")
 
             # Validate real vs sandbox tenant
-            if not is_simulation:
-                auth_info = target_tenant.get("Auth", {})
-                client_id = auth_info.get("ClientId") or target_tenant.get("ClientId")
+            auth_info = target_tenant.get("Auth", {})
+            client_id = auth_info.get("ClientId") or target_tenant.get("ClientId")
+            client_secret = auth_info.get("ClientSecret") or target_tenant.get("ClientSecret")
+            kv_secret = auth_info.get("KeyVaultSecretName") or target_tenant.get("KeyVaultSecretName")
+            auth_method = auth_info.get("Method") or auth_info.get("AuthMethod") or "ClientSecret"
+
+            if not is_simulation and not is_dry_run:
                 if not client_id or "demo" in str(client_id).lower() or len(str(client_id)) < 20:
                     self.send_json_response({
                         "success": False,
@@ -560,11 +523,24 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 cust_cfg["Customer"] = {}
             if "Subscriptions" not in cust_cfg:
                 cust_cfg["Subscriptions"] = {}
+            if "Authentication" not in cust_cfg:
+                cust_cfg["Authentication"] = {}
+            if "CoreApp" not in cust_cfg["Authentication"]:
+                cust_cfg["Authentication"]["CoreApp"] = {}
 
             cust_cfg["Customer"]["Name"] = customer_name
             cust_cfg["Customer"]["TenantId"] = target_tenant.get("TenantId")
             if services:
                 cust_cfg["Subscriptions"]["ActiveServices"] = services
+
+            if client_id:
+                cust_cfg["Authentication"]["CoreApp"]["ClientId"] = client_id
+            cust_cfg["Authentication"]["CoreApp"]["AuthMethod"] = auth_method
+            if client_secret:
+                cust_cfg["Authentication"]["CoreApp"]["ClientSecret"] = client_secret
+            if kv_secret:
+                cust_cfg["Authentication"]["CoreApp"]["KeyVaultSecretName"] = kv_secret
+
             save_json_file(cust_cfg_path, cust_cfg)
 
             # Determine PowerShell binary (Linux Docker uses 'pwsh', Windows uses 'pwsh' or 'powershell.exe')
@@ -573,21 +549,21 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if not os.path.exists(script_path):
                 script_path = os.path.join(ROOT_DIR, "Engine", "Invoke-KocSistemSecurityReporting.ps1")
 
+            pwsh_args = [
+                pwsh_bin, "-NoProfile"
+            ]
             if sys.platform == "win32":
-                pwsh_args = [
-                    pwsh_bin, "-NoProfile", "-ExecutionPolicy", "Bypass", 
-                    "-File", script_path, 
-                    "-ConfigPath", cust_cfg_path, 
-                    "-Mode", mode, "-Pdf"
-                ]
-            else:
-                pwsh_args = [
-                    pwsh_bin, "-NoProfile", 
-                    "-File", script_path, 
-                    "-ConfigPath", cust_cfg_path, 
-                    "-Mode", mode, "-Pdf"
-                ]
+                pwsh_args.extend(["-ExecutionPolicy", "Bypass"])
+            pwsh_args.extend([
+                "-File", script_path, 
+                "-ConfigPath", cust_cfg_path, 
+                "-Mode", mode, "-Pdf"
+            ])
             
+            # Pass specific single service if requested
+            if services and len(services) == 1:
+                pwsh_args.extend(["-ServiceCode", services[0]])
+
             # If simulation or dry run requested, run with -DryRun
             if is_simulation or is_dry_run:
                 pwsh_args.append("-DryRun")
@@ -598,7 +574,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             try:
                 try:
-                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=45)
+                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=90)
                     proc_log = (proc.stdout or "") + (proc.stderr or "")
 
                     # Dynamically locate the newest generated PDF and HTML reports specifically for this customer
@@ -745,6 +721,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             # Live Customer Tenant Verification
             auth_info = target.get("Auth", {})
             client_id = auth_info.get("ClientId") or target.get("ClientId")
+            client_secret = auth_info.get("ClientSecret") or target.get("ClientSecret")
             tenant_guid = target.get("TenantId")
 
             if not client_id or not tenant_guid or "demo" in str(client_id).lower() or len(str(client_id)) < 20:
@@ -761,31 +738,103 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             try:
-                # Ping Microsoft Entra ID OpenID endpoint for the tenant
-                entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
-                req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
-                with urllib.request.urlopen(req, timeout=5) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                    self.send_json_response({
-                        "success": True,
-                        "isSimulation": False,
-                        "status": "LiveConnected",
-                        "badge": "Canlı Kiracı Doğrulandı",
-                        "message": f"Microsoft Entra ID Kiracı uç noktası ({tenant_guid[:8]}...) başarıyla doğrulandı.",
-                        "tenantId": tenant_guid,
-                        "tokenEndpoint": data.get("token_endpoint"),
-                        "latencyMs": 88,
-                        "testedAt": datetime.now(timezone.utc).isoformat()
+                t0 = time.time()
+                token_url = f"https://login.microsoftonline.com/{tenant_guid}/oauth2/v2.0/token"
+
+                if client_secret:
+                    token_data = urllib.parse.urlencode({
+                        "client_id": client_id,
+                        "grant_type": "client_credentials",
+                        "client_secret": client_secret,
+                        "scope": "https://graph.microsoft.com/.default"
+                    }).encode("utf-8")
+
+                    req = urllib.request.Request(token_url, data=token_data, headers={
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent": "CloudShield-MSSP-Portal/2.0"
                     })
-                    return
+                    with urllib.request.urlopen(req, timeout=12) as resp:
+                        tok_resp = json.loads(resp.read().decode("utf-8"))
+                        latency = int((time.time() - t0) * 1000)
+                        token = tok_resp.get("access_token")
+
+                        # Test Graph API alerts endpoint with acquired token
+                        api_detail = "Microsoft Graph API OAuth2 tokenı başarıyla alındı."
+                        try:
+                            probe_req = urllib.request.Request(
+                                "https://graph.microsoft.com/v1.0/security/alerts_v2?$top=1",
+                                headers={"Authorization": f"Bearer {token}", "User-Agent": "CloudShield-MSSP-Portal/2.0"}
+                            )
+                            with urllib.request.urlopen(probe_req, timeout=8) as a_resp:
+                                a_data = json.loads(a_resp.read().decode("utf-8"))
+                                api_detail = "Microsoft Graph Security (DLP/Defender) API erişimi doğrulandı."
+                        except urllib.error.HTTPError as he:
+                            if he.code == 403:
+                                api_detail = "Token alındı fakat SecurityAlerts için yönetici onayı (Admin Consent) gerekiyor."
+
+                        target["ConnectionStatus"] = "LiveConnected"
+                        save_json_file(TENANTS_FILE, tenants)
+
+                        self.send_json_response({
+                            "success": True,
+                            "isSimulation": False,
+                            "status": "LiveConnected",
+                            "badge": "Canlı Kiracı Bağlandı",
+                            "message": f"Microsoft Entra ID kiracısına ({tenant_guid[:8]}...) başarıyla bağlanıldı. {api_detail}",
+                            "tenantId": tenant_guid,
+                            "tokenEndpoint": token_url,
+                            "latencyMs": latency,
+                            "testedAt": datetime.now(timezone.utc).isoformat()
+                        })
+                        return
+                else:
+                    # Fallback to OpenID metadata check
+                    entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
+                    req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        self.send_json_response({
+                            "success": True,
+                            "isSimulation": False,
+                            "status": "LiveConnected",
+                            "badge": "Kiracı Doğrulandı",
+                            "message": f"Microsoft Entra ID Kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. (Secret Key Vault üzerinden okunacak).",
+                            "tenantId": tenant_guid,
+                            "tokenEndpoint": data.get("token_endpoint"),
+                            "latencyMs": int((time.time() - t0) * 1000),
+                            "testedAt": datetime.now(timezone.utc).isoformat()
+                        })
+                        return
+            except urllib.error.HTTPError as he:
+                err_body = he.read().decode("utf-8", errors="replace")
+                try:
+                    err_json = json.loads(err_body)
+                    desc = err_json.get("error_description", str(he))
+                except Exception:
+                    desc = err_body[:200]
+                target["ConnectionStatus"] = "AuthFailed"
+                save_json_file(TENANTS_FILE, tenants)
+                self.send_json_response({
+                    "success": False,
+                    "isSimulation": False,
+                    "status": "AuthFailed",
+                    "badge": "Kimlik Doğrulama Hatası",
+                    "error": f"HTTP {he.code}: {desc}",
+                    "message": f"Microsoft Entra ID ({tenant_guid[:8]}...) kimlik doğrulaması başarısız. Lütfen Application (Client) ID ve Secret değerini kontrol ediniz.",
+                    "tenantId": tenant_guid,
+                    "testedAt": datetime.now(timezone.utc).isoformat()
+                }, status=400)
+                return
             except Exception as e:
+                target["ConnectionStatus"] = "Unreachable"
+                save_json_file(TENANTS_FILE, tenants)
                 self.send_json_response({
                     "success": False,
                     "isSimulation": False,
                     "status": "Unreachable",
                     "badge": "Bağlantı Hatası",
                     "error": str(e),
-                    "message": f"Microsoft Entra ID ({tenant_guid}) kiracı adresine erişilemedi. Lütfen GUID formatını kontrol ediniz.",
+                    "message": f"Microsoft Entra ID ({tenant_guid}) kiracı adresine erişilemedi. Hata: {str(e)}",
                     "tenantId": tenant_guid,
                     "testedAt": datetime.now(timezone.utc).isoformat()
                 }, status=400)

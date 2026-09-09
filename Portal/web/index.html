@@ -355,6 +355,20 @@
                                     <span class="text-slate-500">Çıktı Formatı:</span>
                                     <span class="text-slate-700">Vektörel PDF + HTML</span>
                                 </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-slate-200">
+                                    <span class="text-slate-500">Telemetri Kaynağı:</span>
+                                    <span id="summaryExecutionModeBadge" class="font-bold text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">⚡ Canlı Microsoft API</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-1">
+                                <label class="flex items-center space-x-2 cursor-pointer text-[11px] text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 hover:border-slate-300 transition">
+                                    <input type="checkbox" id="studioDryRunCheck" onchange="updateExecutionModeBadge()" class="rounded text-ks-red focus:ring-ks-red">
+                                    <div>
+                                        <span class="font-semibold text-slate-800">Sentetik Simülasyon (Test Modu)</span>
+                                        <div class="text-[10px] text-slate-400">İşaretsizken canlı Microsoft Graph ve Defender API'si sorgulanır</div>
+                                    </div>
+                                </label>
                             </div>
 
                             <div class="pt-2">
@@ -1388,26 +1402,29 @@
             const container = document.getElementById('serviceCheckboxesContainer');
             container.innerHTML = '';
 
-            const servicesObj = allServices.Services || {
-                "SVC-MDE": { "DisplayNameTr": "Microsoft Defender for Endpoint" },
-                "SVC-MDO": { "DisplayNameTr": "Microsoft Defender for Office 365 / EOP" },
-                "SVC-MDI": { "DisplayNameTr": "Microsoft Defender for Identity" },
-                "SVC-MDCA": { "DisplayNameTr": "Microsoft Defender for Cloud Apps" },
-                "SVC-XDR": { "DisplayNameTr": "Microsoft Defender XDR Bütünleşik Olaylar" },
-                "SVC-PRV-DLP": { "DisplayNameTr": "Microsoft Purview Data Loss Prevention" },
-                "SVC-PRV-CLASS": { "DisplayNameTr": "Microsoft Purview Hassas Veri Sınıflandırma" },
+            const servicesObj = allServices.services || allServices.Services || {
+                "SVC-MDE": { "displayNameTr": "Microsoft Defender for Endpoint (EDR)" },
+                "SVC-MDO": { "displayNameTr": "Microsoft Defender for Office 365 / EOP" },
+                "SVC-MDI": { "displayNameTr": "Microsoft Defender for Identity" },
+                "SVC-MDCA": { "displayNameTr": "Microsoft Defender for Cloud Apps" },
+                "SVC-XDR": { "displayNameTr": "Microsoft Defender XDR Bütünleşik Olaylar" },
+                "SVC-INTUNE": { "displayNameTr": "Microsoft Intune Cihaz Uyumluluğu" },
+                "SVC-ENTRA-PIM": { "displayNameTr": "Microsoft Entra ID Privileged Identity (PIM)" },
+                "SVC-PRV-DLP": { "displayNameTr": "Microsoft Purview Data Loss Prevention" },
+                "SVC-PRV-CLASS": { "displayNameTr": "Microsoft Purview Hassas Veri Sınıflandırma" },
                 "SVC-PRV-GOV": { "DisplayNameTr": "Microsoft Purview Veri Yaşam Döngüsü & Saklama" },
-                "SVC-PRV-RISK": { "DisplayNameTr": "Microsoft Purview İç Tehdit (Insider Risk)" },
-                "SVC-AI-SECURITY": { "DisplayNameTr": "Microsoft Purview AI Güvenliği & Copilot" }
+                "SVC-PRV-RISK": { "displayNameTr": "Microsoft Purview İç Tehdit (Insider Risk)" },
+                "SVC-AI-SECURITY": { "displayNameTr": "Microsoft Purview AI Güvenliği & Copilot" }
             };
 
             for (const [code, meta] of Object.entries(servicesObj)) {
                 const label = document.createElement('label');
                 label.className = 'flex items-start space-x-2.5 p-2.5 rounded-lg border border-slate-200 bg-white hover:border-ks-navy cursor-pointer transition';
+                const name = meta.displayNameTr || meta.DisplayNameTr || meta.name || code;
                 label.innerHTML = `
                     <input type="checkbox" name="studioServices" value="${code}" checked onchange="updateStudioSummary()" class="mt-0.5 rounded text-ks-red focus:ring-ks-red">
                     <div>
-                        <div class="text-xs font-semibold text-slate-800">${meta.DisplayNameTr || code}</div>
+                        <div class="text-xs font-semibold text-slate-800">${name}</div>
                         <div class="text-[10px] text-slate-400 font-mono">${code}</div>
                     </div>
                 `;
@@ -1433,6 +1450,20 @@
             const tenant = allTenants.find(t => t.Id === sel.value);
             if (tenant) {
                 document.getElementById('summaryCustomerName').innerText = tenant.Name;
+                
+                // Telemetri modu (Canlı vs Simülasyon)
+                const dryRunBox = document.getElementById('studioDryRunCheck');
+                if (dryRunBox) {
+                    if (tenant.IsSimulation) {
+                        dryRunBox.checked = true;
+                        dryRunBox.disabled = true;
+                    } else {
+                        dryRunBox.checked = false;
+                        dryRunBox.disabled = false;
+                    }
+                }
+                updateExecutionModeBadge();
+
                 // Pre-check customer's active services
                 if (tenant.ActiveServices && tenant.ActiveServices.length > 0) {
                     const cbs = document.querySelectorAll('input[name="studioServices"]');
@@ -1442,6 +1473,20 @@
                 }
             }
             updateStudioSummary();
+        }
+
+        function updateExecutionModeBadge() {
+            const badge = document.getElementById('summaryExecutionModeBadge');
+            const dryRunBox = document.getElementById('studioDryRunCheck');
+            if (!badge) return;
+
+            if (dryRunBox && dryRunBox.checked) {
+                badge.innerText = 'Sentetik Mock Telemetri';
+                badge.className = 'font-bold text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+            } else {
+                badge.innerText = '⚡ Canlı Microsoft Graph API';
+                badge.className = 'font-bold text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800';
+            }
         }
 
         function updateStudioSummary() {
@@ -1485,6 +1530,10 @@
                 return;
             }
 
+            const tenant = allTenants.find(t => t.Id === tenantId);
+            const dryRunBox = document.getElementById('studioDryRunCheck');
+            const isDryRun = dryRunBox ? dryRunBox.checked : (tenant ? tenant.IsSimulation : false);
+
             const btn = document.getElementById('btnGenerateReport');
             const statusBox = document.getElementById('generationStatusBox');
             const spinner = document.getElementById('spinnerIcon');
@@ -1498,16 +1547,16 @@
             statusBox.classList.remove('hidden');
             actionBtns.classList.add('hidden');
             spinner.classList.remove('hidden');
-            title.innerText = 'Rapor Motoru Çalışıyor...';
-            desc.innerText = `${selectedServices.length} servis için telemetri toplanıyor ve vektörel PDF derleniyor.`;
-            logPre.innerText = '[INFO] PowerShell 7.4 motoru tetiklendi...\n[INFO] Servis filtreleri uygulandı: ' + selectedServices.join(', ');
+            title.innerText = isDryRun ? 'Rapor Motoru Çalışıyor (Simülasyon)...' : '⚡ Canlı Microsoft API Telemetrisi Toplanıyor...';
+            desc.innerText = `${selectedServices.length} servis için telemetri toplanıyor ve kurumsal vektörel PDF derleniyor.`;
+            logPre.innerText = `[INFO] PowerShell 7.4 motoru tetiklendi...\n[INFO] Hedef Kiracı: ${tenant ? tenant.Name : tenantId}\n[INFO] Mod: ${isDryRun ? 'DryRun (Simülasyon)' : 'CANLI MICROSOFT GRAPH/DEFENDER'}\n[INFO] Seçilen Servisler: ` + selectedServices.join(', ');
 
             try {
                 const payload = {
                     tenantId: tenantId,
                     services: selectedServices,
-                    mode: 'Monthly',
-                    dryRun: true
+                    mode: document.getElementById('studioPeriodSelect') ? document.getElementById('studioPeriodSelect').value : 'Monthly',
+                    dryRun: isDryRun
                 };
 
                 const res = await fetch('/api/reports/generate', {
@@ -1519,7 +1568,7 @@
                 const data = await res.json();
                 if (data.success && (data.pdfUrl || data.htmlUrl)) {
                     title.innerText = '✅ Raporlama Başarıyla Tamamlandı!';
-                    desc.innerText = `${data.customer} için rapor çıktıları hazırlandı.`;
+                    desc.innerText = `${data.customer} için ${data.isSimulation ? 'simülasyon' : 'canlı API'} rapor çıktıları hazırlandı.`;
                     spinner.classList.add('hidden');
                     actionBtns.classList.remove('hidden');
 
@@ -1528,6 +1577,7 @@
 
                     if (data.pdfUrl) {
                         pdfBtn.href = data.pdfUrl;
+                        pdfBtn.target = '_blank';
                         pdfBtn.style.display = 'flex';
                     } else {
                         pdfBtn.removeAttribute('href');
@@ -1536,12 +1586,16 @@
 
                     if (data.htmlUrl) {
                         htmlBtn.href = data.htmlUrl;
+                        htmlBtn.target = '_blank';
                         htmlBtn.style.display = 'flex';
                     } else {
                         htmlBtn.removeAttribute('href');
                         htmlBtn.style.display = 'none';
                     }
                     logPre.innerText += '\n[OK] Rapor linki: ' + (data.htmlUrl || data.pdfUrl);
+                    if (data.outputLog) {
+                        logPre.innerText += '\n[LOG]:\n' + data.outputLog;
+                    }
                 } else {
                     title.innerText = '❌ Rapor Üretim Hatası';
                     desc.innerText = data.error || 'Rapor dosyası üretilemedi. Lütfen konsol kaydını kontrol ediniz.';

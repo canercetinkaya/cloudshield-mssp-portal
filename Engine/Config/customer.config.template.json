@@ -20,7 +20,9 @@
   "Authentication": {
     "CoreApp": {
       "ClientId": "00000000-0000-0000-0000-000000000000",
-      "AuthMethod": "Certificate",
+      "AuthMethod": "ClientSecret",
+      "ClientSecret": "",
+      "KeyVaultSecretName": "",
       "CertificateThumbprint": "",
       "CertificateFilePath": "",
       "SecretEncrypted": "",
@@ -30,7 +32,9 @@
     "IsolatedApp": {
       "Enabled": false,
       "ClientId": "",
-      "AuthMethod": "Certificate",
+      "AuthMethod": "ClientSecret",
+      "ClientSecret": "",
+      "KeyVaultSecretName": "",
       "CertificateThumbprint": "",
       "CertificateFilePath": "",
       "SecretEncrypted": "",
