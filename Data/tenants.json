@@ -59,5 +59,64 @@
     "IsDispatchActive": true,
     "LastDispatchDate": "2026-09-09 15:57",
     "LastDispatchStatus": "Delivered"
+  },
+  {
+    "Id": "tenant-002",
+    "Name": "Emre-TestTenant",
+    "TenantId": "c9c0ee10-6398-473c-9681-d2fffaa55531",
+    "ContactEmail": "caner.cetinkaya@kocsistem.com.tr",
+    "ReportMode": "Consolidated",
+    "SelectedPackage": "PKG-10",
+    "IsSimulation": false,
+    "ConnectionStatus": "LiveConnected",
+    "HealthStatus": "Healthy",
+    "TotalEndpoints": 0,
+    "GhostDevices": 0,
+    "OpenHighAlerts": 0,
+    "SecureScore": 43.0,
+    "LastReportDate": "2026-09-09",
+    "ActiveServices": [
+      "SVC-MDE",
+      "SVC-MDO",
+      "SVC-MDI",
+      "SVC-MDCA",
+      "SVC-XDR",
+      "SVC-PRV-DLP",
+      "SVC-PRV-CLASS",
+      "SVC-PRV-GOV",
+      "SVC-PRV-RISK",
+      "SVC-AI-SECURITY"
+    ],
+    "Schedule": {
+      "Frequency": "Monthly",
+      "DayOfMonth": 1,
+      "Time": "08:30",
+      "Recipients": [
+        "caner.cetinkaya@kocsistem.com.tr",
+        "mssp-reports@cloudshield-mssp.com"
+      ],
+      "Channels": [
+        "Email",
+        "HtmlReport",
+        "VectorPdf"
+      ],
+      "Status": "Active"
+    },
+    "Auth": {
+      "Method": "ClientSecret",
+      "ClientId": "b715103d-ff46-4717-a9b5-cba6427cbe01",
+      "KeyVaultSecretName": "MSSP-Tenant-EmreTestTenant-Secret"
+    },
+    "Description": "Emre-TestTenant - Canlı Müşteri Kiracısı (Otomatik Onboard Edildi)",
+    "ScheduleFrequency": "Monthly",
+    "DispatchDay": 1,
+    "DispatchTime": "09:00",
+    "RecipientEmails": [
+      "caner.cetinkaya@kocsistem.com.tr",
+      "mssp-reporting@cloudshield-mssp.com"
+    ],
+    "AttachPdf": true,
+    "AttachHtml": true,
+    "IsDispatchActive": true
   }
 ]
