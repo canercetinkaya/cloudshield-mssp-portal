@@ -157,11 +157,32 @@ def run_api_tests():
     passed = status == 200 and body.get("version") == "2.5.0" and body.get("release") == "v2.5.0-LIVE"
     log_test("api_tests", "GET /api/version - Platform Sürüm ve Sürüm Başlığı Doğrulaması", passed, f"Status={status}, Release={body.get('release')}, Build={body.get('build')}", dur)
 
-    # 2.3 POST /api/auth/login & GET /api/auth/verify
-    status, body, dur = http_post("/api/auth/login", {"username": "admin", "password": "CloudShield2026!*"})
+    # 2.3 POST /api/auth/login & GET /api/auth/verify (Dinamik ve Güvenli Kimlik Çözümleme)
+    auth_local_file = os.path.join(ROOT_DIR, "Data", "auth.local.json")
+    local_cfg = {}
+    if os.path.exists(auth_local_file):
+        try:
+            with open(auth_local_file, "r", encoding="utf-8") as f:
+                local_cfg = json.load(f)
+        except Exception:
+            pass
+    admin_user = os.environ.get("PORTAL_ADMIN_USER", local_cfg.get("admin_user", "admin"))
+    admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", local_cfg.get("admin_password", ""))
+
+    status, body, dur = http_post("/api/auth/login", {"username": admin_user, "password": admin_pass})
     auth_token = body.get("token", "")
     passed = status == 200 and body.get("success") is True and bool(auth_token)
-    log_test("api_tests", "POST /api/auth/login - Platform Admin Oturum Açma", passed, f"Status={status}, Role={body.get('user', {}).get('role')}", dur)
+    log_test("api_tests", "POST /api/auth/login - Platform Admin Oturum Açma (Sıfır Hardcode)", passed, f"Status={status}, Role={body.get('user', {}).get('role')}", dur)
+
+    # 2.3.1 POST /api/auth/login (Hatalı Parola Reddi & Bilgi Sızdırmama Güvencesi)
+    status_bad, body_bad, dur_bad = http_post("/api/auth/login", {"username": admin_user, "password": "InvalidPassword_StrictTest#1"})
+    bad_passed = status_bad == 401 and body_bad.get("success") is False and "CloudShield" not in str(body_bad)
+    log_test("api_tests", "POST /api/auth/login - 401 Yetkisiz Giriş & Hata Mesajında Sıfır Sızıntı", bad_passed, f"Status={status_bad}, GenericError={body_bad.get('error')}", dur_bad)
+
+    # 2.3.2 POST /api/auth/sso (Entra ID Kurumsal SSO Endpoint Doğrulaması)
+    status_sso, body_sso, dur_sso = http_post("/api/auth/sso", {"provider": "EntraID_OIDC"})
+    sso_passed = status_sso == 200 and body_sso.get("success") is True and bool(body_sso.get("token"))
+    log_test("api_tests", "POST /api/auth/sso - Entra ID Kurumsal SSO Oturum Doğrulaması", sso_passed, f"Status={status_sso}, User={body_sso.get('user', {}).get('displayName')}", dur_sso)
 
     # 2.4 GET /api/services
     status, body, dur, _ = http_get("/api/services")

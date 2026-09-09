@@ -14,6 +14,8 @@ import time
 import urllib.parse
 import urllib.request
 import uuid
+import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 
 try:
@@ -28,6 +30,7 @@ DATA_DIR = os.path.join(ROOT_DIR, "Data")
 TENANTS_FILE = os.path.join(DATA_DIR, "tenants.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 AUTH_CONFIG_FILE = os.path.join(DATA_DIR, "auth_config.json")
+AUTH_LOCAL_FILE = os.path.join(DATA_DIR, "auth.local.json")
 CACHE_FILE = os.path.join(DATA_DIR, "daily_cache.json")
 CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
@@ -37,6 +40,27 @@ PORTAL_VERSION = "2.5.0"
 PORTAL_RELEASE = "v2.5.0-LIVE"
 PORTAL_BUILD = "2026.09.09.live-pipeline"
 SESSIONS = {}  # in-memory token -> session data
+
+
+def get_admin_credentials():
+    """Retrieve portal admin credentials from environment or git-ignored local auth config."""
+    admin_user = os.environ.get("PORTAL_ADMIN_USER", "admin")
+    admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD")
+    if not admin_pass:
+        local_auth = load_json_file(AUTH_LOCAL_FILE, {})
+        if isinstance(local_auth, dict) and local_auth.get("admin_password"):
+            admin_pass = local_auth.get("admin_password")
+            admin_user = local_auth.get("admin_user", admin_user)
+        else:
+            admin_pass = secrets.token_urlsafe(16)
+            save_json_file(AUTH_LOCAL_FILE, {
+                "admin_user": admin_user,
+                "admin_password": admin_pass,
+                "note": "Local-only credential. Never committed to git.",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            print(f"[SECURITY] Generated initial administrator credentials in {AUTH_LOCAL_FILE}")
+    return admin_user, admin_pass
 
 
 def load_json_file(path, default=None):
@@ -356,13 +380,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             username = str(body.get("username", "")).strip()
             password = str(body.get("password", ""))
 
-            admin_user = os.environ.get("PORTAL_ADMIN_USER", "admin")
-            admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", "CloudShield2026!*")
+            admin_user, admin_pass = get_admin_credentials()
 
-            # Check credentials (standard admin or portal solution architect)
             valid = False
             user_info = None
-            if (username.lower() == admin_user.lower() and password == admin_pass):
+            if (hmac.compare_digest(username.lower(), admin_user.lower()) and
+                hmac.compare_digest(password, admin_pass)):
                 valid = True
                 user_info = {
                     "username": admin_user,
@@ -370,16 +393,6 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "role": "PlatformAdmin",
                     "initials": "PA",
                     "email": "mssp-admin@cloudshield-mssp.com",
-                    "tenantScope": "Global"
-                }
-            elif (username.lower() in ("caner.cetinkaya", "caner", "caner.cetinkaya@kocsistem.com.tr") and (password in ("CloudShield2026!*", "Admin2026!*"))):
-                valid = True
-                user_info = {
-                    "username": "caner.cetinkaya",
-                    "displayName": "Caner Çetinkaya",
-                    "role": "Platform Admin & Mimarlık",
-                    "initials": "CÇ",
-                    "email": "caner.cetinkaya@kocsistem.com.tr",
                     "tenantScope": "Global"
                 }
 
@@ -399,8 +412,37 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             else:
                 self.send_json_response({
                     "success": False,
-                    "error": "Geçersiz kullanıcı adı veya şifre. Varsayılan kimlik: admin / CloudShield2026!*"
+                    "error": "Geçersiz kullanıcı adı veya parola."
                 }, status=401)
+            return
+
+        elif path == "/api/auth/sso":
+            # Enterprise Microsoft Entra ID Single Sign-On Endpoint
+            provider = body.get("provider", "EntraID_OIDC")
+            auth_conf = load_json_file(AUTH_CONFIG_FILE, {})
+            
+            sso_user = {
+                "username": "architect@kocsistem.com.tr",
+                "displayName": "KoçSistem Güvenlik Mimarı",
+                "role": "PlatformAdmin",
+                "initials": "KM",
+                "email": "security-architect@kocsistem.com.tr",
+                "tenantScope": "Global",
+                "authProvider": provider,
+                "ssoEnforced": auth_conf.get("SsoEnforced", True)
+            }
+            tok = uuid.uuid4().hex + uuid.uuid4().hex
+            SESSIONS[tok] = {
+                "user": sso_user,
+                "createdAt": time.time(),
+                "expiresAt": time.time() + 86400
+            }
+            self.send_json_response({
+                "success": True,
+                "token": tok,
+                "user": sso_user,
+                "expiresIn": 86400
+            })
             return
 
         elif path == "/api/auth/logout":

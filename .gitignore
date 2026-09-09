@@ -1,33 +1,122 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# ==============================================================================
+# CloudShield MSSP Platform - Enterprise DevSecOps .gitignore
+# Strict credential, secret, certificate, log, and local runtime exclusion rules
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Credentials, Secrets & Tokens (STRICT EXCLUSION)
+# ------------------------------------------------------------------------------
 *.env
-.venv/
-env/
-venv/
+*.env.*
+*.env.local
+*.env.production
+*.env.development
+secrets.json
+local.settings.json
+appsettings.Development.json
+*.secret
+*.credentials
+*.token
+*.key
+*.pem
+*.pfx
+*.p12
+*.cer
+*.crt
+*.der
+*.pub
+*.id_rsa
+*.id_ed25519
+id_rsa*
+id_ed25519*
+TokenCache.dat
+accessTokens.json
+.azure/
+.azure-functions/
 
-# PowerShell
-*.ps1xml
-*.log
-
-# Sensitive credentials & keys
+# Sensitive configuration overrides
 Engine/Config/*.local.json
 Data/*.local.json
-Engine/Data/temp/
-*.pfx
-*.pem
-*.key
+Data/tenants.local.json
 
-# Output artifacts & Logs
+# ------------------------------------------------------------------------------
+# 2. Logs, Diagnostic Dumps & Historical Audit Outputs
+# ------------------------------------------------------------------------------
+*.log
+*.jsonl
+*.transcript
+PowerShell_transcript.*
+audit-*.log
+debug.log
+error.log
+
+# Engine Output & Execution Artifacts
 Engine/Output/*
 !Engine/Output/.gitkeep
 Engine/Logs/*
 !Engine/Logs/.gitkeep
+Engine/Data/temp/
 Engine/Data/KPI_*.json
 
-# OS / IDE
+# ------------------------------------------------------------------------------
+# 3. Python Runtime & Virtual Environments
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# ------------------------------------------------------------------------------
+# 4. PowerShell Runtime & Transcripts
+# ------------------------------------------------------------------------------
+*.ps1xml
+*.psm1.log
+
+# ------------------------------------------------------------------------------
+# 5. OS Specific & IDE / Editor Configurations
+# ------------------------------------------------------------------------------
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-.vscode/
+desktop.ini
+
 .idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# VSCode (allow sharing recommended extensions & launch targets)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ------------------------------------------------------------------------------
+# 6. Test Reports & Temporary Analysis Dumps
+# ------------------------------------------------------------------------------
+qa_test_results.json
+test-results/
+coverage.xml
+*.tmp
+*.temp

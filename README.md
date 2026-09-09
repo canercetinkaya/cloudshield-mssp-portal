@@ -1,6 +1,9 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
 [![Release](https://img.shields.io/badge/Release-v2.5.0--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.0)
+[![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
+[![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
+[![CodeQL Security](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml)
 [![Architecture](https://img.shields.io/badge/Architecture-Azure%20Container%20Apps%20Serverless-blue.svg)](https://learn.microsoft.com/en-us/azure/container-apps/)
 [![Zero Trust](https://img.shields.io/badge/Security-Zero%20Trust%20%2B%20Least%20Privilege-orange.svg)](https://www.microsoft.com/security)
 [![Privacy](https://img.shields.io/badge/Compliance-KVKK%20%2F%20GDPR%20Privacy--by--Design-blueviolet.svg)](#privacy-by-design--regulatory-compliance)
@@ -16,7 +19,7 @@
 - **Production Portal:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
 - **Active Release:** `v2.5.0-LIVE`
 - **Version Endpoint:** `GET /api/version` (Health & Telemetry verification)
-- **Authentication Wall:** Session-gated access with Enterprise Credentials (`admin` / `CloudShield2026!*`) or Entra ID Single Sign-On (SSO).
+- **Authentication Wall:** Session-gated access with Enterprise Credentials (managed via environment variables / Azure Key Vault) or Microsoft Entra ID Single Sign-On (SSO).
 - **Tenant Scope:** Exclusively live, validated customer tenants. Zero synthetic or mock tenant data.
 
 ---
@@ -58,66 +61,54 @@ flowchart TD
 
     Browser --> AuthWall
     AuthWall --> WebServer
-    WebServer --> VersionBadge
-    WebServer --> ReportDispatcher
     WebServer --> AKV
     WebServer --> EngineMain
-    EngineMain --> GraphAPI
-    EngineMain --> DefenderAPI
-    EngineMain --> PurviewDLP
     EngineMain --> PrivacyEngine
     EngineMain --> TrendEngine
     EngineMain --> Renderer
-    Renderer --> Browser
+    EngineMain --> GraphAPI
+    EngineMain --> DefenderAPI
+    EngineMain --> PurviewDLP
+    Renderer --> ReportDispatcher
 ```
 
 ---
 
-## 🛡️ Streamlined 8 Enterprise Managed Services (Single Unified Purview)
+## 🔒 Enterprise DevSecOps, RBAC & Zero-Trust Governance
 
-To eliminate service fragmentation and deliver high-value, executive-ready visibility, CloudShield rationalizes the service catalog into **8 core enterprise services**. Microsoft Purview is consolidated into **one unified managed service**, Microsoft Entra ID is unified into **one identity service**, and Defender domains remain distinct to reflect specialized engineering disciplines:
+CloudShield is built from the ground up on CISO-grade Zero-Trust and DevSecOps principles:
 
-| Service Code | Service Name | Service Family | Scope & Consolidation | Auth Profile | Responsible Engineering Practice |
-|:---|:---|:---|:---|:---|:---|
-| **SVC-MDE** | Defender for Endpoint | Endpoint Protection | Endpoint health, antivirus, EDR incidents, attack surface reduction | OAuth 2.0 Client Credentials | Endpoint Security Engineering |
-| **SVC-MDO** | Defender for Office 365 | Email & Collaboration | Phishing, malware, Safe Links/Attachments, mailbox posture | Certificate-Based Auth (CBA) | Messaging & Identity Security |
-| **SVC-MDI** | Defender for Identity | Identity Threat Defense | Kerberos, lateral movement, domain controller telemetry | Managed Identity / OAuth 2.0 | Directory & Identity Engineering |
-| **SVC-MDCA** | Defender for Cloud Apps | Cloud App Security | Shadow IT, OAuth app hygiene, anomalous data downloads | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
-| **SVC-XDR** | Defender XDR Unified | Incident Correlation | Multi-stage incident correlation, automated investigation & response | OAuth 2.0 Client Credentials | Threat Detection & Response |
-| **SVC-INTUNE** | Intune Device Compliance | Endpoint Management | Device compliance state, enrollment hygiene, encryption compliance | OAuth 2.0 Client Credentials | Endpoint Management Engineering |
-| **SVC-ENTRA-ID** | Entra ID Protection & Hygiene | Identity & Access | Privileged Identity Management (PIM), risky users, sign-in risk events | OAuth 2.0 Client Credentials | Directory & Identity Engineering |
-| **SVC-PURVIEW** | Microsoft Purview Suite | Compliance & Governance | **Single Unified Report**: DLP policies, sensitivity labels, lifecycle/retention & insider risk | OAuth 2.0 Client Credentials | Data Governance & Privacy |
+### 1. Zero Plain-Text Secrets & Git Hygiene
+- **Zero Secrets in Repository:** Commits, branches, and public assets NEVER store credentials, tokens, or private keys.
+- **Automated CI/CD Gates:** Every commit and PR is scanned by **Gitleaks**, **TruffleHog**, and **CodeQL SAST** workflows (`.github/workflows/secret-scanning.yml`, `.github/workflows/codeql.yml`).
+- **Dynamic Credential Resolution:** Runtime secrets are injected via secure Azure Container Apps environment variables or resolved in-memory via Azure Key Vault using Container App Managed Identity.
+- **Strict `.gitignore` Boundaries:** All execution transcripts, `.jsonl` audit dumps, output PDFs, and local overrides (`*.local.json`) are strictly untracked.
 
-> [!TIP]
-> **Reporting Architecture & Topology Map:** For an in-depth breakdown of every report's data sources, Graph API endpoints, Advanced Hunting KQL tables (`DeviceInfo`, `DeviceEvents`, `EmailEvents`, `IdentityLogonEvents`, `CloudAppEvents`, `SecurityIncident`, `DlpEvents`), and vector PDF rendering pipeline, see [docs/REPORTING_ARCHITECTURE.md](docs/REPORTING_ARCHITECTURE.md).
+### 2. Azure Role-Based Access Control (Least-Privilege RBAC)
+| Role Definition | Assigned Principal | Scope | Security Purpose |
+| :--- | :--- | :--- | :--- |
+| **Key Vault Secrets User** | Container App System Identity | Azure Key Vault | Read-only in-memory resolution of client secrets. Write or delete permissions are strictly denied. |
+| **Key Vault Certificate User** | Container App System Identity | Azure Key Vault | In-memory resolution of customer tenant certificates for Certificate-Based Authentication (CBA). |
+| **Storage Blob Data Contributor** | Container App System Identity | Storage Account | Encrypted at rest read/write storage for compiled executive reports and archives. |
 
----
+### 3. Privacy-by-Design & GDPR / KVKK Compliance
+- **Data Minimization:** No raw customer payloads, email bodies, or unstructured files are written to persistent storage.
+- **k-Anonymity Dynamic Entity Masking:** `Engine/Core/PrivacyEngine.psm1` dynamically masks User Principal Names (UPNs), IP addresses, and sensitive filenames prior to PDF/HTML rendering (e.g., `c***.c***@customer.com`, `Bilanço_***.xlsx`).
+- **Cryptographic Audit Footers:** Every report contains build telemetry, timestamped generation metadata, and legal disclaimers.
 
-## 🔒 Security, Zero-Trust & Privacy
-
-### 1. Zero Plain-Text Secrets (Git-Safe Guarantee)
-- All tenant credentials utilize Azure Key Vault Secret URIs or environment overrides.
-- Commits and repository assets never store plain-text secrets (`ClientSecret: ""`).
-- Local testing overrides are stored in `.gitignore`-safeguarded files (`Data/tenants.local.json`).
-
-### 2. Privacy-by-Design & GDPR / KVKK Compliance
-- **Data Minimization:** No raw customer payloads, file contents, or personal records are stored on disk.
-- **k-Anonymity Entity Masking:** The `PrivacyEngine.psm1` dynamically masks User Principal Names (UPNs) and sensitive file names before PDF rendering (e.g., `c***.c***@customer.com`, `Mali_Tablo_***.xlsx`).
-- **Audit Verification:** Every report footer contains a tamper-proof cryptographic build signature and legal compliance disclaimers.
-
-### 3. Separation of Duties: Engineering vs. SOC
-- **Zero 24/7 SOC Confusion:** This platform is engineered strictly for **MSSP Purview & Defender Security Engineering** (policy refinement, DLP lifecycle management, posture optimization, and executive reporting).
-- 24/7 Security Operations Center (SOC) alert triage operates as an independent, peer tier.
+### 4. Strict Separation of Duties: MSSP Engineering vs. 24/7 SOC
+- **Engineering Scope:** Engineered strictly for **Purview & Defender Security Engineering** (data loss prevention, sensitivity label optimization, posture hardening, and monthly executive reporting).
+- **Zero 24/7 SOC Confusion:** Live alert triage is handled by an independent tier. The codebase strictly enforces zero unauthorized `SOC` / `SVC-SOC` dependencies.
 
 ---
 
 ## 💻 Local Development & Verification
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.10+ (Standard Library only)
 - PowerShell 7.4+ (Cross-platform Core)
 - Microsoft Edge or Google Chrome (for headless vector PDF rendering)
-- Git
+- Git 2.40+
 
 ### Quick Start
 ```powershell
@@ -125,12 +116,15 @@ To eliminate service fragmentation and deliver high-value, executive-ready visib
 git clone https://github.com/canercetinkaya/cloudshield-mssp-portal.git
 cd cloudshield-mssp-portal
 
-# 2. Launch local portal server (Port 8080)
+# 2. Configure administrative credentials (optional, auto-generates securely in Data/auth.local.json if unset):
+$env:PORTAL_ADMIN_USER = "admin"
+$env:PORTAL_ADMIN_PASSWORD = "YourSecureEnterprisePassword123!"
+
+# 3. Launch local portal server (Port 8080)
 python Portal/api/server.py 8080
 
-# 3. Open your browser:
+# 4. Open your browser:
 # Navigate to: http://localhost:8080
-# Credentials: admin / CloudShield2026!*
 ```
 
 ### Comprehensive Automated QA Suite
@@ -157,6 +151,14 @@ az containerapp up \
   --ingress external \
   --target-port 8080
 ```
+
+---
+
+## 📄 Repository Governance & Contribution
+
+- [Security Policy](.github/SECURITY.md) - Vulnerability disclosure and Zero-Trust rules.
+- [Contributing Guidelines](CONTRIBUTING.md) - Architectural guardrails and branch flow.
+- [Reporting Architecture](docs/REPORTING_ARCHITECTURE.md) - Deep-dive technical engine design.
 
 ---
 

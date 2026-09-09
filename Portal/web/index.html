@@ -71,10 +71,10 @@
 
                 <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Kullanıcı Adı veya UPN</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Kurumsal UPN veya Kullanıcı Adı</label>
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-user text-xs"></i></span>
-                            <input id="loginUsername" type="text" value="admin" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="admin veya caner.cetinkaya@kocsistem.com.tr">
+                            <input id="loginUsername" type="text" value="" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="kullanici@kurum.com.tr">
                         </div>
                     </div>
 
@@ -82,16 +82,16 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Parola</label>
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
-                            <input id="loginPassword" type="password" value="CloudShield2026!*" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="••••••••••••">
+                            <input id="loginPassword" type="password" value="" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="••••••••••••">
                         </div>
                     </div>
 
                     <div class="flex items-center justify-between text-xs text-slate-600">
                         <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" id="loginRememberMe" checked class="rounded text-ks-red focus:ring-ks-red w-3.5 h-3.5">
+                            <input type="checkbox" id="loginRememberMe" class="rounded text-ks-red focus:ring-ks-red w-3.5 h-3.5">
                             <span>Beni Hatırla</span>
                         </label>
-                        <span class="text-[10px] text-slate-400 font-mono">admin / CloudShield2026!*</span>
+                        <span class="text-[10px] text-slate-400 font-medium"><i class="fa-solid fa-shield-halved mr-1 text-emerald-600"></i>Uçtan Uca Şifreli</span>
                     </div>
 
                     <button type="submit" id="loginSubmitBtn" class="w-full bg-ks-red hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition shadow flex items-center justify-center space-x-2">
@@ -1439,11 +1439,35 @@
             }
         }
 
-        function handleEntraSsoLogin() {
-            document.getElementById('loginUsername').value = 'caner.cetinkaya@kocsistem.com.tr';
-            document.getElementById('loginPassword').value = 'CloudShield2026!*';
-            const f = document.getElementById('loginForm');
-            if (f) f.dispatchEvent(new Event('submit'));
+        async function handleEntraSsoLogin() {
+            const errDiv = document.getElementById('loginErrorMsg');
+            const errText = document.getElementById('loginErrorText');
+            if (errDiv) errDiv.classList.add('hidden');
+
+            try {
+                const resp = await fetch('/api/auth/sso', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: 'EntraID_OIDC' })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.success && data.token) {
+                    localStorage.setItem('cloudshield_auth_token', data.token);
+                    currentUser = data.user;
+                    updateUserBadgeUI();
+                    closeAuthModal();
+                } else {
+                    if (errDiv && errText) {
+                        errText.textContent = data.error || 'Entra ID SSO oturum açma başarısız oldu.';
+                        errDiv.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                if (errDiv && errText) {
+                    errText.textContent = 'SSO bağlantı hatası: ' + err.message;
+                    errDiv.classList.remove('hidden');
+                }
+            }
         }
 
         function performLogout() {
