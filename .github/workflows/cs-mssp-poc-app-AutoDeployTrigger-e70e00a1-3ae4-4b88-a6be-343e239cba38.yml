@@ -17,12 +17,13 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+      id-token: write # This is required for requesting the OIDC JWT Token
+      contents: read # Required when GH token is used to authenticate with repo
+      packages: write # Required for publishing and pushing Docker container to GHCR
 
     steps:
       - name: Checkout to the branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
@@ -37,8 +38,8 @@ jobs:
           appSourcePath: ${{ github.workspace }}
           dockerfilePath: Docker/Dockerfile
           registryUrl: ghcr.io
-          registryUsername: ${{ secrets.CSMSSPPOCAPP_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.CSMSSPPOCAPP_REGISTRY_PASSWORD }}
+          registryUsername: ${{ github.actor }}
+          registryPassword: ${{ secrets.GITHUB_TOKEN }}
           containerAppName: cs-mssp-poc-app
           resourceGroup: cloudshield
           imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}

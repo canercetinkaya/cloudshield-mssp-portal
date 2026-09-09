@@ -68,6 +68,9 @@ jobs:
     needs: azure-arm-validate
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: 📥 Depoyu Klonla (Checkout)
@@ -89,3 +92,27 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy-to-azure:
+    name: 🚀 Deploy to Azure Container Apps
+    needs: build-and-push-docker
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: 🔑 Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.CSMSSPPOCAPP_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.CSMSSPPOCAPP_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.CSMSSPPOCAPP_AZURE_SUBSCRIPTION_ID }}
+
+      - name: 🚀 Deploy Image to Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          imageToDeploy: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          containerAppName: cs-mssp-poc-app
+          resourceGroup: cloudshield
