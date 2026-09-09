@@ -16,9 +16,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 try:
-    from report_generator import render_and_save_report
+    from report_generator import render_and_save_report, find_pdf_engine
 except ImportError:
-    from Portal.api.report_generator import render_and_save_report
+    from Portal.api.report_generator import render_and_save_report, find_pdf_engine
 
 PORT = 8080
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
