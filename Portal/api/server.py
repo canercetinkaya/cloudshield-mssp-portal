@@ -640,7 +640,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             cust_cfg["Customer"]["Name"] = customer_name
             cust_cfg["Customer"]["TenantId"] = target_tenant.get("TenantId")
             if services:
-                cust_cfg["Subscriptions"]["ActiveServices"] = services
+                # Expand consolidated service codes for underlying PowerShell plugin compatibility
+                expanded = []
+                for s in services:
+                    if s == "SVC-PURVIEW":
+                        expanded.extend(["SVC-PRV-DLP", "SVC-PRV-CLASS", "SVC-PRV-GOV", "SVC-PRV-RISK", "SVC-AI-SECURITY"])
+                    elif s == "SVC-ENTRA-ID":
+                        expanded.append("SVC-ENTRA-PIM")
+                    else:
+                        expanded.append(s)
+                cust_cfg["Subscriptions"]["ActiveServices"] = expanded
 
             if client_id:
                 cust_cfg["Authentication"]["CoreApp"]["ClientId"] = client_id
@@ -669,8 +678,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "-Mode", mode, "-Pdf"
             ])
             
-            # Pass specific single service if requested
-            if services and len(services) == 1:
+            # Pass specific single service if requested (only if not a composite service like SVC-PURVIEW or SVC-ENTRA-ID)
+            if services and len(services) == 1 and services[0] not in ("SVC-PURVIEW", "SVC-ENTRA-ID"):
                 pwsh_args.extend(["-ServiceCode", services[0]])
 
             # If simulation or dry run requested, run with -DryRun

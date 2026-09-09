@@ -20,11 +20,9 @@
       "SVC-MDI",
       "SVC-MDCA",
       "SVC-XDR",
-      "SVC-PRV-DLP",
-      "SVC-PRV-CLASS",
-      "SVC-PRV-GOV",
-      "SVC-PRV-RISK",
-      "SVC-AI-SECURITY"
+      "SVC-INTUNE",
+      "SVC-ENTRA-ID",
+      "SVC-PURVIEW"
     ],
     "Schedule": {
       "Frequency": "Monthly",

@@ -385,16 +385,20 @@
                             </div>
                             <div class="grid grid-cols-3 gap-3">
                                 <button type="button" onclick="applyPresetPackage('PKG-05')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
-                                    <div class="text-xs font-bold text-ks-navy">PKG-05 Essential</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">MDE + MDO/EOP</div>
+                                    <div class="text-xs font-bold text-ks-navy">PKG-05 Defender XDR Paketi</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">MDE + MDO + MDI + MDCA + XDR</div>
+                                </button>
+                                <button type="button" onclick="applyPresetPackage('PKG-06')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
+                                    <div class="text-xs font-bold text-ks-navy">PKG-06 Purview Veri Güvenliği</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Birleşik DLP, Sınıflandırma &amp; Uyum (Tek Rapor)</div>
                                 </button>
                                 <button type="button" onclick="applyPresetPackage('PKG-07')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
-                                    <div class="text-xs font-bold text-ks-navy">PKG-07 Advanced XDR</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">XDR + MDCA + Purview DLP</div>
+                                    <div class="text-xs font-bold text-ks-navy">PKG-07 Kimlik &amp; Cihaz Hijyeni</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Entra ID PIM + Intune Uyum</div>
                                 </button>
                                 <button type="button" onclick="applyPresetPackage('PKG-10')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
-                                    <div class="text-xs font-bold text-ks-navy">PKG-10 Full E5 MSSP</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">Tüm Servisler + AI Güvenliği</div>
+                                    <div class="text-xs font-bold text-ks-navy">PKG-10 Full E5/E7 MSSP</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Tüm Defender, Purview ve Entra Servisleri</div>
                                 </button>
                             </div>
                         </div>
@@ -1728,34 +1732,83 @@
             const container = document.getElementById('serviceCheckboxesContainer');
             container.innerHTML = '';
 
-            const servicesObj = allServices.services || allServices.Services || {
-                "SVC-MDE": { "displayNameTr": "Microsoft Defender for Endpoint (EDR)" },
-                "SVC-MDO": { "displayNameTr": "Microsoft Defender for Office 365 / EOP" },
-                "SVC-MDI": { "displayNameTr": "Microsoft Defender for Identity" },
-                "SVC-MDCA": { "displayNameTr": "Microsoft Defender for Cloud Apps" },
-                "SVC-XDR": { "displayNameTr": "Microsoft Defender XDR Bütünleşik Olaylar" },
-                "SVC-INTUNE": { "displayNameTr": "Microsoft Intune Cihaz Uyumluluğu" },
-                "SVC-ENTRA-PIM": { "displayNameTr": "Microsoft Entra ID Privileged Identity (PIM)" },
-                "SVC-PRV-DLP": { "displayNameTr": "Microsoft Purview Data Loss Prevention" },
-                "SVC-PRV-CLASS": { "displayNameTr": "Microsoft Purview Hassas Veri Sınıflandırma" },
-                "SVC-PRV-GOV": { "DisplayNameTr": "Microsoft Purview Veri Yaşam Döngüsü & Saklama" },
-                "SVC-PRV-RISK": { "displayNameTr": "Microsoft Purview İç Tehdit (Insider Risk)" },
-                "SVC-AI-SECURITY": { "displayNameTr": "Microsoft Purview AI Güvenliği & Copilot" }
-            };
+            // 8 Sadeleştirilmiş, Gerçek Kurumsal Yönetilen Servis Portföyü
+            // (Purview birleşik tek yönetilen servis, Defender servisleri bağımsız uzmanlık, Entra ID birleşik kimlik)
+            const coreServices = [
+                {
+                    code: "SVC-MDE",
+                    name: "Yönetilen Uç Nokta Güvenliği (EDR)",
+                    family: "Defender EDR",
+                    badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
+                    desc: "Sensör sağlığı, KQL avcılığı, ASR ve otonom izolasyon"
+                },
+                {
+                    code: "SVC-MDO",
+                    name: "Yönetilen E-Posta Güvenliği (MDO + EOP)",
+                    family: "Defender Office",
+                    badgeBg: "bg-sky-50 text-sky-700 border-sky-200",
+                    desc: "Kimlik avı (phishing), Safe Links/Attachments, ZAP karantina"
+                },
+                {
+                    code: "SVC-MDI",
+                    name: "Yönetilen Kimlik Tehdit Koruması (MDI)",
+                    family: "Defender Identity",
+                    badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200",
+                    desc: "Active Directory, Kerberoasting, Lateral Movement tespiti"
+                },
+                {
+                    code: "SVC-MDCA",
+                    name: "Yönetilen Bulut Uygulama Güvenliği (CASB)",
+                    family: "Defender Cloud",
+                    badgeBg: "bg-cyan-50 text-cyan-700 border-cyan-200",
+                    desc: "Shadow IT keşfi, riskli SaaS ve şüpheli OAuth uygulamaları"
+                },
+                {
+                    code: "SVC-XDR",
+                    name: "Yönetilen Bütünleşik XDR Olay Yönetimi ve MTTR",
+                    family: "Defender XDR",
+                    badgeBg: "bg-red-50 text-ks-red border-red-200",
+                    desc: "Çapraz etki alanı korelasyonu, MTTA/MTTR ve birleşik olaylar"
+                },
+                {
+                    code: "SVC-INTUNE",
+                    name: "Yönetilen Cihaz Uyum ve Hijyen (Intune)",
+                    family: "Intune Endpoint",
+                    badgeBg: "bg-slate-100 text-slate-700 border-slate-200",
+                    desc: "Cihaz uyumluluğu, BitLocker şifreleme ve işletim sistemi hijyeni"
+                },
+                {
+                    code: "SVC-ENTRA-ID",
+                    name: "Yönetilen Kimlik Koruması ve PIM (Entra ID)",
+                    family: "Entra ID",
+                    badgeBg: "bg-purple-50 text-purple-700 border-purple-200",
+                    desc: "Privileged Identity (PIM), riskli kullanıcılar & erişim yönetişimi"
+                },
+                {
+                    code: "SVC-PURVIEW",
+                    name: "Yönetilen Veri Güvenliği ve Uyum (Purview)",
+                    family: "Purview Birleşik",
+                    badgeBg: "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold",
+                    desc: "Tek Birleşik Rapor: DLP + Sınıflandırma + Yaşam Döngüsü + İç Tehdit + DSPM AI"
+                }
+            ];
 
-            for (const [code, meta] of Object.entries(servicesObj)) {
+            coreServices.forEach(s => {
                 const label = document.createElement('label');
-                label.className = 'flex items-start space-x-2.5 p-2.5 rounded-lg border border-slate-200 bg-white hover:border-ks-navy cursor-pointer transition';
-                const name = meta.displayNameTr || meta.DisplayNameTr || meta.name || code;
+                label.className = 'flex items-start space-x-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-ks-navy cursor-pointer transition shadow-sm hover:shadow';
                 label.innerHTML = `
-                    <input type="checkbox" name="studioServices" value="${code}" checked onchange="updateStudioSummary()" class="mt-0.5 rounded text-ks-red focus:ring-ks-red">
-                    <div>
-                        <div class="text-xs font-semibold text-slate-800">${name}</div>
-                        <div class="text-[10px] text-slate-400 font-mono">${code}</div>
+                    <input type="checkbox" name="studioServices" value="${s.code}" checked onchange="updateStudioSummary()" class="mt-1 rounded text-ks-red focus:ring-ks-red w-4 h-4">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-xs font-bold text-slate-800 truncate">${s.name}</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded border ${s.badgeBg}">${s.family}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">${s.desc}</div>
+                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">${s.code}</div>
                     </div>
                 `;
                 container.appendChild(label);
-            }
+            });
             updateStudioSummary();
         }
 
@@ -1794,7 +1847,15 @@
                 if (tenant.ActiveServices && tenant.ActiveServices.length > 0) {
                     const cbs = document.querySelectorAll('input[name="studioServices"]');
                     cbs.forEach(cb => {
-                        cb.checked = tenant.ActiveServices.includes(cb.value);
+                        let isMatch = tenant.ActiveServices.includes(cb.value);
+                        // Map legacy Purview sub-services to SVC-PURVIEW
+                        if (!isMatch && cb.value === 'SVC-PURVIEW') {
+                            isMatch = tenant.ActiveServices.some(s => s.startsWith('SVC-PRV-') || s === 'SVC-AI-SECURITY');
+                        }
+                        if (!isMatch && cb.value === 'SVC-ENTRA-ID') {
+                            isMatch = tenant.ActiveServices.includes('SVC-ENTRA-PIM');
+                        }
+                        cb.checked = isMatch;
                     });
                 }
             }
@@ -1832,12 +1893,17 @@
             cbs.forEach(cb => cb.checked = false);
 
             if (pkgCode === 'PKG-05') {
-                ['SVC-MDE', 'SVC-MDO', 'SVC-XDR'].forEach(s => {
+                ['SVC-MDE', 'SVC-MDO', 'SVC-MDI', 'SVC-MDCA', 'SVC-XDR'].forEach(s => {
+                    const el = document.querySelector(`input[name="studioServices"][value="${s}"]`);
+                    if (el) el.checked = true;
+                });
+            } else if (pkgCode === 'PKG-06') {
+                ['SVC-PURVIEW'].forEach(s => {
                     const el = document.querySelector(`input[name="studioServices"][value="${s}"]`);
                     if (el) el.checked = true;
                 });
             } else if (pkgCode === 'PKG-07') {
-                ['SVC-MDE', 'SVC-MDO', 'SVC-MDCA', 'SVC-XDR', 'SVC-PRV-DLP', 'SVC-PRV-CLASS'].forEach(s => {
+                ['SVC-ENTRA-ID', 'SVC-INTUNE'].forEach(s => {
                     const el = document.querySelector(`input[name="studioServices"][value="${s}"]`);
                     if (el) el.checked = true;
                 });

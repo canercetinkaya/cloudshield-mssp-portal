@@ -73,24 +73,23 @@ flowchart TD
 
 ---
 
-## 🛡️ 12 Managed Services Portfolio
+## 🛡️ Streamlined 8 Enterprise Managed Services (Single Unified Purview)
 
-CloudShield orchestrates 12 dedicated Microsoft Security and Compliance services. Each service is assigned to a specialized engineering practice with strict role separation from tier-1 SOC operations:
+To eliminate service fragmentation and deliver high-value, executive-ready visibility, CloudShield rationalizes the service catalog into **8 core enterprise services**. Microsoft Purview is consolidated into **one unified managed service**, Microsoft Entra ID is unified into **one identity service**, and Defender domains remain distinct to reflect specialized engineering disciplines:
 
-| Service Code | Service Name | Service Family | Data Collector Mechanism | Auth Profile | Responsible Engineering Practice |
+| Service Code | Service Name | Service Family | Scope & Consolidation | Auth Profile | Responsible Engineering Practice |
 |:---|:---|:---|:---|:---|:---|
-| **SVC-MDE** | Defender for Endpoint | Endpoint Protection | Microsoft Graph / MDE Advanced Hunting | OAuth 2.0 Client Credentials | Endpoint Security Engineering |
-| **SVC-MDO** | Defender for Office 365 | Email & Collaboration | Security & Compliance PowerShell / Graph | Certificate-Based Auth (CBA) | Messaging & Identity Security |
-| **SVC-MDI** | Defender for Identity | Identity Threat Defense | Microsoft Defender XDR Identity Hunting | Managed Identity / OAuth 2.0 | Directory & Identity Engineering |
-| **SVC-MDCA** | Defender for Cloud Apps | Cloud App Security | Defender Cloud Apps Discovery API | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
-| **SVC-XDR** | Defender XDR Unified | Incident Correlation | Unified Incidents & Alerts Graph API | OAuth 2.0 Client Credentials | Threat Detection & Response |
-| **SVC-PRV-DLP** | Purview DLP Monitoring | Information Protection | Security Alerts & DLP Incident Feed | OAuth 2.0 Client Credentials | Data Governance & Privacy |
-| **SVC-PRV-CLASS** | Information Protection & Classification | Data Classification | Sensitivity Labels & Information Governance API | OAuth 2.0 Client Credentials | Data Governance & Privacy |
-| **SVC-PRV-GOV** | Data Lifecycle Management | Records & Retention | Purview Records Management API | OAuth 2.0 Client Credentials | Compliance & Legal Engineering |
-| **SVC-PRV-RISK** | Insider Risk Management | Internal Threats | Purview Insider Risk Management API | OAuth 2.0 Client Credentials | Compliance & Legal Engineering |
-| **SVC-AI-SECURITY** | Microsoft Security Copilot / AI Posture | AI Guardrails & Posture | AI Gateway Logs & LLM Activity Audits | OAuth 2.0 Client Credentials | AI Security & Architecture |
-| **SVC-SEC-SCORE** | Microsoft Secure Score Optimization | Posture & Hygiene | Microsoft Graph Secure Scores API | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
-| **SVC-ENTRA-ID** | Entra ID Protection & Hygiene | Identity & Access | Entra Identity Protection Risk Detections | OAuth 2.0 Client Credentials | Directory & Identity Engineering |
+| **SVC-MDE** | Defender for Endpoint | Endpoint Protection | Endpoint health, antivirus, EDR incidents, attack surface reduction | OAuth 2.0 Client Credentials | Endpoint Security Engineering |
+| **SVC-MDO** | Defender for Office 365 | Email & Collaboration | Phishing, malware, Safe Links/Attachments, mailbox posture | Certificate-Based Auth (CBA) | Messaging & Identity Security |
+| **SVC-MDI** | Defender for Identity | Identity Threat Defense | Kerberos, lateral movement, domain controller telemetry | Managed Identity / OAuth 2.0 | Directory & Identity Engineering |
+| **SVC-MDCA** | Defender for Cloud Apps | Cloud App Security | Shadow IT, OAuth app hygiene, anomalous data downloads | OAuth 2.0 Client Credentials | Cloud Infrastructure Security |
+| **SVC-XDR** | Defender XDR Unified | Incident Correlation | Multi-stage incident correlation, automated investigation & response | OAuth 2.0 Client Credentials | Threat Detection & Response |
+| **SVC-INTUNE** | Intune Device Compliance | Endpoint Management | Device compliance state, enrollment hygiene, encryption compliance | OAuth 2.0 Client Credentials | Endpoint Management Engineering |
+| **SVC-ENTRA-ID** | Entra ID Protection & Hygiene | Identity & Access | Privileged Identity Management (PIM), risky users, sign-in risk events | OAuth 2.0 Client Credentials | Directory & Identity Engineering |
+| **SVC-PURVIEW** | Microsoft Purview Suite | Compliance & Governance | **Single Unified Report**: DLP policies, sensitivity labels, lifecycle/retention & insider risk | OAuth 2.0 Client Credentials | Data Governance & Privacy |
+
+> [!TIP]
+> **Reporting Architecture & Topology Map:** For an in-depth breakdown of every report's data sources, Graph API endpoints, Advanced Hunting KQL tables (`DeviceInfo`, `DeviceEvents`, `EmailEvents`, `IdentityLogonEvents`, `CloudAppEvents`, `SecurityIncident`, `DlpEvents`), and vector PDF rendering pipeline, see [docs/REPORTING_ARCHITECTURE.md](docs/REPORTING_ARCHITECTURE.md).
 
 ---
 

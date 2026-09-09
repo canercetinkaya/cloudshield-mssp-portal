@@ -86,7 +86,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/machines-api",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-MDO": {
       "code": "SVC-MDO",
@@ -127,7 +128,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/defender-for-office-365",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-MDI": {
       "code": "SVC-MDI",
@@ -167,7 +169,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/defender-for-identity/what-is",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-MDCA": {
       "code": "SVC-MDCA",
@@ -207,7 +210,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/defender-cloud-apps/what-is-defender-for-cloud-apps",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-XDR": {
       "code": "SVC-XDR",
@@ -246,7 +250,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/microsoft-365/security/defender/incident-response",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-incident"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-INTUNE": {
       "code": "SVC-INTUNE",
@@ -285,7 +290,8 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/mem/intune/fundamentals/what-is-device-management",
         "https://learn.microsoft.com/en-us/graph/api/resources/intune-devices-manageddevice"
-      ]
+      ],
+      "isPrimaryService": true
     },
     "SVC-ENTRA-PIM": {
       "code": "SVC-ENTRA-PIM",
@@ -324,7 +330,9 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure",
         "https://learn.microsoft.com/en-us/graph/api/resources/rbacapplication"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-ENTRA-ID"
     },
     "SVC-PRV-DLP": {
       "code": "SVC-PRV-DLP",
@@ -364,7 +372,9 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-PURVIEW"
     },
     "SVC-PRV-CLASS": {
       "code": "SVC-PRV-CLASS",
@@ -402,7 +412,9 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/purview/sensitivity-labels",
         "https://learn.microsoft.com/en-us/graph/api/resources/informationprotection"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-PURVIEW"
     },
     "SVC-PRV-GOV": {
       "code": "SVC-PRV-GOV",
@@ -437,7 +449,9 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/purview/data-lifecycle-management",
         "https://learn.microsoft.com/en-us/graph/api/resources/recordsmanagement"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-PURVIEW"
     },
     "SVC-PRV-RISK": {
       "code": "SVC-PRV-RISK",
@@ -472,7 +486,9 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/purview/insider-risk-management",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-PURVIEW"
     },
     "SVC-AI-SECURITY": {
       "code": "SVC-AI-SECURITY",
@@ -510,7 +526,69 @@
       "officialDocs": [
         "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview",
         "https://learn.microsoft.com/en-us/graph/api/resources/auditlogroot"
-      ]
+      ],
+      "isPrimaryService": false,
+      "parentService": "SVC-PURVIEW"
+    },
+    "SVC-PURVIEW": {
+      "code": "SVC-PURVIEW",
+      "displayNameTr": "Yönetilen Veri Güvenliği ve Uyum (Microsoft Purview)",
+      "displayNameEn": "Managed Data Security & Compliance (Microsoft Purview)",
+      "description": "Birleşik Microsoft Purview yönetilen hizmeti: DLP, hassas veri sınıflandırma, veri yaşam döngüsü, iç tehdit ve DSPM for AI.",
+      "productFamily": "Microsoft Purview Unified",
+      "pluginFolder": "PurviewDlp",
+      "submodules": [
+        "SVC-PRV-DLP",
+        "SVC-PRV-CLASS",
+        "SVC-PRV-GOV",
+        "SVC-PRV-RISK",
+        "SVC-AI-SECURITY"
+      ],
+      "collectorDependencies": [
+        "GraphSecurityAlerts",
+        "GraphSensitivityLabels",
+        "GraphRetentionLabels",
+        "GraphAuditLogs"
+      ],
+      "compatibleServiceLevels": [
+        "MonitoringOnly",
+        "MonitoringAndReporting",
+        "Managed",
+        "ManagedAndResponse",
+        "Advisory"
+      ],
+      "authProfile": "PurviewReporting",
+      "dataSensitivity": "High",
+      "isPrimaryService": true,
+      "reportTemplateRef": "TPL-PURVIEW-UNIFIED",
+      "implementationStatus": "ProductionReady"
+    },
+    "SVC-ENTRA-ID": {
+      "code": "SVC-ENTRA-ID",
+      "displayNameTr": "Yönetilen Kimlik Koruması ve PIM (Microsoft Entra ID)",
+      "displayNameEn": "Managed Identity Protection & PIM (Microsoft Entra ID)",
+      "description": "Microsoft Entra ID PIM rol aktivasyonları, riskli kullanıcılar, kimlik hijyeni ve ayrıcalıklı erişim yönetişimi.",
+      "productFamily": "Microsoft Entra ID",
+      "pluginFolder": "EntraGovernance",
+      "submodules": [
+        "SVC-ENTRA-PIM"
+      ],
+      "collectorDependencies": [
+        "GraphRoleManagement",
+        "GraphIdentityProtection"
+      ],
+      "compatibleServiceLevels": [
+        "MonitoringOnly",
+        "MonitoringAndReporting",
+        "Managed",
+        "ManagedAndResponse",
+        "Advisory"
+      ],
+      "authProfile": "CoreSecurityReporting",
+      "dataSensitivity": "High",
+      "isPrimaryService": true,
+      "reportTemplateRef": "TPL-ENTRA-UNIFIED",
+      "implementationStatus": "ProductionReady"
     }
   },
   "packages": {
@@ -549,19 +627,16 @@
       ]
     },
     "PKG-06": {
-      "name": "CloudShield Yönetilen Purview Veri Güvenliği (DLP & Sınıflandırma)",
+      "name": "CloudShield Yönetilen Purview Birleşik Veri Güvenliği ve Uyum",
       "services": [
-        "SVC-PRV-DLP",
-        "SVC-PRV-CLASS"
+        "SVC-PURVIEW"
       ]
     },
     "PKG-07": {
-      "name": "CloudShield Yönetilen Purview Tam Uyum ve Yönetişim",
+      "name": "CloudShield Yönetilen Kimlik & Cihaz Güvenliği (Entra ID + Intune)",
       "services": [
-        "SVC-PRV-DLP",
-        "SVC-PRV-CLASS",
-        "SVC-PRV-GOV",
-        "SVC-PRV-RISK"
+        "SVC-ENTRA-ID",
+        "SVC-INTUNE"
       ]
     },
     "PKG-08": {
@@ -580,7 +655,7 @@
       ]
     },
     "PKG-10": {
-      "name": "CloudShield Microsoft 365 E5 / E7 Birleşik Yönetilen Güvenlik Paketi",
+      "name": "CloudShield Microsoft 365 E5 / E7 Birleşik Yönetilen Güvenlik ve Uyum Paketi",
       "services": [
         "SVC-MDE",
         "SVC-MDO",
@@ -588,12 +663,8 @@
         "SVC-MDCA",
         "SVC-XDR",
         "SVC-INTUNE",
-        "SVC-ENTRA-PIM",
-        "SVC-PRV-DLP",
-        "SVC-PRV-CLASS",
-        "SVC-PRV-GOV",
-        "SVC-PRV-RISK",
-        "SVC-AI-SECURITY"
+        "SVC-ENTRA-ID",
+        "SVC-PURVIEW"
       ]
     }
   }
