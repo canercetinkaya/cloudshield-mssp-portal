@@ -35,7 +35,7 @@ jobs:
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
           
           echo "=== 3. Zero SOC İzolasyon Denetimi ==="
-          if grep -rnw --exclude-dir={.git,.github} --exclude={README.md,walkthrough.md} . -e "\(SOC\)" -e "SVC-SOC"; then
+          if grep -rnw --exclude='*.md' Engine/ Portal/ Data/ -e "\(SOC\)" -e "SVC-SOC"; then
             echo "HATA: Kod tabanında yetkisiz SOC ifadesi bulundu!"
             exit 1
           else

@@ -35,15 +35,12 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
+          dockerfilePath: Docker/Dockerfile
           registryUrl: ghcr.io/canercetinkaya/cloudshield-mssp-portal
           registryUsername: ${{ secrets.CSMSSPPOCAPP_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.CSMSSPPOCAPP_REGISTRY_PASSWORD }}
           containerAppName: cs-mssp-poc-app
           resourceGroup: cloudshield
           imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal/cs-mssp-poc-app:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
 
 
