@@ -1,20 +1,20 @@
-﻿# ==============================================================================
-# KoçSistem MSSP Portal - GitHub Yayınlama ve Eşitleme Betiği
-# Hedef Depo: https://github.com/canercetinkaya/kocsistem-mssp-portal
+﻿﻿# ==============================================================================
+# CloudShield MSSP Portal - GitHub Yayınlama ve Eşitleme Betiği
+# Hedef Depo: https://github.com/canercetinkaya/cloudshield-mssp-portal
 # ==============================================================================
 
 [CmdletBinding()]
 param(
-    [string]$RemoteUrl = "https://github.com/canercetinkaya/kocsistem-mssp-portal.git",
+    [string]$RemoteUrl = "https://github.com/canercetinkaya/cloudshield-mssp-portal.git",
     [string]$Branch = "main",
-    [string]$CommitMessage = "feat: KoçSistem MSSP Portal v2.0 - Deploy to Azure ARM, Zero SOC & Automated Dispatch"
+    [string]$CommitMessage = "feat: CloudShield MSSP Portal v2.0 - Deploy to Azure ARM, Zero SOC & Automated Dispatch"
 )
 
 $ErrorActionPreference = "Stop"
 $portalDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "`n================================================================================" -ForegroundColor Cyan
-Write-Host "  KoçSistem MSSP Portal -> GitHub Dağıtım Aracı" -ForegroundColor White
+Write-Host "  CloudShield MSSP Portal -> GitHub Dağıtım Aracı" -ForegroundColor White
 Write-Host "  Hedef Depo: $RemoteUrl" -ForegroundColor Green
 Write-Host "================================================================================`n" -ForegroundColor Cyan
 
@@ -52,8 +52,8 @@ if (-not $userName) {
     Write-Host "[+] Git Kullanıcı Adı Ayarlandı: Caner Çetinkaya" -ForegroundColor Green
 }
 if (-not $userEmail) {
-    & $gitExe config user.email "caner.cetinkaya@kocsistem.com.tr"
-    Write-Host "[+] Git E-posta Ayarlandı: caner.cetinkaya@kocsistem.com.tr" -ForegroundColor Green
+    & $gitExe config user.email "caner.cetinkaya@cloudshield-mssp.com"
+    Write-Host "[+] Git E-posta Ayarlandı: caner.cetinkaya@cloudshield-mssp.com" -ForegroundColor Green
 }
 
 # 3. Git init
@@ -90,5 +90,5 @@ Write-Host "[i] İlk push işleminde tarayıcınızda GitHub oturum açma pencer
 & $gitExe push -u origin $Branch
 
 Write-Host "`n[OK] BAŞARILI! Kodlar GitHub deposuna aktarıldı." -ForegroundColor Green
-Write-Host "     Depo URL: https://github.com/canercetinkaya/kocsistem-mssp-portal" -ForegroundColor Cyan
+Write-Host "     Depo URL: https://github.com/canercetinkaya/cloudshield-mssp-portal" -ForegroundColor Cyan
 Write-Host "     Deploy to Azure Butonu artık aktif ve kullanıma hazır!" -ForegroundColor Green

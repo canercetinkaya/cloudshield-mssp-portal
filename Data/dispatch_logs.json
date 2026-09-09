@@ -3,14 +3,14 @@
     "id": "disp-20260909125738",
     "timestamp": "2026-09-09T12:57:38.133662+00:00",
     "tenantId": "tenant-sandbox",
-    "tenantName": "KoçSistem Demo & Test Ortamı (Sandbox)",
+    "tenantName": "Enterprise Security Lab (Sandbox & PoC)",
     "mode": "Monthly",
     "recipients": [
-      "ciso-audit@kocsistem.com.tr"
+      "ciso-audit@cloudshield-mssp.com"
     ],
     "subject": "[QA Test] Periyodik Guvenlik Raporu",
-    "pdfAttached": "KoçSistem_Demo__Test_Ortamı_Sandbox_Report.pdf",
-    "htmlAttached": "KoçSistem_Demo__Test_Ortamı_Sandbox_Summary.html",
+    "pdfAttached": "CloudShield_Demo__Test_Ortamı_Sandbox_Report.pdf",
+    "htmlAttached": "CloudShield_Demo__Test_Ortamı_Sandbox_Summary.html",
     "status": "Delivered",
     "deliveryChannel": "Microsoft Graph SendMail API (Exchange Online)",
     "latencyMs": 280,
@@ -20,14 +20,14 @@
     "id": "disp-20260909125719",
     "timestamp": "2026-09-09T12:57:19.799724+00:00",
     "tenantId": "tenant-sandbox",
-    "tenantName": "KoçSistem Demo & Test Ortamı (Sandbox)",
+    "tenantName": "Enterprise Security Lab (Sandbox & PoC)",
     "mode": "Monthly",
     "recipients": [
-      "ciso-audit@kocsistem.com.tr"
+      "ciso-audit@cloudshield-mssp.com"
     ],
     "subject": "[QA Test] Periyodik Guvenlik Raporu",
-    "pdfAttached": "KoçSistem_Demo__Test_Ortamı_Sandbox_Report.pdf",
-    "htmlAttached": "KoçSistem_Demo__Test_Ortamı_Sandbox_Summary.html",
+    "pdfAttached": "CloudShield_Demo__Test_Ortamı_Sandbox_Report.pdf",
+    "htmlAttached": "CloudShield_Demo__Test_Ortamı_Sandbox_Summary.html",
     "status": "Delivered",
     "deliveryChannel": "Microsoft Graph SendMail API (Exchange Online)",
     "latencyMs": 280,
@@ -37,15 +37,15 @@
     "id": "disp-20260901-001",
     "timestamp": "2026-09-01T09:00:15Z",
     "tenantId": "tenant-sandbox",
-    "tenantName": "KoçSistem Demo & Test Ortamı (Sandbox)",
+    "tenantName": "Enterprise Security Lab (Sandbox & PoC)",
     "mode": "Monthly",
     "recipients": [
-      "demo-ciso@kocsistem.com.tr",
-      "mssp-reporting@kocsistem.com.tr"
+      "demo-ciso@cloudshield-mssp.com",
+      "mssp-reporting@cloudshield-mssp.com"
     ],
-    "subject": "[KoçSistem MSSP] KoçSistem Demo & Test Ortamı (Sandbox) - Ağustos 2026 Yönetilen Güvenlik ve Uyum Raporu",
-    "pdfAttached": "KoçSistem_Demo_Test_Ortamı_Sandbox_Monthly_2026-08.pdf",
-    "htmlAttached": "KoçSistem_Demo_Test_Ortamı_Sandbox_Monthly_2026-08.html",
+    "subject": "[CloudShield MSSP] Enterprise Security Lab (Sandbox & PoC) - Ağustos 2026 Yönetilen Güvenlik ve Uyum Raporu",
+    "pdfAttached": "CloudShield_Demo_Test_Ortamı_Sandbox_Monthly_2026-08.pdf",
+    "htmlAttached": "CloudShield_Demo_Test_Ortamı_Sandbox_Monthly_2026-08.html",
     "status": "Delivered",
     "deliveryChannel": "Microsoft Graph SendMail API (Exchange Online)",
     "latencyMs": 340,

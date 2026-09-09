@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+    CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
     Azure Otomatik Dağıtım Betiği (MCT Abonelikleri & Prod Uyumlu)
 
 .DESCRIPTION
-    Bu betik Azure üzerinde KoçSistem MSSP Portalını sunucusuz (Azure Container Apps,
+    Bu betik Azure üzerinde CloudShield MSSP Portalını sunucusuz (Azure Container Apps,
     Key Vault, Storage Account, Log Analytics) mimari ile kurar.
     Container App System-Assigned Managed Identity'sine otomatik olarak:
       - Key Vault Secrets User (4633458b-17de-408a-b874-0445c86b69e6)
@@ -14,7 +14,7 @@
     Hem yerel PowerShell (Windows/Linux/macOS) hem de Azure Cloud Shell üzerinde çalışır.
 
 .PARAMETER ResourceGroupName
-    Oluşturulacak Azure Kaynak Grubu adı (Varsayılan: rg-kocsistem-mssp-poc)
+    Oluşturulacak Azure Kaynak Grubu adı (Varsayılan: rg-cloudshield-mssp-poc)
 
 .PARAMETER Location
     Azure Bölgesi (Varsayılan: westeurope)
@@ -23,7 +23,7 @@
     MCT veya Kurumsal Azure Abonelik ID (Belirtilmezse aktif abonelik kullanılır)
 
 .PARAMETER Prefix
-    Kaynak adı öneki (Varsayılan: kocsistem-mssp)
+    Kaynak adı öneki (Varsayılan: cloudshield-mssp)
 
 .PARAMETER EnvironmentType
     Ortam tipi: poc, dev, prod (Varsayılan: poc)
@@ -33,15 +33,15 @@
 
 .EXAMPLE
     .\Deploy-ToAzure.ps1
-    .\Deploy-ToAzure.ps1 -ResourceGroupName "rg-kocsistem-prod" -Location "westeurope" -EnvironmentType "prod"
+    .\Deploy-ToAzure.ps1 -ResourceGroupName "rg-cloudshield-prod" -Location "westeurope" -EnvironmentType "prod"
 #>
 
 [CmdletBinding()]
 param (
-    [string]$ResourceGroupName = "rg-kocsistem-mssp-poc",
+    [string]$ResourceGroupName = "rg-cloudshield-mssp-poc",
     [string]$Location = "westeurope",
     [string]$SubscriptionId = "",
-    [string]$Prefix = "kocsistem-mssp",
+    [string]$Prefix = "cloudshield-mssp",
     [string]$EnvironmentType = "poc",
     [string]$AdminPrincipalId = ""
 )
@@ -52,7 +52,7 @@ $BicepFile = Join-Path $ScriptDir "main.bicep"
 
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Cyan
-Write-Host "  KoçSistem MSSP Platformu - Azure Bulut Kurulum & Güvenlik Sihirbazı" -ForegroundColor White
+Write-Host "  CloudShield MSSP Platform - Azure Bulut Kurulum & Güvenlik Sihirbazı" -ForegroundColor White
 Write-Host "  Sunucusuz (Serverless ACA), Key Vault RBAC & Passwordless Zero-Trust Mimari" -ForegroundColor Yellow
 Write-Host "================================================================================" -ForegroundColor Cyan
 Write-Host ""

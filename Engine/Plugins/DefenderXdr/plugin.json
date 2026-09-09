@@ -4,6 +4,6 @@
   "DisplayName": "Microsoft Defender XDR Incident & SLA",
   "Category": "XDR",
   "Version": "1.0.0",
-  "Author": "KoçSistem MSSP Automation Team",
+  "Author": "CloudShield MSSP Automation Team",
   "Description": "Korele XDR olayları (incidents), MTTA/MTTR süreleri, çok aşamalı saldırı zincirleri ve alarm gürültüsü azaltma analizi eklentisi."
 }

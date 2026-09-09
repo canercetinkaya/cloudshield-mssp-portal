@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KoçSistem MSSP Platform - Comprehensive QA & Reliability Automated Test Suite
+CloudShield MSSP Platform - Comprehensive QA & Reliability Automated Test Suite
 Author: Senior QA & Reliability Automation Engineer
 Targets:
   1. PowerShell Reporting Engine (30 Platform Tests)
@@ -31,7 +31,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_URL = "http://localhost:8080"
-ROOT_DIR = r"c:\Users\CANERCETINKAYA\OneDrive - CETINKAYA\Documents\Microsoft Purview Reports\KocSistemMSSPPortal"
+ROOT_DIR = r"c:\Users\CANERCETINKAYA\OneDrive - CETINKAYA\Documents\Microsoft Purview Reports\CloudShieldMSSPPortal"
 ENGINE_DIR = os.path.join(ROOT_DIR, "Engine")
 TEMP_DATA_DIR = os.path.join(ENGINE_DIR, "Data", "temp")
 
@@ -68,7 +68,7 @@ def log_test(category, name, passed, details="", duration_ms=0):
 def http_get(path):
     url = f"{BASE_URL}{path}"
     start = time.time()
-    req = urllib.request.Request(url, headers={"User-Agent": "KocSistem-QA-TestAutomation/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "CloudShield-QA-TestAutomation/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             dur = (time.time() - start) * 1000
@@ -95,7 +95,7 @@ def http_post(path, payload):
     start = time.time()
     req = urllib.request.Request(
         url, data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "KocSistem-QA-TestAutomation/1.0"},
+        headers={"Content-Type": "application/json", "User-Agent": "CloudShield-QA-TestAutomation/1.0"},
         method="POST"
     )
     try:

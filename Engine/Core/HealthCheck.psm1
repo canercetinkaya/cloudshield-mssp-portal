@@ -1,4 +1,4 @@
-﻿# Core/HealthCheck.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/HealthCheck.psm1 - CloudShield Security Reporting Platform
 # Pre-flight environment, network, credential, and engine validation.
 [CmdletBinding()]
 param()

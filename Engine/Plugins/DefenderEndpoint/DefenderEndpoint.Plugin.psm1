@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Endpoint (EDR) Service Plugin.
 [CmdletBinding()]
 param()
@@ -89,7 +89,7 @@ function Get-ServiceRawData {
             $mockActions += [pscustomobject]@{
                 id                = "act-$a"
                 type              = if ($a % 3 -eq 0) { 'Isolate' } elseif ($a % 3 -eq 1) { 'StopAndQuarantineFile' } else { 'RunAntivirusScan' }
-                requestor         = if ($isAuto) { 'Automated investigation' } else { 'analyst@kocsistem.com.tr' }
+                requestor         = if ($isAuto) { 'Automated investigation' } else { 'analyst@cloudshield-mssp.com' }
                 status            = 'Succeeded'
                 creationDateTimeUtc = $StartDate.AddDays($randDays).ToString('yyyy-MM-ddTHH:mm:ssZ')
             }
@@ -246,7 +246,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = $KpiData.OtonomAksiyonSayisi + $KpiData.OtonomAvTemizlenen
         ManuelAnalistEforu = $KpiData.ManuelAksiyonSayisi
         KazanilanZamanSaat = $KpiData.TasarrufEdilenSaat
-        Aciklama           = "Uç noktalarda tespit edilen $($KpiData.OtonomAvTemizlenen) adet zararlı yazılım ve $($KpiData.OtonomAksiyonSayisi) izolasyon/karantina eylemi otonom çözülmüş, KoçSistem analistleri kritik alarmlara odaklanarak $(${KpiData}.TasarrufEdilenSaat) saat adam/efor tasarrufu sağlamıştır."
+        Aciklama           = "Uç noktalarda tespit edilen $($KpiData.OtonomAvTemizlenen) adet zararlı yazılım ve $($KpiData.OtonomAksiyonSayisi) izolasyon/karantina eylemi otonom çözülmüş, CloudShield analistleri kritik alarmlara odaklanarak $(${KpiData}.TasarrufEdilenSaat) saat adam/efor tasarrufu sağlamıştır."
     }
 }
 
@@ -266,7 +266,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Defender for Endpoint (MDE) Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Defender for Endpoint (MDE) Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen EDR Hizmeti</span>
     </div>
 
@@ -274,7 +274,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem MDE Yönetilen Hizmet Operasyonel Değeri
+                CloudShield MDE Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -288,7 +288,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">Davranışsal analiz ve yapay zeka ile otomatik durdurulan tehditler</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem EDR Mühendis Eylemi</div>
+                <div class="kpi-title">CloudShield EDR Mühendis Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.ManuelAksiyonSayisi + 14)</div>
                     <span class="badge positive">Uzman Eforu</span>
@@ -377,7 +377,7 @@ function Get-ServiceHtmlSection {
 
     $(if ($k.HayaletCihaz -gt 0) {
         "<div class='callout-box danger'>
-            <strong>KoçSistem EDR Operasyonel Uyarısı:</strong> Ortamda tespit edilen $($k.HayaletCihaz) adet hayalet cihaz telemetri üretmemektedir. EDR sensörlerinin servisi durdurulmuş veya cihazlar ağdan kopmuş olabilir; operasyonel inceleme başlatılmıştır.
+            <strong>CloudShield EDR Operasyonel Uyarısı:</strong> Ortamda tespit edilen $($k.HayaletCihaz) adet hayalet cihaz telemetri üretmemektedir. EDR sensörlerinin servisi durdurulmuş veya cihazlar ağdan kopmuş olabilir; operasyonel inceleme başlatılmıştır.
         </div>"
     })
 </section>

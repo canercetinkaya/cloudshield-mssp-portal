@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Classification & Sensitivity Labels Service Plugin.
 [CmdletBinding()]
 param()
@@ -136,7 +136,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = 0
         ManuelAnalistEforu = $KpiData.EtiketDusurmeSayisi
         KazanilanZamanSaat = 0
-        Aciklama           = "Kurum genelinde $($KpiData.EtiketliToplamDosya) dosya ve $($KpiData.EtiketliToplamPosta) e-posta duyarlılık etiketleriyle korunmuş, tespit edilen $($KpiData.EtiketDusurmeSayisi) adet şüpheli etiket düşürme (downgrade) olayı KoçSistem analistleri tarafından incelenmiştir."
+        Aciklama           = "Kurum genelinde $($KpiData.EtiketliToplamDosya) dosya ve $($KpiData.EtiketliToplamPosta) e-posta duyarlılık etiketleriyle korunmuş, tespit edilen $($KpiData.EtiketDusurmeSayisi) adet şüpheli etiket düşürme (downgrade) olayı CloudShield analistleri tarafından incelenmiştir."
     }
 }
 

@@ -1,4 +1,4 @@
-﻿# Core/Configuration.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/Configuration.psm1 - CloudShield Security Reporting Platform
 # Configuration management, DPAPI secret encryption/decryption, validation.
 [CmdletBinding()]
 param()

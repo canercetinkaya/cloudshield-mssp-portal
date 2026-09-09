@@ -1,9 +1,9 @@
 [
   {
     "Id": "tenant-sandbox",
-    "Name": "KoçSistem Demo & Test Ortamı (Sandbox)",
+    "Name": "Enterprise Security Lab (Sandbox & PoC)",
     "TenantId": "f0000000-0000-0000-0000-000000000001",
-    "ContactEmail": "mssp-demo@kocsistem.com.tr",
+    "ContactEmail": "mssp-demo@cloudshield-mssp.com",
     "ReportMode": "Consolidated",
     "SelectedPackage": "PKG-10",
     "IsSimulation": true,
@@ -31,8 +31,8 @@
       "DayOfMonth": 1,
       "Time": "08:30",
       "Recipients": [
-        "mssp-reports@kocsistem.com.tr",
-        "ciso-demo@kocsistem.com.tr"
+        "mssp-reports@cloudshield-mssp.com",
+        "ciso-demo@cloudshield-mssp.com"
       ],
       "Channels": [
         "Email",
@@ -48,13 +48,13 @@
       "ClientId": "sandbox-demo-client-id",
       "KeyVaultSecretName": "Sandbox-Mock-Secret"
     },
-    "Description": "KoçSistem MSSP Laboratuvar & Test Kiracısı (Zengin Sentetik Telemetri)",
+    "Description": "Enterprise MSSP Lab & Sandbox Tenant (Zengin Sentetik Telemetri)",
     "ScheduleFrequency": "Monthly",
     "DispatchDay": 2,
     "DispatchTime": "10:00",
     "RecipientEmails": [
-      "qa-test@kocsistem.com.tr",
-      "mssp-reporting@kocsistem.com.tr"
+      "qa-test@cloudshield-mssp.com",
+      "mssp-reporting@cloudshield-mssp.com"
     ],
     "IsDispatchActive": true,
     "LastDispatchDate": "2026-09-09 15:57",

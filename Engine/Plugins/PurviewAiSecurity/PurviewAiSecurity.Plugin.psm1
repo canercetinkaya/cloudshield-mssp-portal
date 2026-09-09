@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview DSPM for AI & Copilot Data Security Service Plugin.
 [CmdletBinding()]
 param()
@@ -115,7 +115,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = 0
         ManuelAnalistEforu = $KpiData.AsiriPaylasilanDosya + $KpiData.SupheliPromptAnomalisi
         KazanilanZamanSaat = 0
-        Aciklama           = "Copilot sorgularında görünür hale gelen $($KpiData.AsiriPaylasilanDosya) adet aşırı yetkilendirilmiş (over-shared) hassas doküman tespit edilmiş, SharePoint yetkilerinin daraltılması için KoçSistem danışmanları tarafından düzeltici önlemler alınmıştır."
+        Aciklama           = "Copilot sorgularında görünür hale gelen $($KpiData.AsiriPaylasilanDosya) adet aşırı yetkilendirilmiş (over-shared) hassas doküman tespit edilmiş, SharePoint yetkilerinin daraltılması için CloudShield danışmanları tarafından düzeltici önlemler alınmıştır."
     }
 }
 

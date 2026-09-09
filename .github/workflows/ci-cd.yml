@@ -1,4 +1,4 @@
-name: KoçSistem MSSP Portal CI/CD
+name: CloudShield MSSP Portal CI/CD
 
 on:
   push:

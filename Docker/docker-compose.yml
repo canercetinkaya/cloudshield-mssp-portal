@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-  kocsistem-mssp-portal:
-    image: kocsistem-mssp-portal:latest
+  cloudshield-mssp-portal:
+    image: cloudshield-mssp-portal:latest
     build:
       context: ..
       dockerfile: Docker/Dockerfile
-    container_name: kocsistem-mssp-portal
+    container_name: cloudshield-mssp-portal
     restart: unless-stopped
     ports:
       - "8080:8080"

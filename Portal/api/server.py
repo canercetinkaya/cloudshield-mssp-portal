@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
 Backend REST API Server - Pure Python 3 Standard Library (Zero External Dependencies)
 """
 
@@ -116,7 +116,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             t = tenants[idx]
             customer_name = t.get("Name", "Customer")
-            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@kocsistem.com.tr"])
+            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])
             if isinstance(recip_list, str):
                 recip_list = [r.strip() for r in recip_list.split(",") if r.strip()]
 
@@ -132,7 +132,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "tenantName": customer_name,
                 "mode": t.get("ScheduleFrequency", "Monthly"),
                 "recipients": recip_list,
-                "subject": subject or f"[KoçSistem MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
+                "subject": subject or f"[CloudShield MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
                 "pdfAttached": f"{safe_name}_Report.pdf" if attach_pdf else None,
                 "htmlAttached": f"{safe_name}_Summary.html" if attach_html else None,
                 "status": "Delivered",
@@ -170,7 +170,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/users/me":
             # Current user context & RBAC
             self.send_json_response({
-                "upn": "caner.cetinkaya@kocsistem.com.tr",
+                "upn": "caner.cetinkaya@cloudshield-mssp.com",
                 "displayName": "Caner Çetinkaya",
                 "role": "PlatformAdmin",
                 "department": "Siber Güvenlik Çözüm Mimarlığı",
@@ -248,8 +248,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "frequency": t.get("ScheduleFrequency", "Monthly"),
                     "dispatchDay": t.get("DispatchDay", 1),
                     "dispatchTime": t.get("DispatchTime", "09:00"),
-                    "recipients": t.get("RecipientEmails", ["mssp-reporting@kocsistem.com.tr"]),
-                    "subjectTemplate": t.get("EmailSubjectTemplate", "[KoçSistem MSSP] {CustomerName} - Yönetilen Güvenlik ve Uyum Raporu"),
+                    "recipients": t.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"]),
+                    "subjectTemplate": t.get("EmailSubjectTemplate", "[CloudShield MSSP] {CustomerName} - Yönetilen Güvenlik ve Uyum Raporu"),
                     "attachPdf": t.get("AttachPdf", True),
                     "attachHtml": t.get("AttachHtml", True),
                     "isActive": t.get("IsDispatchActive", True),
@@ -368,8 +368,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if "RecipientEmails" not in body:
                 contact = body.get("ContactEmail")
                 recips = [contact] if contact else []
-                if "mssp-reporting@kocsistem.com.tr" not in recips:
-                    recips.append("mssp-reporting@kocsistem.com.tr")
+                if "mssp-reporting@cloudshield-mssp.com" not in recips:
+                    recips.append("mssp-reporting@cloudshield-mssp.com")
                 body["RecipientEmails"] = recips
             if "AttachPdf" not in body:
                 body["AttachPdf"] = True
@@ -424,7 +424,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             t = tenants[idx]
             customer_name = t.get("Name", "Customer")
-            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@kocsistem.com.tr"])
+            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])
             if isinstance(recip_list, str):
                 recip_list = [r.strip() for r in recip_list.split(",") if r.strip()]
 
@@ -440,7 +440,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "tenantName": customer_name,
                 "mode": t.get("ScheduleFrequency", "Monthly"),
                 "recipients": recip_list,
-                "subject": subject or f"[KoçSistem MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
+                "subject": subject or f"[CloudShield MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
                 "pdfAttached": f"{safe_name}_Report.pdf" if attach_pdf else None,
                 "htmlAttached": f"{safe_name}_Summary.html" if attach_html else None,
                 "status": "Delivered",
@@ -538,7 +538,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 if not client_id or "demo" in str(client_id).lower() or len(str(client_id)) < 20:
                     self.send_json_response({
                         "success": False,
-                        "error": f"Canlı Kiracı Hatası: '{customer_name}' için geçerli bir Microsoft Entra ID kimlik doğrulama sertifikası/sırrı tanımlanmamıştır. Test raporu üretmek için lütfen 'KoçSistem Demo & Test Ortamı (Sandbox)' kiracısını seçiniz."
+                        "error": f"Canlı Kiracı Hatası: '{customer_name}' için geçerli bir Microsoft Entra ID kimlik doğrulama sertifikası/sırrı tanımlanmamıştır. Test raporu üretmek için lütfen 'Enterprise Security Lab (Sandbox & PoC)' kiracısını seçiniz."
                     }, status=400)
                     return
 
@@ -563,7 +563,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             # Determine PowerShell binary (Linux Docker uses 'pwsh', Windows uses 'pwsh' or 'powershell.exe')
             pwsh_bin = "pwsh" if shutil.which("pwsh") else "powershell.exe"
-            script_path = os.path.join(ROOT_DIR, "Engine", "Invoke-KocSistemSecurityReporting.ps1")
+            script_path = os.path.join(ROOT_DIR, "Engine", "Invoke-CloudShieldSecurityReporting.ps1")
             pwsh_args = [
                 pwsh_bin, "-NoProfile", "-ExecutionPolicy", "Bypass", 
                 "-File", script_path, 
@@ -659,7 +659,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "defenderApiStatus": "MockData_Ready",
                     "purviewApiStatus": "MockData_Ready",
                     "latencyMs": 14,
-                    "message": "KoçSistem Sandbox laboratuvar ortamı aktif. Tam kapsamlı test ve sunum telemetrisi hazır.",
+                    "message": "CloudShield Sandbox laboratuvar ortamı aktif. Tam kapsamlı test ve sunum telemetrisi hazır.",
                     "testedAt": datetime.now(timezone.utc).isoformat()
                 })
                 return
@@ -685,7 +685,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             try:
                 # Ping Microsoft Entra ID OpenID endpoint for the tenant
                 entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
-                req = urllib.request.Request(entra_url, headers={"User-Agent": "KocSistem-MSSP-Portal/2.0"})
+                req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
                 with urllib.request.urlopen(req, timeout=5) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     self.send_json_response({
@@ -789,7 +789,7 @@ def run(port=PORT):
     server_address = ("", port)
     httpd = http.server.ThreadingHTTPServer(server_address, MSSPPortalHandler)
     print("=" * 80)
-    print(f"  KoçSistem Managed Security Operations & Reporting Platform")
+    print(f"  CloudShield Enterprise MSSP Security & Compliance Platform")
     print(f"  Web Portalı ve REST API başlatıldı: http://localhost:{port}")
     print(f"  Statik Web Dosyaları: {WEB_DIR}")
     print(f"  Veritabanı: {TENANTS_FILE}")

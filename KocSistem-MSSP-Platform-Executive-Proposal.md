@@ -11,15 +11,15 @@
 
 ## 1. YÖNETİCİ ÖZETİ (EXECUTIVE SUMMARY)
 
-KoçSistem, Türkiye'nin lider sistem entegratörü ve yönetilen güvenlik hizmet sağlayıcısı (MSSP) olarak 30'u aşkın kurumsal müşteriye Microsoft Defender XDR ve Microsoft Purview ürün ailesi üzerinden 7/24 operasyonel yönetim ve uyum danışmanlığı sunmaktadır.
+CloudShield, Türkiye'nin lider sistem entegratörü ve yönetilen güvenlik hizmet sağlayıcısı (MSSP) olarak 30'u aşkın kurumsal müşteriye Microsoft Defender XDR ve Microsoft Purview ürün ailesi üzerinden 7/24 operasyonel yönetim ve uyum danışmanlığı sunmaktadır.
 
 Ancak operasyon ekiplerimizin her müşterinin bağımsız satın aldığı hizmetlere (Örn: Yalnızca MDE alan müşteri, sadece Purview DLP alan finans kurumu veya tam E5 Security alan holding) göre ayrı portallara girip manuel veri toplaması, her ay sonu günlerce süren raporlama eforu oluşturmakta ve ciddi bir **"Portal Yorgunluğu" (Portal Fatigue)** yaratmaktadır.
 
-Bu proje ile geliştirilen **"KoçSistem MSSP Platformu"**, dağınık Windows Görev Zamanlayıcı (Task Scheduler) scriptlerini aşarak; **merkezi, web tabanlı, Azure üzerinde sunucusuz (serverless) çalışan, tek tıkla GDAP ile müşteri ortamına zıplayabilen ve modüler aylık raporlar üreten kurumsal bir SaaS ürününe** dönüştürülmüştür.
+Bu proje ile geliştirilen **"CloudShield MSSP Platform"**, dağınık Windows Görev Zamanlayıcı (Task Scheduler) scriptlerini aşarak; **merkezi, web tabanlı, Azure üzerinde sunucusuz (serverless) çalışan, tek tıkla GDAP ile müşteri ortamına zıplayabilen ve modüler aylık raporlar üreten kurumsal bir SaaS ürününe** dönüştürülmüştür.
 
 > [!IMPORTANT]
 > **Öne Çıkan Değer:**
-> Bu platform sayesinde KoçSistem mühendislik ekipleri ayda **120+ adam/saat operasyonel raporlama yükünden kurtulmakta**, müşteri memnuniyeti anlık şeffaf dashboard'lar ile en üst seviyeye taşınmaktadır.
+> Bu platform sayesinde CloudShield mühendislik ekipleri ayda **120+ adam/saat operasyonel raporlama yükünden kurtulmakta**, müşteri memnuniyeti anlık şeffaf dashboard'lar ile en üst seviyeye taşınmaktadır.
 
 ---
 
@@ -71,7 +71,7 @@ Bu proje ile geliştirilen **"KoçSistem MSSP Platformu"**, dağınık Windows G
 
 ## 4. KOÇSİSTEM YÖNETİLEN HİZMET KATALOĞU UYUMU
 
-Müşterilerin KoçSistem'den satın alabildiği tüm bağımsız servisler platformda birebir ayrıştırılmıştır:
+Müşterilerin CloudShield'den satın alabildiği tüm bağımsız servisler platformda birebir ayrıştırılmıştır:
 
 ```
 [MÜŞTERİ HİZMET SEÇİMİ]
@@ -85,14 +85,14 @@ Müşterilerin KoçSistem'den satın alabildiği tüm bağımsız servisler plat
  ├── [ ] SVC-PRV-GOV    : Microsoft Purview Veri Yaşam Döngüsü & Saklama (Retention)
  ├── [ ] SVC-PRV-RISK   : Microsoft Purview İç Tehdit (Insider Risk) & eDiscovery
  ├── [ ] SVC-AI-SECURITY: Microsoft Purview AI Güvenliği (Copilot & LLM Güvenli Kullanımı)
- └── [X] MSSP Operasyonel Katma Değer: KoçSistem Yönetilen Güvenlik & Uyum Mühendisliği (FTE Kapasitesi & Stratejik Yol Haritası)
+ └── [X] MSSP Operasyonel Katma Değer: Enterprise Managed Security & Uyum Mühendisliği (FTE Kapasitesi & Stratejik Yol Haritası)
 ```
 
 ---
 
 ## 5. YATIRIM GETİRİSİ (ROI) VE VERİMLİLİK METRİKLERİ
 
-| Metrik | Eski Yöntem (Manuel/Dağınık) | KoçSistem MSSP Platformu | Kazanç / İyileşme |
+| Metrik | Eski Yöntem (Manuel/Dağınık) | CloudShield MSSP Platform | Kazanç / İyileşme |
 |---|---|---|---|
 | **Müşteri Başına Aylık Rapor Eforu** | 4 - 6 Adam/Saat | **1 Dakika (Otomatik)** | **%98 Zaman Tasarrufu** |
 | **30 Müşteri İçin Aylık Toplam Efor** | 150 Adam/Saat | **~2 Adam/Saat (Kontrol)** | **Ayda 148 Mühendis Saati Kurtarılır** |
@@ -111,21 +111,21 @@ Proje, şirkete herhangi bir maliyet veya risk oluşturmadan aşamalı olarak ha
 - Aylık altyapı maliyeti: **<$5 / Ay** (Sunucusuz çalışma ve sıfıra ölçeklenme sayesinde).
 - 4 adet temsil edici kurumsal müşteri tenant'ı ile test edildi ve rapor çıktıları üretildi.
 
-### 2. Aşama: KoçSistem İç Pilot Dağıtımı (2-3 Hafta)
-- KoçSistem kurumsal Azure aboneliğine `Deploy-ToAzure.ps1` betiği ile tek tıkla dağıtım.
-- KoçSistem Entra ID SSO entegrasyonu (Mühendisler kendi şirket hesaplarıyla giriş yapar).
+### 2. Aşama: CloudShield İç Pilot Dağıtımı (2-3 Hafta)
+- CloudShield kurumsal Azure aboneliğine `Deploy-ToAzure.ps1` betiği ile tek tıkla dağıtım.
+- CloudShield Entra ID SSO entegrasyonu (Mühendisler kendi şirket hesaplarıyla giriş yapar).
 - Seçilecek 3 pilot kurumsal müşterinin canlı telemetrisiyle ilk ay sonu raporlarının üretilmesi.
 
 ### 3. Aşama: Genel Kullanıma Açılış (Tam Canlı)
 - Tüm 30+ müşterinin portala eklenmesi.
 - Müşterilere özel salt-okunur portal arayüzü (Müşteri kendi rapor geçmişini portaldan indirebilir).
-- KoçSistem SOC ITSM (ServiceNow / Jira) entegrasyonu ile otomatik bilet kapatma metrikleri.
+- CloudShield SOC ITSM (ServiceNow / Jira) entegrasyonu ile otomatik bilet kapatma metrikleri.
 
 ---
 
 ## 7. SONUÇ VE TAVSİYE EDİLEN KARAR
 
-Bu platform; yalnızca bir "raporlama aracı" değil, KoçSistem'in Microsoft Güvenlik Yönetilen Hizmetleri pazarındaki teknik yetkinliğini, otomasyon gücünü ve operasyonel kalitesini doğrudan kanıtlayan bir **rekabet avantajı (Competitive Edge)** ürünüdür.
+Bu platform; yalnızca bir "raporlama aracı" değil, CloudShield'in Microsoft Güvenlik Yönetilen Hizmetleri pazarındaki teknik yetkinliğini, otomasyon gücünü ve operasyonel kalitesini doğrudan kanıtlayan bir **rekabet avantajı (Competitive Edge)** ürünüdür.
 
 **Önerilen Karar:**
-Projenin KoçSistem iç Azure ortamında pilot olarak devreye alınması ve MSSP operasyon ekiplerinin kullanımına açılması için onay verilmesi arz olunur.
+Projenin CloudShield iç Azure ortamında pilot olarak devreye alınması ve MSSP operasyon ekiplerinin kullanımına açılması için onay verilmesi arz olunur.

@@ -166,43 +166,43 @@
   },
   "Packages": {
     "PKG-01": {
-      "Name": "KoçSistem Yönetilen Uç Nokta Güvenliği (EDR)",
+      "Name": "CloudShield Yönetilen Uç Nokta Güvenliği (EDR)",
       "Services": ["SVC-MDE"]
     },
     "PKG-02": {
-      "Name": "KoçSistem Yönetilen E-Posta Güvenliği (MDO + EOP)",
+      "Name": "CloudShield Yönetilen E-Posta Güvenliği (MDO + EOP)",
       "Services": ["SVC-MDO"]
     },
     "PKG-03": {
-      "Name": "KoçSistem Yönetilen Kimlik Tehdit Koruması (MDI)",
+      "Name": "CloudShield Yönetilen Kimlik Tehdit Koruması (MDI)",
       "Services": ["SVC-MDI"]
     },
     "PKG-04": {
-      "Name": "KoçSistem Yönetilen Bulut Uygulama Güvenliği (CASB)",
+      "Name": "CloudShield Yönetilen Bulut Uygulama Güvenliği (CASB)",
       "Services": ["SVC-MDCA"]
     },
     "PKG-05": {
-      "Name": "KoçSistem Tehdit Koruması & XDR Tam Paket",
+      "Name": "CloudShield Tehdit Koruması & XDR Tam Paket",
       "Services": ["SVC-MDE", "SVC-MDO", "SVC-MDI", "SVC-MDCA", "SVC-XDR"]
     },
     "PKG-06": {
-      "Name": "KoçSistem Yönetilen Purview Veri Güvenliği (DLP & Sınıflandırma)",
+      "Name": "CloudShield Yönetilen Purview Veri Güvenliği (DLP & Sınıflandırma)",
       "Services": ["SVC-PRV-DLP", "SVC-PRV-CLASS"]
     },
     "PKG-07": {
-      "Name": "KoçSistem Yönetilen Purview Tam Uyum ve Yönetişim",
+      "Name": "CloudShield Yönetilen Purview Tam Uyum ve Yönetişim",
       "Services": ["SVC-PRV-DLP", "SVC-PRV-CLASS", "SVC-PRV-GOV", "SVC-PRV-RISK"]
     },
     "PKG-08": {
-      "Name": "KoçSistem Yönetilen Cihaz Uyum & Intune Paketi",
+      "Name": "CloudShield Yönetilen Cihaz Uyum & Intune Paketi",
       "Services": ["SVC-INTUNE", "SVC-MDE"]
     },
     "PKG-09": {
-      "Name": "KoçSistem Yönetilen Yapay Zeka & Veri Postürü (DSPM for AI)",
+      "Name": "CloudShield Yönetilen Yapay Zeka & Veri Postürü (DSPM for AI)",
       "Services": ["SVC-AI-SECURITY", "SVC-PRV-DLP", "SVC-PRV-CLASS"]
     },
     "PKG-10": {
-      "Name": "KoçSistem Microsoft 365 E5 / E7 Birleşik Yönetilen Güvenlik Paketi",
+      "Name": "CloudShield Microsoft 365 E5 / E7 Birleşik Yönetilen Güvenlik Paketi",
       "Services": [
         "SVC-MDE", "SVC-MDO", "SVC-MDI", "SVC-MDCA", "SVC-XDR",
         "SVC-INTUNE", "SVC-ENTRA-PIM",

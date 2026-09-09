@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Insider Risk Management (IRM) & Communication Compliance Service Plugin (Isolated Privacy App).
 [CmdletBinding()]
 param()
@@ -145,7 +145,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Purview İç Tehdit (IRM) ve İletişim Uyumu Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Purview İç Tehdit (IRM) ve İletişim Uyumu Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen İç Tehdit & Uyum</span>
     </div>
 
@@ -153,7 +153,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem İç Tehdit Yönetilen Hizmet Operasyonel Değeri
+                CloudShield İç Tehdit Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -167,7 +167,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">İşten ayrılacak personel anomalileri ve anormal veri indirme hareketleri</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem Uyum Uzman Eylemi</div>
+                <div class="kpi-title">CloudShield Uyum Uzman Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.IletisimDenetimSayisi) Denetim</div>
                     <span class="badge positive">Uzman Eforu</span>

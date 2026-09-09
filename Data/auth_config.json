@@ -6,7 +6,7 @@
       "e4a03022-5507-4cd4-80d5-65fba18b0314"
     ],
     "AllowedDomains": [
-      "kocsistem.com.tr",
+      "cloudshield-mssp.com",
       "koc.com.tr"
     ],
     "ClientId": "5b2f8a1c-9e3d-4c7a-8b1e-0f2a3b4c5d6e",
@@ -16,8 +16,8 @@
     "EnforceConditionalAccess": true
   },
   "SamlConfig": {
-    "EntityId": "https://mssp.kocsistem.com.tr/saml/metadata",
-    "AcsUrl": "https://mssp.kocsistem.com.tr/saml/acs",
+    "EntityId": "https://mssp.cloudshield-mssp.com/saml/metadata",
+    "AcsUrl": "https://mssp.cloudshield-mssp.com/saml/acs",
     "SingleSignOnServiceUrl": "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/saml2",
     "FederationMetadataUrl": "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/federationmetadata/2007-06/federationmetadata.xml",
     "CertificateThumbprint": "9C2A4F8B1E3D5C7A6B8E0F1A2B3C4D5E"

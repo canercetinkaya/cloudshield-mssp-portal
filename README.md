@@ -1,12 +1,12 @@
-# KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+# CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fkocsistem-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fcloudshield-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
 ![Architecture](https://img.shields.io/badge/Architecture-Azure%20Container%20Apps%20Serverless-blue.svg)
 ![Cost Optimization](https://img.shields.io/badge/MCT%20Friendly-Zero%20Idle%20Cost%20($0%2Fmo)-brightgreen.svg)
 ![Security](https://img.shields.io/badge/Zero%20Trust-Entra%20ID%20SSO%20%2B%20Least%20Privilege-orange.svg)
 ![Zero SOC Strict](https://img.shields.io/badge/MSSP%20Engineering-Dedicated%20Managed%20Services-purple.svg)
 
-**KoçSistem Managed Security Operations & Reporting Platform**, kurumsal müşterilerimizin Microsoft Defender XDR (Endpoint, Office 365, Identity, Cloud Apps) ve Microsoft Purview (DLP, Risk & Uyum, Veri Yaşam Döngüsü) ortamlarını tek merkezden izleyen, çok kiracılı (multi-tenant), yüksek güvenlikli bir SaaS yönetim ve otomatik raporlama portalıdır.
+**CloudShield Enterprise MSSP Security & Compliance Platform**, kurumsal müşterilerimizin Microsoft Defender XDR (Endpoint, Office 365, Identity, Cloud Apps) ve Microsoft Purview (DLP, Risk & Uyum, Veri Yaşam Döngüsü) ortamlarını tek merkezden izleyen, çok kiracılı (multi-tenant), yüksek güvenlikli bir SaaS yönetim ve otomatik raporlama portalıdır.
 
 ---
 
@@ -14,7 +14,7 @@
 
 1. **Çok Kiracılı (Multi-Tenant) İzolasyon & Güvenlik:**
    - Her müşteri verisi ve API yapılandırması bellek seviyesinde tam izole edilir; geçici yapılandırmalar işlem bitiminde anında temizlenir.
-   - Test ve müşteri demoları için ayrılmış `KoçSistem Demo & Test Ortamı (Sandbox)` kiracısı ile canlı müşteri ortamları ayrıştırılmıştır.
+   - Test ve müşteri demoları için ayrılmış `Enterprise Security Lab (Sandbox & PoC)` kiracısı ile canlı müşteri ortamları ayrıştırılmıştır.
 
 2. **Zamanlanmış Dağıtım & E-posta Otomasyon Paneli:**
    - Aylık veya haftalık periyotlarda otomatik vektörel PDF ve interaktif HTML rapor üretimi.
@@ -44,7 +44,7 @@
 
 Azure MCT veya kurumsal aboneliğinizde sistemi ayağa kaldırmak için aşağıdaki butona tıklayın:
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fkocsistem-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcanercetinkaya%2Fcloudshield-mssp-portal%2Fmain%2FAzure%2Fazuredeploy.json)
 
 ### Dağıtılan Azure Kaynakları:
 - **Azure Container Apps:** Web Portalı ve Python REST API
@@ -58,8 +58,8 @@ Azure MCT veya kurumsal aboneliğinizde sistemi ayağa kaldırmak için aşağı
 
 ```powershell
 # 1. Depoyu klonlayın
-git clone https://github.com/canercetinkaya/kocsistem-mssp-portal.git
-cd kocsistem-mssp-portal
+git clone https://github.com/canercetinkaya/cloudshield-mssp-portal.git
+cd cloudshield-mssp-portal
 
 # 2. Portalı yerel ortamda başlatın (Tarayıcı otomatik açılır)
 powershell -ExecutionPolicy Bypass -File .\Portal\Start-LocalPortal.ps1
@@ -69,8 +69,8 @@ Varsayılan adres: `http://localhost:8080`
 ---
 
 ## 🔒 Güvenlik ve Uyum İlkeleri
-- **SOC Ayrımı:** Bu platform KoçSistem SOC ekiplerinden tamamen bağımsız olup, KoçSistem Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri mühendislik kapsamındadır.
+- **SOC Ayrımı:** Bu platform CloudShield SOC ekiplerinden tamamen bağımsız olup, CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri mühendislik kapsamındadır.
 - **KVKK / GDPR:** Tüm hassas kullanıcı ve dosya isimleri raporlama aşamasında k-Anonymity ilkelerine göre dinamik olarak maskelenir (`a***.y***@sirket.com`).
 
 ---
-**Telif Hakkı © 2026 KoçSistem Bilgi ve İletişim Hizmetleri A.Ş.**
+**Telif Hakkı © 2026 CloudShield MSSP Global Operations**

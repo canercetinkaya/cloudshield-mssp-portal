@@ -1,12 +1,12 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)
+    CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)
     Otomatik Müşteri Tenant Onboarding ve Yetkilendirme Betiği
 .DESCRIPTION
-    Müşterinin Microsoft Entra ID kiracısında KoçSistem MSSP Raporlama Platformu için
+    Müşterinin Microsoft Entra ID kiracısında CloudShield MSSP Raporlama Platformu için
     en az yetkili (Least-Privilege) salt-okunur (Read-Only) App Registration kaydını açar,
     gerekli Graph ve Defender API izinlerini bağlar, yönetici onayını (Admin Consent) verir,
-    istemci sırrını (Secret) üretir ve opsiyonel olarak KoçSistem MSSP Portalı'na kaydeder.
+    istemci sırrını (Secret) üretir ve opsiyonel olarak CloudShield MSSP Portalı'na kaydeder.
 .PARAMETER TenantId
     Müşteri Microsoft 365 / Entra ID Kiracı GUID veya etki alanı (örn: contoso.onmicrosoft.com).
 .PARAMETER CustomerName
@@ -16,7 +16,7 @@
 .PARAMETER KeyVaultName
     (Opsiyonel) Azure Key Vault adı; tanımlanırsa üretilen secret doğrudan Key Vault'a kaydedilir.
 .PARAMETER PortalApiUrl
-    (Opsiyonel) KoçSistem MSSP Portalı REST API adresi (varsayılan: http://localhost:8080).
+    (Opsiyonel) CloudShield MSSP Portalı REST API adresi (varsayılan: http://localhost:8080).
 .EXAMPLE
     .\New-CustomerTenantOnboarding.ps1 -TenantId '72f988bf-86f1-41af-91ab-2d7cd011db47' -CustomerName 'Anadolu Finans'
 #>
@@ -49,7 +49,7 @@ $ErrorActionPreference = 'Stop'
 
 Write-Host ''
 Write-Host '=================================================================================' -ForegroundColor Cyan
-Write-Host '  KoçSistem Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)' -ForegroundColor White
+Write-Host '  CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)' -ForegroundColor White
 Write-Host '  Otomatik Müşteri Tenant Onboarding & API Yetkilendirme Sihirbazı' -ForegroundColor Yellow
 Write-Host '=================================================================================' -ForegroundColor Cyan
 Write-Host ''
@@ -139,7 +139,7 @@ if ($existingApps.value -and $existingApps.value.Count -gt 0) {
     $App = Invoke-MgGraphRest -Method POST -Uri 'https://graph.microsoft.com/v1.0/applications' -Body @{
         displayName    = $AppName
         signInAudience = 'AzureADMyOrg'
-        description    = 'KoçSistem Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri Raporlama Entegrasyonu'
+        description    = 'CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri Raporlama Entegrasyonu'
     }
     Write-Host ('   [OK] Uygulama oluşturuldu. Client ID: ' + $App.appId) -ForegroundColor Green
 }
@@ -205,7 +205,7 @@ if ($KeyVaultName) {
     }
 }
 
-Write-Host '`n[5/5] KoçSistem MSSP Portalı REST APIsine Müşteri Kaydı Gönderiliyor...' -ForegroundColor Cyan
+Write-Host '`n[5/5] CloudShield MSSP Portalı REST APIsine Müşteri Kaydı Gönderiliyor...' -ForegroundColor Cyan
 $tenantPayload = @{
     Id               = ('tenant-' + $CleanName.ToLower())
     Name             = $CustomerName
@@ -226,7 +226,7 @@ $tenantPayload = @{
         Frequency = 'Monthly'
         DayOfMonth = 1
         Time = '08:30'
-        Recipients = @($ContactEmail, 'mssp-reports@kocsistem.com.tr')
+        Recipients = @($ContactEmail, 'mssp-reports@cloudshield-mssp.com')
         Channels = @('Email', 'HtmlReport', 'VectorPdf')
         Status = 'Active'
     }
@@ -241,7 +241,7 @@ $tenantPayload = @{
 
 try {
     $apiResp = Invoke-RestMethod -Method Post -Uri ($PortalApiUrl + '/api/tenants') -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes(($tenantPayload | ConvertTo-Json -Depth 5)))
-    Write-Host '   [BAŞARILI] Müşteri KoçSistem Portalına eklendi! (HTTP 201 Created)' -ForegroundColor Green
+    Write-Host '   [BAŞARILI] Müşteri CloudShield Portalına eklendi! (HTTP 201 Created)' -ForegroundColor Green
 } catch {
     Write-Host ('   [BİLGİ] Portala otomatik kayıt yapılmadı (' + $PortalApiUrl + '): ' + $_.Exception.Message) -ForegroundColor Gray
 }

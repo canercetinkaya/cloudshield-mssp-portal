@@ -1,4 +1,4 @@
-﻿# Core/Authentication.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/Authentication.psm1 - CloudShield Security Reporting Platform
 # RFC 7523 Certificate-Based Authentication (JWT Assertion), Client Secret, Token Caching, and Resilient REST Invoker.
 [CmdletBinding()]
 param()

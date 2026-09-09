@@ -4,6 +4,6 @@
   "DisplayName": "Microsoft Purview DSPM for AI & Copilot Security",
   "Category": "AIProtection",
   "Version": "1.0.0",
-  "Author": "KoçSistem MSSP Automation Team",
+  "Author": "CloudShield MSSP Automation Team",
   "Description": "Microsoft 365 Copilot ve GenAI araçlarının hassas veri etkileşimleri, aşırı paylaşılan (over-shared) dokümanlar ve AI güvenlik riskleri eklentisi."
 }

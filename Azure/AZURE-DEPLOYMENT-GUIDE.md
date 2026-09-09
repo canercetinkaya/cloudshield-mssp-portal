@@ -1,7 +1,7 @@
-# KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+# CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
 # Azure Bulut Dağıtım, Güvenlik ve RBAC Aktivasyon Kılavuzu
 
-Bu kılavuz, yerel ortamda çalışan KoçSistem MSSP Portal ve Raporlama Motoru'nu **Azure MCT (Microsoft Certified Trainer) aboneliğiniz** üzerinde sıfırdan canlıya nasıl alacağınızı, modern **Zero-Trust Passwordless** mimari ile nasıl güvenceye alacağınızı ve KoçSistem kurumsal ortamına nasıl taşıyacağınızı adım adım anlatmaktadır.
+Bu kılavuz, yerel ortamda çalışan CloudShield MSSP Portal ve Raporlama Motoru'nu **Azure MCT (Microsoft Certified Trainer) aboneliğiniz** üzerinde sıfırdan canlıya nasıl alacağınızı, modern **Zero-Trust Passwordless** mimari ile nasıl güvenceye alacağınızı ve CloudShield kurumsal ortamına nasıl taşıyacağınızı adım adım anlatmaktadır.
 
 ---
 
@@ -15,7 +15,7 @@ Platform, MCT aylık kredinizi ($100 - $150/ay) tüketmemek ve kurumsal güvenli
                                   |                                                                   |
 +----------------------+          |  +-------------------------------------------------------------+  |
 |                      |  HTTPS   |  |              Azure Container Apps (Sunucusuz)               |  |
-|  KoçSistem           | ----------> |  - Web Arayüzü (Tailwind SPA, Tenant Switcher)             |  |
+|  CloudShield           | ----------> |  - Web Arayüzü (Tailwind SPA, Tenant Switcher)             |  |
 |  Güvenlik Mühendisi  |          |  - Python REST API (Zero-dependency Backend)                   |  |
 |                      | <---------- |  - PowerShell 7.4 Core Raporlama Motoru                     |  |
 +----------------------+  PDF/HTML|  - Headless Chromium (Vektörel PDF Üretimi)                   |  |
@@ -84,13 +84,13 @@ Dağıtım betikleri, ortam gereksinimlerini otomatik denetler, oturumu doğrula
 
 ```powershell
 # Azure klasörüne geçin
-cd "KocSistemMSSPPortal\Azure"
+cd "CloudShieldMSSPPortal\Azure"
 
-# Varsayılan PoC / MCT Dağıtımı (Kaynak Grubu: rg-kocsistem-mssp-poc, Bölge: westeurope)
+# Varsayılan PoC / MCT Dağıtımı (Kaynak Grubu: rg-cloudshield-mssp-poc, Bölge: westeurope)
 .\Deploy-ToAzure.ps1
 
 # Özel Kaynak Grubu, Bölge ve Abonelik ile Dağıtım:
-.\Deploy-ToAzure.ps1 -ResourceGroupName "rg-kocsistem-mssp-prod" -Location "westeurope" -EnvironmentType "prod" -SubscriptionId "<Abonelik-ID>"
+.\Deploy-ToAzure.ps1 -ResourceGroupName "rg-cloudshield-mssp-prod" -Location "westeurope" -EnvironmentType "prod" -SubscriptionId "<Abonelik-ID>"
 ```
 
 ### Yöntem 2: Bash / Azure Cloud Shell ile Tek Komut Dağıtım
@@ -98,10 +98,10 @@ cd "KocSistemMSSPPortal\Azure"
 ```bash
 # Betiğe çalıştırma izni verin ve başlatın
 chmod +x deploy-to-azure.sh
-./deploy-to-azure.sh -g rg-kocsistem-mssp-poc -l westeurope -e poc
+./deploy-to-azure.sh -g rg-cloudshield-mssp-poc -l westeurope -e poc
 
 # Kurumsal Prod Ortamı İçin:
-./deploy-to-azure.sh -g rg-kocsistem-mssp-prod -l westeurope -e prod -s "<Abonelik-ID>"
+./deploy-to-azure.sh -g rg-cloudshield-mssp-prod -l westeurope -e prod -s "<Abonelik-ID>"
 ```
 
 ### Yöntem 3: Doğrudan Azure CLI One-Liner (Komut Satırından Tek Satır)
@@ -110,20 +110,20 @@ Eğer betik çalıştırmadan doğrudan Azure CLI ile dağıtmak isterseniz:
 
 ```bash
 # 1. Kaynak Grubu Oluşturun
-az group create --name rg-kocsistem-mssp-poc --location westeurope
+az group create --name rg-cloudshield-mssp-poc --location westeurope
 
 # 2. Bicep Dağıtımını Başlatın (Kullanıcı Object ID'si otomatik aktarılır)
 az deployment group create \
-  --resource-group rg-kocsistem-mssp-poc \
+  --resource-group rg-cloudshield-mssp-poc \
   --template-file main.bicep \
-  --parameters prefix="kocsistem-mssp" environmentType="poc" adminPrincipalId="$(az ad signed-in-user show --query id -o tsv)"
+  --parameters prefix="cloudshield-mssp" environmentType="poc" adminPrincipalId="$(az ad signed-in-user show --query id -o tsv)"
 ```
 
 ---
 
 ## 4. Müşteri Secret ve Sertifikalarını Key Vault'a Yükleme
 
-Dağıtım tamamlandıktan sonra çıktı olarak verilen Key Vault adı (örn: `kocsistem-mssp-abc123sa-kv`) üzerine müşteri kimlik bilgileri şu komutlarla eklenir:
+Dağıtım tamamlandıktan sonra çıktı olarak verilen Key Vault adı (örn: `cloudshield-mssp-abc123sa-kv`) üzerine müşteri kimlik bilgileri şu komutlarla eklenir:
 
 ### A. Müşteri Client Secret Ekleme
 ```bash
@@ -175,11 +175,11 @@ Dağıtım tamamlandıktan sonra sistemin sağlıklı çalıştığını doğrul
 
 ---
 
-## 6. Test Ortamından KoçSistem Kurumsal Ortamına (Production) Taşıma
+## 6. Test Ortamından CloudShield Kurumsal Ortamına (Production) Taşıma
 
 1. **Abonelik & Kaynak Grubu Değişikliği**:
-   `Deploy-ToAzure.ps1 -EnvironmentType "prod" -ResourceGroupName "rg-kocsistem-mssp-prod" -SubscriptionId "<KocSistem-Kurumsal-ID>"`
+   `Deploy-ToAzure.ps1 -EnvironmentType "prod" -ResourceGroupName "rg-cloudshield-mssp-prod" -SubscriptionId "<CloudShield-Kurumsal-ID>"`
 2. **Özel Alan Adı (Custom Domain) & SSL**:
-   Container Apps -> **Custom domains** menüsünden `mssp.kocsistem.com.tr` alan adı eklenir. Azure'un sunduğu ücretsiz yönetilen sertifika (Managed Certificate) ile SSL otomatik bağlanır.
+   Container Apps -> **Custom domains** menüsünden `mssp.cloudshield-mssp.com` alan adı eklenir. Azure'un sunduğu ücretsiz yönetilen sertifika (Managed Certificate) ile SSL otomatik bağlanır.
 3. **Kurumsal Entra ID SSO / MFA Entegrasyonu**:
-   Portal kimlik doğrulama katmanına KoçSistem Entra ID Enterprise App eklenerek şirket personeli dışındaki erişimler koşullu erişim (Conditional Access) ilkeleriyle engellenir.
+   Portal kimlik doğrulama katmanına CloudShield Entra ID Enterprise App eklenerek şirket personeli dışındaki erişimler koşullu erişim (Conditional Access) ilkeleriyle engellenir.

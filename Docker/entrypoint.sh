@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# KoçSistem MSSP Portal - Docker Entrypoint Script
+# CloudShield MSSP Portal - Docker Entrypoint Script
 # ==============================================================================
 
 set -e
@@ -8,7 +8,7 @@ set -e
 PORT=${PORT:-8080}
 
 echo "================================================================================"
-echo "  KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)"
+echo "  CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)"
 echo "  Sürüm: 2.0.0 | Ortam: ${ENVIRONMENT:-Production}"
 echo "  Port : ${PORT}"
 echo "================================================================================"

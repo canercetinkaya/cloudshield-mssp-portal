@@ -1,4 +1,4 @@
-﻿# Core/TrendEngine.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/TrendEngine.psm1 - CloudShield Security Reporting Platform
 # Historical KPI snapshotting, MoM (Month-over-Month) trend calculations, and delta badges.
 [CmdletBinding()]
 param()

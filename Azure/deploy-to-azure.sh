@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+# CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
 # Azure Otomatik Dağıtım Betiği (Azure CLI / Bash / Azure Cloud Shell)
 # ==============================================================================
 
 set -e
 
-RESOURCE_GROUP="rg-kocsistem-mssp-poc"
+RESOURCE_GROUP="rg-cloudshield-mssp-poc"
 LOCATION="westeurope"
 SUBSCRIPTION_ID=""
-PREFIX="kocsistem-mssp"
+PREFIX="cloudshield-mssp"
 ENVIRONMENT="poc"
 ADMIN_PRINCIPAL_ID=""
 
@@ -37,7 +37,7 @@ BICEP_FILE="$SCRIPT_DIR/main.bicep"
 
 echo ""
 echo "================================================================================"
-echo "  KoçSistem MSSP Platformu - Azure Bulut Kurulum Sihirbazı (Azure CLI)"
+echo "  CloudShield MSSP Platform - Azure Bulut Kurulum Sihirbazı (Azure CLI)"
 echo "  Sunucusuz (Serverless ACA), Key Vault RBAC & Passwordless Zero-Trust"
 echo "================================================================================"
 echo ""

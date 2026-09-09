@@ -4,6 +4,6 @@
   "DisplayName": "Microsoft Defender for Identity (MDI)",
   "Category": "Identity",
   "Version": "1.0.0",
-  "Author": "KoçSistem MSSP Automation Team",
+  "Author": "CloudShield MSSP Automation Team",
   "Description": "On-prem Domain Controller güvenliği, Kerberoasting/DCSync tespiti, yanal hareket ve Entra ID riskli kullanıcı korelasyonu eklentisi."
 }

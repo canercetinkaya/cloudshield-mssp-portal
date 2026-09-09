@@ -1,13 +1,13 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Security Managed Services Reporting Platform - Ana Raporlama Motoru
+    CloudShield Microsoft Security Managed Services Reporting Platform - Ana Raporlama Motoru
 .DESCRIPTION
     Microsoft Defender ve Microsoft Purview servislerini modüler, eklenti tabanlı olarak
     toplayan, analiz eden, HTML ve vektörel PDF kurumsal rapor üreten ana orkestratör betiği.
 .EXAMPLE
-    .\Invoke-KocSistemSecurityReporting.ps1 -DryRun -Pdf
-    .\Invoke-KocSistemSecurityReporting.ps1 -Mode Monthly -Pdf -SendMail
-    .\Invoke-KocSistemSecurityReporting.ps1 -ServiceCode SVC-MDO -DryRun -Pdf
+    .\Invoke-CloudShieldSecurityReporting.ps1 -DryRun -Pdf
+    .\Invoke-CloudShieldSecurityReporting.ps1 -Mode Monthly -Pdf -SendMail
+    .\Invoke-CloudShieldSecurityReporting.ps1 -ServiceCode SVC-MDO -DryRun -Pdf
 #>
 [CmdletBinding()]
 param(
@@ -65,7 +65,7 @@ $customer = $platformConfig.CustomerConfig.Customer.Name
 $tenantId = $platformConfig.CustomerConfig.Customer.TenantId
 
 Initialize-LogContext -CustomerName $customer
-Write-PlatformLog -Level 'STEP' -Message "KoçSistem Güvenlik Raporlama Platformu Başlatılıyor ($customer - $Mode)..." -Component 'Orchestrator'
+Write-PlatformLog -Level 'STEP' -Message "CloudShield Güvenlik Raporlama Platformu Başlatılıyor ($customer - $Mode)..." -Component 'Orchestrator'
 Write-PlatformAuditLog -Action 'ReportExecution_Started' -CustomerName $customer -TenantId $tenantId -ReportPeriod $Mode -ActiveServices @($platformConfig.ActiveServices) -AuditProperties @{ DryRun = [bool]$DryRun; ConfigPath = $ConfigPath }
 
 # 2. Servis Kapsamı Belirleme
@@ -200,7 +200,7 @@ if ($activeServices.Count -gt 1) {
     <div class="executive-summary-container">
         <h2 style="font-size:18px; color:var(--ks-navy); margin-bottom:12px;">Yönetici Özeti (Executive Dashboard)</h2>
         <p style="font-size:13px; color:var(--ks-text-muted); margin-bottom:16px;">
-            $periodLabel boyunca KoçSistem Yönetilen Güvenlik ve Uyum Hizmetleri kapsamında izlenen ve korunan servislerin birleşik durum karnesi aşağıda sunulmuştur.
+            $periodLabel boyunca Enterprise Managed Security & Compliance Services kapsamında izlenen ve korunan servislerin birleşik durum karnesi aşağıda sunulmuştur.
         </p>
         <div class="kpi-grid">
             <div class="kpi-card highlight">
@@ -212,7 +212,7 @@ if ($activeServices.Count -gt 1) {
                 <div class="kpi-description">Uç nokta, e-posta, bulut ve DLP otonom bloklamaları</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-title">KoçSistem Mühendis Müdahaleleri</div>
+                <div class="kpi-title">CloudShield Mühendis Müdahaleleri</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$toplamAnalist</div>
                     <span class="badge positive">Uzman Eforu</span>
@@ -274,9 +274,9 @@ $reportTitle = if ($activeServices.Count -eq 1) {
     $singleSvc = $activeServices[0]
     $cat = $platformConfig.ServiceCatalog.Services.$singleSvc.Name
     if (-not $cat) { $cat = $platformConfig.ServiceCatalog.Services.$singleSvc.DisplayNameTr }
-    "KoçSistem $cat Yönetilen Hizmet Raporu"
+    "CloudShield $cat Yönetilen Hizmet Raporu"
 } else {
-    "KoçSistem Birleşik Microsoft Güvenlik ve Purview Yönetilen Hizmetler Raporu"
+    "CloudShield Birleşik Microsoft Güvenlik ve Purview Yönetilen Hizmetler Raporu"
 }
 
 # 12. Rapor HTML Dosyasını Derle ve Kaydet
@@ -313,7 +313,7 @@ if ($SendMail) {
         $mailBody = @"
         <p>Sayın Yetkili,</p>
         <p><strong>$customer</strong> kuruluşuna ait <strong>$periodLabel</strong> dönemi <em>$reportTitle</em> hazırlanmış olup ekte bilgilerinize sunulmuştur.</p>
-        <p>Güvenli günler dileriz.<br><strong>KoçSistem Yönetilen Güvenlik ve Uyum Hizmetleri Ekibi</strong></p>
+        <p>Güvenli günler dileriz.<br><strong>Enterprise Managed Security & Compliance Services Ekibi</strong></p>
 "@
         $attachToSend = if ($pdfPath -and (Test-Path $pdfPath)) { $pdfPath } else { $htmlPath }
         Send-PlatformReportMail -PlatformConfig $platformConfig `

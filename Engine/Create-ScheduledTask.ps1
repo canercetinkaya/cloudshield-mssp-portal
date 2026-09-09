@@ -1,6 +1,6 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Security Managed Services Reporting Platform - Zamanlanmış Görev Kurucusu
+    CloudShield Microsoft Security Managed Services Reporting Platform - Zamanlanmış Görev Kurucusu
 .DESCRIPTION
     Windows Task Scheduler üzerinde aylık, haftalık veya dashboard modunda
     otomatik rapor üretimini ve e-posta iletimini tetikleyen zamanlanmış görevi kaydeder.
@@ -32,10 +32,10 @@ if (-not $ConfigPath) {
     $ConfigPath = Join-Path $root 'Config\customer.config.json'
 }
 
-$safeName = "KocSistem-Security-Reporting-$Mode"
+$safeName = "CloudShield-Security-Reporting-$Mode"
 if ($TaskName) { $safeName = $TaskName }
 
-$invokeScript = Join-Path $root 'Invoke-KocSistemSecurityReporting.ps1'
+$invokeScript = Join-Path $root 'Invoke-CloudShieldSecurityReporting.ps1'
 $pwshExe = (Get-Process -Id $PID).Path
 if (-not $pwshExe) { $pwshExe = 'powershell.exe' }
 
@@ -60,7 +60,7 @@ try {
                            -Action $action `
                            -Trigger $trigger `
                            -Settings $settings `
-                           -Description "KoçSistem Microsoft Güvenlik ve Purview Yönetilen Hizmetler Otomatik Raporlama Görevi" `
+                           -Description "CloudShield Microsoft Güvenlik ve Purview Yönetilen Hizmetler Otomatik Raporlama Görevi" `
                            -Force | Out-Null
 
     Write-Host "   [OK] Görev başarıyla oluşturuldu: $safeName" -ForegroundColor Green

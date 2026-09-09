@@ -1,6 +1,6 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Security Managed Services Reporting Platform - Kapsamlı Test Süiti
+    CloudShield Microsoft Security Managed Services Reporting Platform - Kapsamlı Test Süiti
 .DESCRIPTION
     Tüm çekirdek modüller, servis eklentileri (plugins), DPAPI şifreleme, gizlilik motoru,
     HTML ve vektörel PDF üretimini birim ve entegrasyon testleriyle doğrular.
@@ -15,7 +15,7 @@ $root = Split-Path -Parent $PSScriptRoot
 if (-not $root) { $root = (Get-Location).Path }
 
 Write-Host "=================================================================================" -ForegroundColor Cyan
-Write-Host "       KoçSistem Microsoft Security Reporting Platform - Test Süiti              " -ForegroundColor White
+Write-Host "       CloudShield Microsoft Security Reporting Platform - Test Süiti              " -ForegroundColor White
 Write-Host "=================================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -62,7 +62,7 @@ Assert-Test "Servis Kataloğu (service-catalog.json) Geçerliliği" {
 
 Assert-Test "Global Yapılandırma Şablonu Geçerliliği" {
     $globPath = Join-Path $root 'Config\global.config.template.json'
-    (Test-Path $globPath) -and ((Get-Content $globPath -Raw -Encoding UTF8 | ConvertFrom-Json).Provider.ShortName -match 'Ko.Sistem|KocSistem')
+    (Test-Path $globPath) -and ((Get-Content $globPath -Raw -Encoding UTF8 | ConvertFrom-Json).Provider.ShortName -match 'Ko.Sistem|CloudShield')
 }
 
 Assert-Test "Müşteri Yapılandırma Şablonu Geçerliliği" {
@@ -74,7 +74,7 @@ Assert-Test "Müşteri Yapılandırma Şablonu Geçerliliği" {
 Write-Host "`n3. DPAPI Şifreleme ve Gizlilik Motoru Testleri:" -ForegroundColor Yellow
 Assert-Test "DPAPI Secret Şifreleme ve Çözme Döngüsü (Round-Trip)" {
     Import-Module (Join-Path $root 'Core\Configuration.psm1') -Force
-    $plain = "KocSistem-Super-Secret-2026!#%"
+    $plain = "CloudShield-Super-Secret-2026!#%"
     $enc = Protect-PlatformSecret -PlainText $plain -Scope 'CurrentUser'
     $dec = Unprotect-PlatformSecret -EncryptedBase64 $enc -Scope 'CurrentUser'
     $plain -eq $dec
@@ -98,9 +98,9 @@ Assert-Test "PrivacyEngine: k-Anonymity (k=5) Eşik Doğrulaması" {
 
 Assert-Test "PrivacyEngine: Deterministik Tuzlu SHA256 Maskeleme" {
     Import-Module (Join-Path $root 'Core\PrivacyEngine.psm1') -Force
-    $m1 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@kocsistem.com.tr' -TenantId 'Tenant-A'
-    $m2 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@kocsistem.com.tr' -TenantId 'Tenant-A'
-    $m3 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@kocsistem.com.tr' -TenantId 'Tenant-B'
+    $m1 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@cloudshield-mssp.com' -TenantId 'Tenant-A'
+    $m2 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@cloudshield-mssp.com' -TenantId 'Tenant-A'
+    $m3 = Protect-UserIdentity -UserPrincipalName 'caner.cetinkaya@cloudshield-mssp.com' -TenantId 'Tenant-B'
     ($m1 -eq $m2) -and ($m1 -ne $m3) # Aynı tenant'ta aynı hash, farklı tenant'ta farklı hash
 }
 
@@ -150,14 +150,14 @@ foreach ($pFolder in $pluginFolders) {
 
 # 5. UÇTAN UCA ENTEGRASYON VE RAPOR ÜRETİM TESTİ
 Write-Host "`n5. Uçtan Uca Entegrasyon ve Rapor Üretim Testi (DryRun & PDF):" -ForegroundColor Yellow
-Assert-Test "Invoke-KocSistemSecurityReporting (DryRun + PDF)" {
-    $invokeScript = Join-Path $root 'Invoke-KocSistemSecurityReporting.ps1'
+Assert-Test "Invoke-CloudShieldSecurityReporting (DryRun + PDF)" {
+    $invokeScript = Join-Path $root 'Invoke-CloudShieldSecurityReporting.ps1'
     $res = & $invokeScript -DryRun -Pdf
     $res.Success -eq $true -and (Test-Path $res.HtmlPath) -and (Test-Path $res.PdfPath) -and ((Get-Item $res.PdfPath).Length -gt 1000)
 }
 
-Assert-Test "Invoke-KocSistemSecurityReporting Standalone Mod (Tekil MDO Servisi)" {
-    $invokeScript = Join-Path $root 'Invoke-KocSistemSecurityReporting.ps1'
+Assert-Test "Invoke-CloudShieldSecurityReporting Standalone Mod (Tekil MDO Servisi)" {
+    $invokeScript = Join-Path $root 'Invoke-CloudShieldSecurityReporting.ps1'
     $res = & $invokeScript -ServiceCode 'SVC-MDO' -DryRun
     $res.Success -eq $true -and ($res.ServicesRun.Count -eq 1)
 }

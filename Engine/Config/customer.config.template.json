@@ -52,14 +52,14 @@
   },
   "Delivery": {
     "Method": "Graph",
-    "From": "soc-reports@kocsistem.com.tr",
+    "From": "soc-reports@cloudshield-mssp.com",
     "To": [
       "ciso@musteri.com"
     ],
     "Cc": [
-      "soc-team@kocsistem.com.tr"
+      "soc-team@cloudshield-mssp.com"
     ],
-    "AlertTo": "soc-alerts@kocsistem.com.tr",
+    "AlertTo": "soc-alerts@cloudshield-mssp.com",
     "SendDashboard": true,
     "ServiceSpecificRouting": {
       "SVC-MDO": {

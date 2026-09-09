@@ -1,14 +1,14 @@
 {
   "Provider": {
-    "Name": "KoçSistem Bilgi ve İletişim Hizmetleri A.Ş.",
-    "ShortName": "KoçSistem",
+    "Name": "CloudShield MSSP Global Operations",
+    "ShortName": "CloudShield",
     "BrandColorPrimary": "#002B49",
     "BrandColorSecondary": "#D71920",
     "BrandColorAccent": "#0078D4",
-    "LogoPath": "Resources/logo-kocsistem.png",
-    "LogoUrl": "https://www.kocsistem.com.tr/images/koc-logo-main.png",
-    "SupportEmail": "soc-reports@kocsistem.com.tr",
-    "PortalUrl": "https://security.kocsistem.com.tr"
+    "LogoPath": "Resources/logo-cloudshield.png",
+    "LogoUrl": "https://www.cloudshield-mssp.com/images/koc-logo-main.png",
+    "SupportEmail": "soc-reports@cloudshield-mssp.com",
+    "PortalUrl": "https://security.cloudshield-mssp.com"
   },
   "Defaults": {
     "AutoIrSavedMinutesPerAction": 45,

@@ -169,13 +169,13 @@
       "details": "Executed via Test-Platform.ps1"
     },
     {
-      "name": "Invoke-KocSistemSecurityReporting (DryRun + PDF)",
+      "name": "Invoke-CloudShieldSecurityReporting (DryRun + PDF)",
       "status": "PASS",
       "duration_ms": 154.66,
       "details": "Executed via Test-Platform.ps1"
     },
     {
-      "name": "Invoke-KocSistemSecurityReporting Standalone Mod (Tekil MDO Servisi)",
+      "name": "Invoke-CloudShieldSecurityReporting Standalone Mod (Tekil MDO Servisi)",
       "status": "PASS",
       "duration_ms": 154.66,
       "details": "Executed via Test-Platform.ps1"
@@ -216,7 +216,7 @@
       "name": "POST /api/tenants/tenant-sandbox/test - Sandbox Hazır Yanıtı (200 OK)",
       "status": "PASS",
       "duration_ms": 2052.96,
-      "details": "Status=200, Badge=Sandbox Aktif, Message=KoçSistem Sandbox laboratuvar ortamı aktif. Tam kapsamlı test ve sunum telemetrisi hazır."
+      "details": "Status=200, Badge=Sandbox Aktif, Message=CloudShield Sandbox laboratuvar ortamı aktif. Tam kapsamlı test ve sunum telemetrisi hazır."
     },
     {
       "name": "POST /api/tenants/tenant-001/test - Eksik Canlı Kiracı 400 Reddi",
@@ -246,13 +246,13 @@
       "name": "POST /api/reports/generate - Canlı Kiracı Güvenlik 400 Reddi",
       "status": "PASS",
       "duration_ms": 2047.99,
-      "details": "Status=400, Error=Canlı Kiracı Hatası: 'Anadolu Finans A.Ş.' için geçerli bir Microsoft Entra ID kimlik doğrulama sertifikası/sırrı tanımlanmamıştır. Test raporu üretmek için lütfen 'KoçSistem Demo & Test Ortamı (Sandbox)' kiracısını seçiniz."
+      "details": "Status=400, Error=Canlı Kiracı Hatası: 'Anadolu Finans A.Ş.' için geçerli bir Microsoft Entra ID kimlik doğrulama sertifikası/sırrı tanımlanmamıştır. Test raporu üretmek için lütfen 'Enterprise Security Lab (Sandbox & PoC)' kiracısını seçiniz."
     },
     {
       "name": "POST /api/reports/generate - Sandbox Simülasyon Rapor Üretimi (200 OK)",
       "status": "PASS",
       "duration_ms": 4910.2,
-      "details": "Status=200, Customer=KoçSistem Demo & Test Ortamı (Sandbox), PdfUrl=/api/reports/download?file=Ko_Sistem_Demo___Test_Ortam___Sandbox_/2026-08/Rapor_Ko%C3%A7Sistem%20Demo%20%26%20Test%20Ortam%C4%B1%20%28Sandbox%29_2026-08.pdf"
+      "details": "Status=200, Customer=Enterprise Security Lab (Sandbox & PoC), PdfUrl=/api/reports/download?file=Ko_Sistem_Demo___Test_Ortam___Sandbox_/2026-08/Rapor_Ko%C3%A7Sistem%20Demo%20%26%20Test%20Ortam%C4%B1%20%28Sandbox%29_2026-08.pdf"
     },
     {
       "name": "GET /api/reports/download - PDF/HTML Vektörel Dosya Bütünlüğü",

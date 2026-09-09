@@ -1,13 +1,13 @@
-# KoçSistem Microsoft Security Managed Services Reporting Platform (`KocSistemSecurityReporting`)
+# CloudShield Microsoft Security Managed Services Reporting Platform (`CloudShieldSecurityReporting`)
 
-**KoçSistem Microsoft Security Managed Services Reporting Platform**, Microsoft Defender ve Microsoft Purview ürün ailelerinin tamamını kapsayan, bağımsız satın alınan hizmetleri tekil veya birleşik olarak raporlayabilen, kurumsal düzeyde eklenti (plug-in) tabanlı bir MSSP yönetim ve raporlama çözümüdür.
+**CloudShield Microsoft Security Managed Services Reporting Platform**, Microsoft Defender ve Microsoft Purview ürün ailelerinin tamamını kapsayan, bağımsız satın alınan hizmetleri tekil veya birleşik olarak raporlayabilen, kurumsal düzeyde eklenti (plug-in) tabanlı bir MSSP yönetim ve raporlama çözümüdür.
 
 ---
 
 ## 🌟 Öne Çıkan Özellikler
 
 - **Modüler ve Bağımsız Servis Mimarisi:** Müşteri yalnızca *Yönetilen E-Posta Güvenliği (MDO)* veya yalnızca *Yönetilen Uç Nokta Güvenliği (MDE)* alıyorsa, yalnızca ilgili servise özel müstakil rapor üretir. Birden fazla hizmet alıyorsa tek bir konsolide yönetici raporu sunar.
-- **KoçSistem İnsan Gücü vs. Otonom Koruma Ayrımı:** Microsoft sistemlerinin otonom (Auto-IR, ZAP, Safe Links) çözdüğü tehditler ile KoçSistem SOC analistlerinin müdahale ettiği vakaları ayrıştırır; müşteriye kazandırılan analist saatini hesaplar.
+- **CloudShield İnsan Gücü vs. Otonom Koruma Ayrımı:** Microsoft sistemlerinin otonom (Auto-IR, ZAP, Safe Links) çözdüğü tehditler ile CloudShield SOC analistlerinin müdahale ettiği vakaları ayrıştırır; müşteriye kazandırılan analist saatini hesaplar.
 - **Ayın Proaktif Tehdit Avı:** Her ay yürütülen proaktif KQL av operasyonlarını ve analist bulgularını öne çıkarır.
 - **Kurumsal Kimlik Doğrulama:** RFC 7523 Certificate-Based Authentication (CBA / JWT Assertion) ile sıfır dış kütüphane bağımlılığı ve DPAPI şifreli Client Secret desteği.
 - **Diferansiyel Gizlilik (KVKK/GDPR Uyumlu):** $k$-anonymity ($k \ge 5$) ve tenant bazlı dinamik tuzlu (salted) SHA256 kullanıcı maskeleme motoru.
@@ -19,7 +19,7 @@
 ## 📂 Dizin Yapısı
 
 ```
-KocSistemSecurityReporting/
+CloudShieldSecurityReporting/
 ├── Core/                                   # Platform Çekirdek Motorları
 │   ├── Authentication.psm1                 # CBA (RFC 7523), Secret ve DPAPI
 │   ├── Configuration.psm1                  # Katmanlı konfigürasyon yöneticisi
@@ -45,20 +45,20 @@ KocSistemSecurityReporting/
 │
 ├── Config/                                 # Konfigürasyon Şablonları ve Katalog
 │   ├── service-catalog.json                # Tüm servis ve paket tanımları
-│   ├── global.config.template.json         # KoçSistem kurumsal marka ayarları
+│   ├── global.config.template.json         # CloudShield kurumsal marka ayarları
 │   └── customer.config.template.json       # Müşteri tenant konfigürasyon şablonu
 │
 ├── ManualInput/                            # Operasyonel Dış Girdiler
 │   └── customer-manual-metrics.template.json # SOC biletleri ve ayın tehdit avı
 │
-├── Templates/ModernCorporate/              # KoçSistem Kurumsal Rapor Teması
+├── Templates/ModernCorporate/              # CloudShield Kurumsal Rapor Teması
 │   └── style.css                           # Lacivert/Kırmızı tipografi ve print CSS
 │
 ├── Tests/                                  # Test Süiti
 │   └── Test-Platform.ps1                   # Birim ve entegrasyon testleri (28/28)
 │
-├── Install-KocSistemSecurityReporting.ps1  # İnteraktif Kurulum Sihirbazı
-├── Invoke-KocSistemSecurityReporting.ps1   # Rapor Üretim Motoru
+├── Install-CloudShieldSecurityReporting.ps1  # İnteraktif Kurulum Sihirbazı
+├── Invoke-CloudShieldSecurityReporting.ps1   # Rapor Üretim Motoru
 └── Create-ScheduledTask.ps1                # Windows Görev Zamanlayıcı Kurulumu
 ```
 
@@ -69,24 +69,24 @@ KocSistemSecurityReporting/
 ### 1. İnteraktif Kurulum (Önerilen)
 Sihirbaz ortamı tarar, sertifikaları keşfeder, servisleri seçtirir ve yapılandırmayı tamamlar:
 ```powershell
-.\Install-KocSistemSecurityReporting.ps1 -Interactive
+.\Install-CloudShieldSecurityReporting.ps1 -Interactive
 ```
 
 ### 2. Simülasyon / Test Raporu Üretme (DryRun)
 Gerçek API bağlantısı olmadan örnek kurumsal veriyle tam bir birleşik PDF ve HTML rapor üretmek için:
 ```powershell
-.\Invoke-KocSistemSecurityReporting.ps1 -DryRun -Pdf
+.\Invoke-CloudShieldSecurityReporting.ps1 -DryRun -Pdf
 ```
 
 ### 3. Tekil (Müstakil) Servis Raporu Üretme
 Müşterinin yalnızca aldığı tek bir servisi (Örn: MDO E-posta Güvenliği) raporlamak için:
 ```powershell
-.\Invoke-KocSistemSecurityReporting.ps1 -ServiceCode SVC-MDO -DryRun -Pdf
+.\Invoke-CloudShieldSecurityReporting.ps1 -ServiceCode SVC-MDO -DryRun -Pdf
 ```
 
 ### 4. Üretim Ortamında Aylık Rapor Üretimi ve E-Posta İletimi
 ```powershell
-.\Invoke-KocSistemSecurityReporting.ps1 -Mode Monthly -Pdf -SendMail
+.\Invoke-CloudShieldSecurityReporting.ps1 -Mode Monthly -Pdf -SendMail
 ```
 
 ### 5. Otomatik Görev Zamanlayıcı Kurulumu

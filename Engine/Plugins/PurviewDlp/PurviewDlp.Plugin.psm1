@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewDlp/PurviewDlp.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/PurviewDlp/PurviewDlp.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Loss Prevention (DLP) Service Plugin.
 [CmdletBinding()]
 param()
@@ -95,7 +95,7 @@ function Get-ServiceRawData {
                     Workload    = 'Exchange Online'
                     PolicyName  = 'Müşteri KVK ve Kimlik Verisi Koruması'
                     FileName    = 'Musteri_TCKN_Listesi_2026.xlsx'
-                    User        = 'ahmet.yilmaz@kocsistem.com.tr'
+                    User        = 'ahmet.yilmaz@cloudshield-mssp.com'
                     Recipient   = 'mehmet.demir@haricimail.com'
                     Action      = 'Engellendi (Block)'
                     RuleMatched = 'TCKN ve Adres Sızıntısı Engeli'
@@ -105,7 +105,7 @@ function Get-ServiceRawData {
                     Workload    = 'Endpoint DLP (USB)'
                     PolicyName  = 'Finansal Bilgiler ve IBAN Koruması'
                     FileName    = 'Mali_Rapor_2026_Q2_Konsolide.xlsx'
-                    User        = 'caner.cetinkaya@kocsistem.com.tr'
+                    User        = 'caner.cetinkaya@cloudshield-mssp.com'
                     Recipient   = 'SanDisk USB 3.0 (D:)'
                     Action      = 'Engellendi (Block)'
                     RuleMatched = 'USB Harici Depolama Yazma Yasağı'
@@ -115,7 +115,7 @@ function Get-ServiceRawData {
                     Workload    = 'SharePoint Online'
                     PolicyName  = 'Kaynak Kod ve Fikri Mülkiyet Koruması'
                     FileName    = 'MSSP_Portal_Backend_Source.zip'
-                    User        = 'ayse.kaya@kocsistem.com.tr'
+                    User        = 'ayse.kaya@cloudshield-mssp.com'
                     Recipient   = 'Dış Paylaşım Bağlantısı (Anonim)'
                     Action      = 'Override (İş Gerekçesi)'
                     RuleMatched = 'Dış Paylaşım Kısıtlaması'
@@ -125,7 +125,7 @@ function Get-ServiceRawData {
                     Workload    = 'Endpoint DLP (Web)'
                     PolicyName  = 'Müşteri KVK ve Kimlik Verisi Koruması'
                     FileName    = 'Kredi_Karti_Ekstreleri_Ocak.pdf'
-                    User        = 'burak.ozdemir@kocsistem.com.tr'
+                    User        = 'burak.ozdemir@cloudshield-mssp.com'
                     Recipient   = 'wetransfer.com (Web Upload)'
                     Action      = 'Engellendi (Block)'
                     RuleMatched = 'Kişisel Bulut Yükleme Bloklaması'
@@ -252,7 +252,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = $KpiData.EngellenenVeriTransferi
         ManuelAnalistEforu = $KpiData.KullaniciGerekceliAsma
         KazanilanZamanSaat = [math]::Round(($KpiData.EngellenenVeriTransferi * 10) / 60.0, 1)
-        Aciklama           = "Sistem $($KpiData.EngellenenVeriTransferi) adet yetkisiz veri sızıntısı girişimini otonom olarak durdurmuş, KoçSistem analistleri kullanıcıların kuralı aşarak gönderdiği $($KpiData.KullaniciGerekceliAsma) adet 'Override' gerekçesini iş uyumu açısından denetlemiştir."
+        Aciklama           = "Sistem $($KpiData.EngellenenVeriTransferi) adet yetkisiz veri sızıntısı girişimini otonom olarak durdurmuş, CloudShield analistleri kullanıcıların kuralı aşarak gönderdiği $($KpiData.KullaniciGerekceliAsma) adet 'Override' gerekçesini iş uyumu açısından denetlemiştir."
     }
 }
 
@@ -272,7 +272,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Purview Data Loss Prevention (DLP) Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Purview Data Loss Prevention (DLP) Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen Veri Güvenliği</span>
     </div>
 
@@ -280,7 +280,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem Purview DLP Yönetilen Hizmet Operasyonel Değeri
+                CloudShield Purview DLP Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -294,7 +294,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">USB, Web, E-posta ve Teams üzerinden sızıntısı durdurulan veriler</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem DLP Uzman Eylemi</div>
+                <div class="kpi-title">CloudShield DLP Uzman Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.KullaniciGerekceliAsma + 12)</div>
                     <span class="badge positive">Uzman Eforu</span>

@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Office 365 (MDO & EOP) Service Plugin.
 [CmdletBinding()]
 param()
@@ -185,7 +185,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = $otonomAksiyon
         ManuelAnalistEforu = $analistAksiyon
         KazanilanZamanSaat = [math]::Round(($otonomAksiyon * 15) / 60.0, 1)
-        Aciklama           = "E-posta ağ geçidinde $($KpiData.ToplamEngellenen) adet oltalama ve zararlı içerik otonom durdurulmuş, KoçSistem analistleri kullanıcıların bildirdiği $($KpiData.KullaniciBildirimi) şüpheli postayı ve $($KpiData.KarantinaTalepSayisi) karantina talebini güvenlik denetiminden geçirmiştir."
+        Aciklama           = "E-posta ağ geçidinde $($KpiData.ToplamEngellenen) adet oltalama ve zararlı içerik otonom durdurulmuş, CloudShield analistleri kullanıcıların bildirdiği $($KpiData.KullaniciBildirimi) şüpheli postayı ve $($KpiData.KarantinaTalepSayisi) karantina talebini güvenlik denetiminden geçirmiştir."
     }
 }
 
@@ -205,7 +205,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Defender for Office 365 (MDO & EOP) Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Defender for Office 365 (MDO & EOP) Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen E-Posta Güvenliği</span>
     </div>
 
@@ -213,7 +213,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem MDO & EOP Yönetilen Hizmet Operasyonel Değeri
+                CloudShield MDO & EOP Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -227,7 +227,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">Gateway'de ve ZAP ile gelen kutularından geri çekilen tehditler</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem E-Posta Uzman Eylemi</div>
+                <div class="kpi-title">CloudShield E-Posta Uzman Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.KullaniciBildirimi + $k.KarantinaTalepSayisi)</div>
                     <span class="badge positive">Uzman Eforu</span>
@@ -292,13 +292,13 @@ function Get-ServiceHtmlSection {
     </div>
 
     <!-- OPERASYON VE KARANTİNA TABLOSU -->
-    <h3 style="font-size:14px; margin-top:16px; color:var(--ks-navy);">KoçSistem Analist Operasyonları & Karantina Yönetimi</h3>
+    <h3 style="font-size:14px; margin-top:16px; color:var(--ks-navy);">CloudShield Analist Operasyonları & Karantina Yönetimi</h3>
     <table class="data-table">
         <thead>
             <tr>
                 <th>Operasyon Türü</th>
                 <th>İncelenen Adet</th>
-                <th>KoçSistem Analist Kararı</th>
+                <th>CloudShield Analist Kararı</th>
                 <th>Açıklama / Durum</th>
             </tr>
         </thead>

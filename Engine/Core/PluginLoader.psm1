@@ -1,4 +1,4 @@
-﻿# Core/PluginLoader.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/PluginLoader.psm1 - CloudShield Security Reporting Platform
 # Dynamic plugin discovery, contract enforcement, and lifecycle orchestration.
 [CmdletBinding()]
 param()

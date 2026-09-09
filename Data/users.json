@@ -1,7 +1,7 @@
 [
   {
     "Id": "usr-001",
-    "Upn": "caner.cetinkaya@kocsistem.com.tr",
+    "Upn": "caner.cetinkaya@cloudshield-mssp.com",
     "DisplayName": "Caner Çetinkaya",
     "Department": "Siber Güvenlik Çözüm Mimarlığı & Otomasyon",
     "Role": "PlatformAdmin",
@@ -17,7 +17,7 @@
   },
   {
     "Id": "usr-002",
-    "Upn": "edr.analyst@kocsistem.com.tr",
+    "Upn": "edr.analyst@cloudshield-mssp.com",
     "DisplayName": "Ahmet Yılmaz",
     "Department": "Core-MSSP / EDR Ekibi",
     "Role": "EdrEngineer",
@@ -33,7 +33,7 @@
   },
   {
     "Id": "usr-003",
-    "Upn": "compliance.lead@kocsistem.com.tr",
+    "Upn": "compliance.lead@cloudshield-mssp.com",
     "DisplayName": "Zeynep Kaya",
     "Department": "Veri Güvenliği & Purview Uyum",
     "Role": "ComplianceSpecialist",
@@ -49,7 +49,7 @@
   },
   {
     "Id": "usr-004",
-    "Upn": "xdr.engineer@kocsistem.com.tr",
+    "Upn": "xdr.engineer@cloudshield-mssp.com",
     "DisplayName": "Murat Demir",
     "Department": "Bütünleşik Tehdit Yönetimi (Defender XDR)",
     "Role": "XdrEngineer",

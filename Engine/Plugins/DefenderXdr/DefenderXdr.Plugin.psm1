@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/DefenderXdr/DefenderXdr.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender XDR Unified Incidents & SLA Service Plugin.
 [CmdletBinding()]
 param()
@@ -168,7 +168,7 @@ function Get-ServiceKpis {
         OrtaOnem               = $sevMed
         DusukOnem              = $sevLow
         MttrOrtalamaSaat       = $mttrSaat
-        MttaOrtalamaDakika     = 14 # KoçSistem XDR Mühendisliği ortalama ilk müdahale süresi
+        MttaOrtalamaDakika     = 14 # CloudShield XDR Mühendisliği ortalama ilk müdahale süresi
         KoreleToplamAlarm      = $toplamAlarmKorelasyonu
         GurultuAzaltmaYuzdesi  = $gurultuAzaltma
     }
@@ -189,7 +189,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = 0
         ManuelAnalistEforu = $KpiData.ToplamIncident
         KazanilanZamanSaat = [math]::Round(($KpiData.ToplamIncident * 2.5), 1)
-        Aciklama           = "XDR korelasyon motoru $($KpiData.KoreleToplamAlarm) tekil alarmı birleştirerek $($KpiData.ToplamIncident) vakaya indirgemiş (%$($KpiData.GurultuAzaltmaYuzdesi) alarm gürültüsü azaltma), KoçSistem XDR Güvenlik Mühendisleri vakaları ortalama $($KpiData.MttaOrtalamaDakika) dakikada ele alıp ortalama $($KpiData.MttrOrtalamaSaat) saatte çözüme kavuşturmuştur."
+        Aciklama           = "XDR korelasyon motoru $($KpiData.KoreleToplamAlarm) tekil alarmı birleştirerek $($KpiData.ToplamIncident) vakaya indirgemiş (%$($KpiData.GurultuAzaltmaYuzdesi) alarm gürültüsü azaltma), CloudShield XDR Güvenlik Mühendisleri vakaları ortalama $($KpiData.MttaOrtalamaDakika) dakikada ele alıp ortalama $($KpiData.MttrOrtalamaSaat) saatte çözüme kavuşturmuştur."
     }
 }
 
@@ -239,7 +239,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-value">$($k.MttaOrtalamaDakika) dk</div>
                 <span class="badge positive">SLA: &lt;30 dk</span>
             </div>
-            <div class="kpi-description">KoçSistem analistinin vakaya başlama hızı</div>
+            <div class="kpi-description">CloudShield analistinin vakaya başlama hızı</div>
         </div>
 
         <div class="kpi-card">

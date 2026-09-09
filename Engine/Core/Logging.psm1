@@ -1,4 +1,4 @@
-﻿# Core/Logging.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/Logging.psm1 - CloudShield Security Reporting Platform
 # Structured JSONL logging, SIEM compatibility, and colored CLI output.
 [CmdletBinding()]
 param()
@@ -42,7 +42,7 @@ function Initialize-LogContext {
 
     $monthStamp = (Get-Date).ToString('yyyy-MM')
     $safeCustomer = ($CustomerName -replace '[^A-Za-z0-9_-]', '_')
-    $logFileName = "KocSistemSecurityReporting_${safeCustomer}_${monthStamp}.jsonl"
+    $logFileName = "CloudShieldSecurityReporting_${safeCustomer}_${monthStamp}.jsonl"
     $auditFileName = "Audit_PurviewReporting_${safeCustomer}_${monthStamp}.jsonl"
 
     $Script:LogFile = Join-Path $LogsDirectory $logFileName

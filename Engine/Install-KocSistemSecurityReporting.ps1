@@ -1,13 +1,13 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Security Managed Services Reporting Platform - Kurulum Sihirbazı
+    CloudShield Microsoft Security Managed Services Reporting Platform - Kurulum Sihirbazı
 .DESCRIPTION
     Müşteri tenant'ına özel servis seçimi, otomatik sertifika keşfi, least-privilege
     izin hesaplaması, canlı token doğrulaması ve zamanlanmış görev kurulumunu sağlayan
     interaktif ve güvenli kurulum sihirbazı.
 .EXAMPLE
-    .\Install-KocSistemSecurityReporting.ps1 -Interactive
-    .\Install-KocSistemSecurityReporting.ps1 -ConfigPath .\Config\customer.config.json
+    .\Install-CloudShieldSecurityReporting.ps1 -Interactive
+    .\Install-CloudShieldSecurityReporting.ps1 -ConfigPath .\Config\customer.config.json
 #>
 [CmdletBinding()]
 param(
@@ -35,7 +35,7 @@ Import-Module (Join-Path $root 'Core\PluginLoader.psm1') -Force
 function Show-Header {
     Clear-Host
     Write-Host "=================================================================================" -ForegroundColor Cyan
-    Write-Host "         KoçSistem Microsoft Security Managed Services Reporting Platform         " -ForegroundColor White
+    Write-Host "         CloudShield Microsoft Security Managed Services Reporting Platform         " -ForegroundColor White
     Write-Host "                        Kurulum ve Yapılandırma Sihirbazı                         " -ForegroundColor Gray
     Write-Host "=================================================================================" -ForegroundColor Cyan
     Write-Host ""
@@ -81,7 +81,7 @@ Write-Host ""
 
 # ADIM 3: Hizmet ve Paket Seçimi
 Write-Host "[3/7] Satın Alınan Yönetilen Hizmetlerin Seçimi" -ForegroundColor Yellow
-Write-Host "  KoçSistem tarafından müşteriye sağlanan servisleri seçiniz:" -ForegroundColor Gray
+Write-Host "  CloudShield tarafından müşteriye sağlanan servisleri seçiniz:" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Tekil Servisler:" -ForegroundColor White
 Write-Host "   [1]  MDE  - Yönetilen Uç Nokta Güvenliği (EDR)"
@@ -190,7 +190,7 @@ Write-Host "[5/7] E-Posta ve Dağıtım Parametreleri" -ForegroundColor Yellow
 $mailMethod = Read-Host "  Gönderim Protokolü: [Graph / Smtp, Varsayılan: Graph]"
 if ([string]::IsNullOrWhiteSpace($mailMethod)) { $mailMethod = 'Graph' }
 
-$mailFrom = Read-Host "  Gönderici E-Posta Adresi (Örn: mssp-reports@kocsistem.com.tr)"
+$mailFrom = Read-Host "  Gönderici E-Posta Adresi (Örn: mssp-reports@cloudshield-mssp.com)"
 $mailToRaw = Read-Host "  Raporun Gönderileceği Müşteri E-Postaları (virgülle ayırınız)"
 $mailToList = @($mailToRaw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
@@ -201,7 +201,7 @@ Write-Host "[6/7] Müşteri Yöneticisi İçin Kurulum Betiği Hazırlanıyor...
 $deployScriptContent = @"
 <#
 .SYNOPSIS
-    KoçSistem Raporlama Platformu - Müşteri Entra ID Uygulama ve İzin Tanımlama Betiği
+    CloudShield Raporlama Platformu - Müşteri Entra ID Uygulama ve İzin Tanımlama Betiği
 .DESCRIPTION
     Bu betik, müşterinin Global Yöneticisi tarafından bir defaya mahsus çalıştırılır.
     Gerekli App Registration'ı açar ve seçilen servisler için least-privilege izinleri atar.
@@ -209,7 +209,7 @@ $deployScriptContent = @"
 `$TenantId = '$tenantId'
 `$AppId    = '$coreClientId'
 
-Write-Host 'KoçSistem Raporlama Uygulamasına İzinler Atanıyor...' -ForegroundColor Cyan
+Write-Host 'CloudShield Raporlama Uygulamasına İzinler Atanıyor...' -ForegroundColor Cyan
 # Seçilen servisler için izinler: $($activeServices -join ', ')
 "@
 $deployScriptPath = Join-Path $root "Deploy-CustomerAppRegistration-$($customerName).ps1"
@@ -267,8 +267,8 @@ $customerConfig = [ordered]@{
         Method                  = $mailMethod
         From                    = $mailFrom
         To                      = $mailToList
-        Cc                      = @("mssp-security@kocsistem.com.tr")
-        AlertTo                 = "mssp-alerts@kocsistem.com.tr"
+        Cc                      = @("mssp-security@cloudshield-mssp.com")
+        AlertTo                 = "mssp-alerts@cloudshield-mssp.com"
         SendDashboard           = $true
         ServiceSpecificRouting  = @{}
     }
@@ -306,5 +306,5 @@ Write-Host ""
 Write-Host "=================================================================================" -ForegroundColor Green
 Write-Host "                Tebrikler! Kurulum Başarıyla Tamamlandı.                         " -ForegroundColor White
 Write-Host "  Raporu hemen test etmek için aşağıdaki komutu çalıştırabilirsiniz:             " -ForegroundColor Cyan
-Write-Host "  .\Invoke-KocSistemSecurityReporting.ps1 -DryRun -Pdf                           " -ForegroundColor Yellow
+Write-Host "  .\Invoke-CloudShieldSecurityReporting.ps1 -DryRun -Pdf                           " -ForegroundColor Yellow
 Write-Host "=================================================================================" -ForegroundColor Green

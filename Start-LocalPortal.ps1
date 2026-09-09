@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+    CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)
     Yerel Başlatıcı ve Yönetim Konsolu
 
 .DESCRIPTION
@@ -24,7 +24,7 @@ $ServerScript = Join-Path $ScriptDir "Portal\api\server.py"
 
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Cyan
-Write-Host "  KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)" -ForegroundColor White
+Write-Host "  CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)" -ForegroundColor White
 Write-Host "  Yerel Web Arayüzü Başlatılıyor..." -ForegroundColor Yellow
 Write-Host "================================================================================" -ForegroundColor Cyan
 Write-Host ""

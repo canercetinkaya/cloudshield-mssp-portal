@@ -3,10 +3,10 @@
   "contentVersion": "1.0.0.0",
   "metadata": {
     "_generator": {
-      "name": "KoçSistem MSSP Architecture Generator",
+      "name": "CloudShield MSSP Architecture Generator",
       "version": "2.0.0"
     },
-    "description": "KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal) Serverless Deployment for Azure MCT & Production."
+    "description": "CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal) Serverless Deployment for Azure MCT & Production."
   },
   "parameters": {
     "location": {
@@ -18,7 +18,7 @@
     },
     "prefix": {
       "type": "string",
-      "defaultValue": "kocsistem-mssp",
+      "defaultValue": "cloudshield-mssp",
       "minLength": 3,
       "maxLength": 16,
       "metadata": {
@@ -200,7 +200,7 @@
         "template": {
           "containers": [
             {
-              "name": "kocsistem-mssp-portal",
+              "name": "cloudshield-mssp-portal",
               "image": "[parameters('containerImage')]",
               "resources": {
                 "cpu": "[json(parameters('cpuCores'))]",

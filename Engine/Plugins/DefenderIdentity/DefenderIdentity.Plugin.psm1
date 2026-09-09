@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Identity (MDI) Service Plugin.
 [CmdletBinding()]
 param()
@@ -166,7 +166,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = 0
         ManuelAnalistEforu = $KpiData.ToplamKimlikTehdidi
         KazanilanZamanSaat = 0
-        Aciklama           = "Active Directory üzerinde tespit edilen $($KpiData.ToplamKimlikTehdidi) adet kritik kimlik saldırısı (Kerberoasting, Pass-the-Ticket, Hassas Grup Değişikliği) KoçSistem Kimlik Güvenliği Mühendisleri tarafından incelenmiş, saldırganların yanal hareket girişimleri engellenmiştir."
+        Aciklama           = "Active Directory üzerinde tespit edilen $($KpiData.ToplamKimlikTehdidi) adet kritik kimlik saldırısı (Kerberoasting, Pass-the-Ticket, Hassas Grup Değişikliği) CloudShield Kimlik Güvenliği Mühendisleri tarafından incelenmiş, saldırganların yanal hareket girişimleri engellenmiştir."
     }
 }
 
@@ -186,7 +186,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Defender for Identity (MDI) Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Defender for Identity (MDI) Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen Kimlik Güvenliği</span>
     </div>
 
@@ -194,7 +194,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem MDI Yönetilen Hizmet Operasyonel Değeri
+                CloudShield MDI Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -208,7 +208,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">Kerberoasting, Pass-the-Hash ve DC keşif girişimleri</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem Kimlik Uzman Eylemi</div>
+                <div class="kpi-title">CloudShield Kimlik Uzman Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.ToplamKimlikTehdidi + 6)</div>
                     <span class="badge positive">Uzman Eforu</span>

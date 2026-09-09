@@ -1,4 +1,4 @@
-﻿# Core/PrivacyEngine.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/PrivacyEngine.psm1 - CloudShield Security Reporting Platform
 # Differential privacy, k-anonymity (k=5), salted SHA256 hashing, and sensitive data masking.
 [CmdletBinding()]
 param()
@@ -9,7 +9,7 @@ function Get-TenantSalt {
     param([string] $TenantId)
     if (-not $Script:SaltCache.ContainsKey($TenantId)) {
         # Tenant bazlı deterministik fakat tahmin edilemez bir salt türet
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$TenantId-KocSistem-Security-Privacy-Salt-2026")
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$TenantId-CloudShield-Security-Privacy-Salt-2026")
         $sha = [System.Security.Cryptography.SHA256]::Create()
         $hash = $sha.ComputeHash($bytes)
         $Script:SaltCache[$TenantId] = [Convert]::ToBase64String($hash)

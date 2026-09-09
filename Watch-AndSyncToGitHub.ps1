@@ -1,5 +1,5 @@
-﻿# ==============================================================================
-# KoçSistem MSSP Portal - Otomatik Dosya İzleyici ve GitHub Senkronizasyonu
+﻿﻿# ==============================================================================
+# CloudShield MSSP Portal - Otomatik Dosya İzleyici ve GitHub Senkronizasyonu
 # Bu betik klasörde herhangi bir değişiklik algıladığında otomatik commit & push yapar.
 # ==============================================================================
 
@@ -12,7 +12,7 @@ $portalDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $portalDir
 
 Write-Host "`n================================================================================" -ForegroundColor Cyan
-Write-Host "  KoçSistem MSSP Portal - Otomatik Dosya İzleyici (Auto-Sync)" -ForegroundColor White
+Write-Host "  CloudShield MSSP Portal - Otomatik Dosya İzleyici (Auto-Sync)" -ForegroundColor White
 Write-Host "  İzlenen Dizin: $portalDir" -ForegroundColor Green
 Write-Host "  Hedef Dal: $Branch (Değişiklik algılandığında otomatik gönderilir)" -ForegroundColor Yellow
 Write-Host "  Durdurmak için Ctrl + C tuşlarına basabilirsiniz." -ForegroundColor Gray

@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Cloud Apps (CASB) Service Plugin.
 [CmdletBinding()]
 param()
@@ -173,7 +173,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = $KpiData.EngellenenOnaysizApp
         ManuelAnalistEforu = $KpiData.YuksekRiskliUygulama + $KpiData.YuksekYetkiliOAuth
         KazanilanZamanSaat = [math]::Round(($KpiData.EngellenenOnaysizApp * 20) / 60.0, 1)
-        Aciklama           = "Ağda tespit edilen $($KpiData.ToplamKesfedilenUygulama) bulut servisinden $($KpiData.EngellenenOnaysizApp) onaysız uygulama MDE üzerinden otonom engellenmiş, KoçSistem analistleri $($KpiData.YuksekRiskliUygulama) adet yüksek riskli servisi ve $($KpiData.YuksekYetkiliOAuth) adet yüksek yetkili OAuth uygulamasını güvenlik denetiminden geçirmiştir."
+        Aciklama           = "Ağda tespit edilen $($KpiData.ToplamKesfedilenUygulama) bulut servisinden $($KpiData.EngellenenOnaysizApp) onaysız uygulama MDE üzerinden otonom engellenmiş, CloudShield analistleri $($KpiData.YuksekRiskliUygulama) adet yüksek riskli servisi ve $($KpiData.YuksekYetkiliOAuth) adet yüksek yetkili OAuth uygulamasını güvenlik denetiminden geçirmiştir."
     }
 }
 
@@ -193,7 +193,7 @@ function Get-ServiceHtmlSection {
     $html = @"
 <section class="service-section">
     <div class="section-header">
-        <h2 class="section-title">KoçSistem Microsoft Defender for Cloud Apps (MDCA) Yönetilen Hizmeti</h2>
+        <h2 class="section-title">CloudShield Microsoft Defender for Cloud Apps (MDCA) Yönetilen Hizmeti</h2>
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen Bulut Güvenliği</span>
     </div>
 
@@ -201,7 +201,7 @@ function Get-ServiceHtmlSection {
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
-                KoçSistem MDCA Yönetilen Hizmet Operasyonel Değeri
+                CloudShield MDCA Yönetilen Hizmet Operasyonel Değeri
             </h3>
             <span style="font-size:11px; font-weight:600; color:#002B49; background:#E2E8F0; padding:2px 8px; border-radius:4px;">Yönetilen Servis Katma Değeri</span>
         </div>
@@ -215,7 +215,7 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">Uç noktalarda MDE üzerinden otonom engellenen yetkisiz SaaS uygulamaları</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">KoçSistem Bulut Uzman Eylemi</div>
+                <div class="kpi-title">CloudShield Bulut Uzman Eylemi</div>
                 <div class="kpi-value-row">
                     <div class="kpi-value">$($k.YuksekRiskliUygulama + $k.YuksekYetkiliOAuth)</div>
                     <span class="badge positive">Uzman Eforu</span>

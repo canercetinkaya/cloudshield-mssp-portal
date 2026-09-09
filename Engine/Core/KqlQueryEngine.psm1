@@ -1,6 +1,6 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
-    KoçSistem Microsoft Security Reporting Platform - Advanced KQL & Hunting Query Engine
+    CloudShield Microsoft Security Reporting Platform - Advanced KQL & Hunting Query Engine
 .DESCRIPTION
     Microsoft Defender XDR, Defender for Endpoint (MDE), Office (MDO), Identity (MDI),
     Cloud Apps (MDCA) ve Microsoft Purview için Microsoft Graph /security/runHuntingQuery

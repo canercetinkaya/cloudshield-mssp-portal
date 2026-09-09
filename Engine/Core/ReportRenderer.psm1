@@ -1,4 +1,4 @@
-﻿# Core/ReportRenderer.psm1 - KoçSistem Security Reporting Platform
+﻿﻿# Core/ReportRenderer.psm1 - CloudShield Security Reporting Platform
 # HTML assembly, Base64 embedding, and Headless Edge vector PDF generation.
 [CmdletBinding()]
 param()
@@ -126,7 +126,7 @@ function Build-CompleteReportHtml {
     <header class="report-header">
         <div class="header-container">
             <div class="brand-left">
-                $(if ($kocLogoUri) { "<img src='$kocLogoUri' class='logo-provider' alt='KoçSistem'>" } else { "<span class='brand-text'>KoçSistem</span>" })
+                $(if ($kocLogoUri) { "<img src='$kocLogoUri' class='logo-provider' alt='CloudShield'>" } else { "<span class='brand-text'>CloudShield</span>" })
             </div>
             <div class="header-title-block">
                 <h1>$ReportTitle</h1>
@@ -152,7 +152,7 @@ function Build-CompleteReportHtml {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:12px;">
             <div style="max-width:72%;">
                 <div style="font-weight:700; color:#F8FAFC; font-size:12px; margin-bottom:4px;">
-                    KoçSistem Yönetilen Güvenlik ve Uyum Hizmetleri &bull; Gizlilik ve Regülasyon Taahhüdü
+                    Enterprise Managed Security & Compliance Services &bull; Gizlilik ve Regülasyon Taahhüdü
                 </div>
                 <div style="line-height:1.5; color:#CBD5E1;">
                     Bu rapor; <strong>6698 sayılı KVKK (md. 4 ve md. 12)</strong>, <strong>AB GDPR (Madde 5, 25 ve 32 - Privacy by Design)</strong> ve <strong>ISO/IEC 27001:2022 (A.8.11, A.8.15)</strong> gereksinimlerine tam uyumlu olarak üretilmiştir. Raporlanan tüm olaylarda kullanıcı kimlikleri, e-posta adresleri ve dosya adları tuzlu SHA-256 ve k-Anonymity ($k \ge 5$) algoritmalarıyla tek yönlü maskelenmiştir.
