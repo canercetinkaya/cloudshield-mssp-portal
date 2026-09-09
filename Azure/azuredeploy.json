@@ -68,12 +68,20 @@
       "metadata": {
         "description": "Konteyner RAM miktarı"
       }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "[toLower(concat('cs-kv-', substring(uniqueString(resourceGroup().id), 0, 6)))]",
+      "maxLength": 24,
+      "metadata": {
+        "description": "Azure Key Vault Adı (3-24 karakter, küçük harf, rakam ve tire)"
+      }
     }
   },
   "variables": {
     "uniqueSuffix": "[substring(uniqueString(resourceGroup().id), 0, 6)]",
     "storageAccountName": "[toLower(concat('csmssp', variables('uniqueSuffix'), 'sa'))]",
-    "keyVaultName": "[toLower(concat('cs-kv-', variables('uniqueSuffix')))]",
+    "keyVaultName": "[parameters('keyVaultName')]",
     "logAnalyticsName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-law')]",
     "acaEnvName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-env')]",
     "containerAppName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-app')]",
