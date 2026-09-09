@@ -50,15 +50,26 @@ function Convert-HtmlToPdf {
         throw "Microsoft Edge veya Google Chrome bulunamadı, PDF üretilemiyor."
     }
 
-    $uri = [System.Uri]::new((Resolve-Path $HtmlPath).Path).AbsoluteUri
+    $fullHtml = (Resolve-Path $HtmlPath).Path
+    $resolvedPdf = [System.IO.Path]::GetFullPath($PdfPath)
+
+    $uri = if ($fullHtml -match '^https?://|^file://') {
+        $fullHtml
+    } elseif ($env:OS -like "*Windows*" -or ([System.Environment]::OSVersion.Platform -match "Win")) {
+        "file:///" + ($fullHtml -replace '\\', '/')
+    } else {
+        "file://" + $fullHtml
+    }
+
+    # Modern Chromium headless invocation
     $argList = @(
-        '--headless',
+        '--headless=new',
         '--no-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-pdf-header-footer',
         '--run-all-compositor-stages-before-draw',
-        "--print-to-pdf=`"$PdfPath`"",
+        "--print-to-pdf=`"$resolvedPdf`"",
         "`"$uri`""
     )
 
@@ -71,13 +82,21 @@ function Convert-HtmlToPdf {
     $pinfo.RedirectStandardOutput = $true
 
     $proc = [System.Diagnostics.Process]::Start($pinfo)
-    $proc.WaitForExit(30000)
+    [void]$proc.WaitForExit(30000)
 
-    if (-not (Test-Path $PdfPath) -or (Get-Item $PdfPath).Length -eq 0) {
+    # If modern headless didn't produce file, fallback to legacy --headless
+    if (-not (Test-Path $resolvedPdf) -or (Get-Item $resolvedPdf).Length -eq 0) {
+        $argList[0] = '--headless'
+        $pinfo.Arguments = $argList -join ' '
+        $proc2 = [System.Diagnostics.Process]::Start($pinfo)
+        [void]$proc2.WaitForExit(30000)
+    }
+
+    if (-not (Test-Path $resolvedPdf) -or (Get-Item $resolvedPdf).Length -eq 0) {
         throw "PDF dosyası üretilemedi veya boyutu 0 bayt."
     }
 
-    return (Get-Item $PdfPath).FullName
+    return (Get-Item $resolvedPdf).FullName
 }
 
 function Build-CompleteReportHtml {

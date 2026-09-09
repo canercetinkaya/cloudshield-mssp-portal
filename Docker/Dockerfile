@@ -11,15 +11,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Install Python 3, Chromium Headless (for PDF generation), and Turkish-supported TrueType fonts
+# Install Python 3, Google Chrome Headless (for pixel-perfect vector PDF generation), and Turkish-supported TrueType fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
-    chromium-browser \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
     ca-certificates \
     curl \
+    wget \
+    xdg-utils \
+    && wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && (dpkg -i /tmp/google-chrome.deb || apt-get install -y -f --no-install-recommends) \
+    && rm -f /tmp/google-chrome.deb \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

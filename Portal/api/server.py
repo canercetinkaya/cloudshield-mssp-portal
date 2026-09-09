@@ -640,6 +640,33 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     except Exception as pye:
                         proc_log += f"\n[ERROR] Python report engine error: {pye}"
 
+                # If HTML exists but PDF was not generated, perform secondary headless render
+                if latest_html_path and (not latest_pdf_path or not os.path.exists(latest_pdf_path) or os.path.getsize(latest_pdf_path) == 0):
+                    candidate_pdf = os.path.splitext(latest_html_path)[0] + ".pdf"
+                    engine = find_pdf_engine()
+                    if engine:
+                        try:
+                            pdf_uri = "file:///" + os.path.abspath(latest_html_path).replace("\\", "/") if sys.platform == "win32" else "file://" + os.path.abspath(latest_html_path)
+                            cmd = [
+                                engine,
+                                "--headless=new",
+                                "--no-sandbox",
+                                "--disable-dev-shm-usage",
+                                "--disable-gpu",
+                                "--no-pdf-header-footer",
+                                f"--print-to-pdf={candidate_pdf}",
+                                pdf_uri
+                            ]
+                            subprocess.run(cmd, timeout=30, capture_output=True)
+                            if not os.path.exists(candidate_pdf) or os.path.getsize(candidate_pdf) == 0:
+                                cmd[1] = "--headless"
+                                subprocess.run(cmd, timeout=30, capture_output=True)
+                            if os.path.exists(candidate_pdf) and os.path.getsize(candidate_pdf) > 0:
+                                latest_pdf_path = candidate_pdf
+                                proc_log += f"\n[OK] Vektörel PDF başarıyla oluşturuldu: {candidate_pdf}"
+                        except Exception as pe:
+                            proc_log += f"\n[WARN] Secondary PDF rendering error: {pe}"
+
                 # If still neither exists, return clear error
                 if not latest_html_path and not latest_pdf_path:
                     self.send_json_response({

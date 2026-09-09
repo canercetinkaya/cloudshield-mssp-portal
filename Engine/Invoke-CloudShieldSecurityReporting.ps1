@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     CloudShield Microsoft Security Managed Services Reporting Platform - Ana Raporlama Motoru
 .DESCRIPTION
@@ -295,12 +295,17 @@ Write-PlatformLog -Level 'OK' -Message "HTML rapor üretildi: $htmlPath" -Compon
 $pdfPath = $null
 if ($Pdf -or $platformConfig.CustomerConfig.Reporting.AttachPdf) {
     try {
-        Write-PlatformLog -Level 'STEP' -Message "Microsoft Edge headless motoru ile vektörel PDF üretiliyor..." -Component 'Orchestrator'
-        $pdfPath = Join-Path $outDir "Rapor_${customer}_${periodTag}.pdf"
-        Convert-HtmlToPdf -HtmlPath $htmlPath -PdfPath $pdfPath
-        Write-PlatformLog -Level 'OK' -Message "Vektörel PDF rapor başarıyla oluşturuldu: $pdfPath" -Component 'Orchestrator'
+        Write-PlatformLog -Level 'STEP' -Message "Headless motor ile vektörel PDF derleniyor..." -Component 'Orchestrator'
+        $candidatePdf = Join-Path $outDir "Rapor_${customer}_${periodTag}.pdf"
+        $pdfPath = Convert-HtmlToPdf -HtmlPath $htmlPath -PdfPath $candidatePdf
+        if (-not (Test-Path $pdfPath) -or (Get-Item $pdfPath).Length -eq 0) {
+            $pdfPath = $null
+        } else {
+            Write-PlatformLog -Level 'OK' -Message "Vektörel PDF rapor başarıyla oluşturuldu: $pdfPath" -Component 'Orchestrator'
+        }
     }
     catch {
+        $pdfPath = $null
         Write-PlatformLog -Level 'WARN' -Message "PDF üretilemedi ($($_.Exception.Message)). Rapor HTML olarak sunulacak." -Component 'Orchestrator'
     }
 }
