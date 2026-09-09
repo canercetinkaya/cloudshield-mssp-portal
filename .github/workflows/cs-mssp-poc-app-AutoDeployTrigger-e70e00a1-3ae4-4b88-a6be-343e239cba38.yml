@@ -1,0 +1,49 @@
+name: Trigger auto deployment for cs-mssp-poc-app
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/cs-mssp-poc-app-AutoDeployTrigger-e70e00a1-3ae4-4b88-a6be-343e239cba38.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.CSMSSPPOCAPP_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.CSMSSPPOCAPP_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.CSMSSPPOCAPP_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: ghcr.io/canercetinkaya/cloudshield-mssp-portal
+          registryUsername: ${{ secrets.CSMSSPPOCAPP_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.CSMSSPPOCAPP_REGISTRY_PASSWORD }}
+          containerAppName: cs-mssp-poc-app
+          resourceGroup: cloudshield
+          imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal/cs-mssp-poc-app:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
