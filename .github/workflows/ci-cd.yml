@@ -1,0 +1,65 @@
+name: KoçSistem MSSP Portal CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate-and-test:
+    name: 🧪 Automated QA & Security Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🐍 Python 3.11 Kurulumu
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🔍 Statik Sözdizimi & Zero SOC Uyumluluk Denetimi
+        shell: bash
+        run: |
+          echo "=== 1. Python Kod Doğrulaması ==="
+          python -m py_compile Portal/api/server.py
+          
+          echo "=== 2. JSON Dosyaları Doğrulaması ==="
+          python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
+          
+          echo "=== 3. Zero SOC İzolasyon Denetimi ==="
+          # SOC veya (SOC) ifadesi kontrolü
+          if grep -rnw --exclude-dir={.git,.github} --exclude={README.md,walkthrough.md} . -e "\(SOC\)" -e "SVC-SOC"; then
+            echo "HATA: Kod tabanında yetkisiz SOC ifadesi bulundu!"
+            exit 1
+          else
+            echo "Zero SOC Kuralı Doğrulandı: İhlal Yok."
+          fi
+
+      - name: ⚡ PowerShell & KQL Motor Bütünlük Testi
+        shell: pwsh
+        run: |
+          Import-Module ./Engine/Core/KqlQueryEngine.psm1 -Force
+          $queries = Get-StandardHuntQueries
+          Write-Host "KQL Motoru Başarıyla Yüklendi. Tanımlı Sorgu Sayısı: $($queries.Count)"
+
+  azure-arm-validate:
+    name: ☁️ Azure Resource Manager Template Validation
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🛡️ ARM Template JSON Syntax Kontrolü
+        shell: bash
+        run: |
+          python -c "import json; data = json.load(open('Azure/azuredeploy.json', encoding='utf-8')); assert '\$schema' in data; assert len(data['resources']) >= 4; print('ARM Şablonu Geçerli!')"
