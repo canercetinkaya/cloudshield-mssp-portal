@@ -42,7 +42,7 @@ param adminPrincipalType string = 'User'
 
 var uniqueSuffix = substring(uniqueString(resourceGroup().id), 0, 6)
 var storageAccountName = toLower('${replace(prefix, '-', '')}${uniqueSuffix}sa')
-var keyVaultName = toLower('${prefix}-${uniqueSuffix}-kv')
+var keyVaultName = toLower('cs-kv-${uniqueSuffix}')
 var logAnalyticsName = '${prefix}-${environmentType}-law'
 var acaEnvName = '${prefix}-${environmentType}-env'
 var containerAppName = '${prefix}-${environmentType}-app'

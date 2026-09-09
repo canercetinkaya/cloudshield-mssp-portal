@@ -18,7 +18,7 @@
     },
     "prefix": {
       "type": "string",
-      "defaultValue": "cloudshield-mssp",
+      "defaultValue": "cs-mssp",
       "minLength": 3,
       "maxLength": 16,
       "metadata": {
@@ -72,8 +72,8 @@
   },
   "variables": {
     "uniqueSuffix": "[substring(uniqueString(resourceGroup().id), 0, 6)]",
-    "storageAccountName": "[toLower(concat(replace(parameters('prefix'), '-', ''), variables('uniqueSuffix'), 'sa'))]",
-    "keyVaultName": "[toLower(concat(parameters('prefix'), '-', variables('uniqueSuffix'), '-kv'))]",
+    "storageAccountName": "[toLower(concat('csmssp', variables('uniqueSuffix'), 'sa'))]",
+    "keyVaultName": "[toLower(concat('cs-kv-', variables('uniqueSuffix')))]",
     "logAnalyticsName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-law')]",
     "acaEnvName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-env')]",
     "containerAppName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-app')]",
