@@ -152,11 +152,14 @@
                     </button>
                 </div>
 
-                <!-- Tenant Seçici -->
-                <div class="relative">
-                    <select id="topTenantSelector" onchange="onTenantSelectionChange()" class="bg-ks-navydark border border-slate-600 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ks-red pr-8 cursor-pointer">
-                        <option value="ALL">🌐 Tüm Müşteriler (Global Görünüm)</option>
-                    </select>
+                <!-- Tenant Seçici ve Müşteri Logosu -->
+                <div class="flex items-center space-x-2">
+                    <img id="topTenantLogo" src="" alt="Müşteri Logosu" class="hidden h-7 w-auto max-w-[120px] object-contain rounded bg-white/95 px-1 py-0.5 shadow-sm border border-slate-700/60" />
+                    <div class="relative">
+                        <select id="topTenantSelector" onchange="onTenantSelectionChange()" class="bg-ks-navydark border border-slate-600 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ks-red pr-8 cursor-pointer">
+                            <option value="ALL">🌐 Tüm Müşteriler (Global Görünüm)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Kullanıcı Rozeti & SSO & Logout -->
@@ -426,9 +429,12 @@
                             <h3 class="text-xs font-bold text-ks-navy uppercase">Rapor Yapılandırma Özeti</h3>
                             
                             <div class="space-y-2 text-xs">
-                                <div class="flex justify-between">
+                                <div class="flex justify-between items-center">
                                     <span class="text-slate-500">Müşteri:</span>
-                                    <strong id="summaryCustomerName" class="text-slate-800">Seçiniz</strong>
+                                    <div class="flex items-center space-x-2">
+                                        <img id="summaryCustomerLogo" src="" alt="Müşteri Logosu" class="hidden h-5 w-auto max-w-[90px] object-contain rounded bg-white px-1 py-0.5 border border-slate-200" />
+                                        <strong id="summaryCustomerName" class="text-slate-800">Seçiniz</strong>
+                                    </div>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-slate-500">Seçilen Servis:</span>
@@ -1613,13 +1619,22 @@
 
         function renderTopTenantSelector() {
             const sel = document.getElementById('topTenantSelector');
-            sel.innerHTML = '<option value="ALL">🌐 Tüm Müşteriler (Global Görünüm)</option>';
+            if (!sel) return;
+            const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
+            const assigned = user.AssignedTenants || ['ALL'];
+            sel.innerHTML = '';
+            if (assigned.includes('ALL')) {
+                sel.innerHTML += '<option value="ALL">🌐 Tüm Müşteriler (Global Görünüm)</option>';
+            }
             allTenants.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.Id;
-                opt.innerText = t.Name;
-                sel.appendChild(opt);
+                if (assigned.includes('ALL') || assigned.includes(t.Id) || assigned.includes(t.TenantId)) {
+                    const opt = document.createElement('option');
+                    opt.value = t.Id;
+                    opt.innerText = t.Name;
+                    sel.appendChild(opt);
+                }
             });
+            onTenantSelectionChange();
         }
 
         function renderDashboardTable() {
@@ -1838,21 +1853,32 @@
 
         function renderStudioTenantSelector() {
             const sel = document.getElementById('studioTenantSelect');
+            if (!sel) return;
+            const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
+            const assigned = user.AssignedTenants || ['ALL'];
             sel.innerHTML = '';
             allTenants.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.Id;
-                opt.innerText = t.Name;
-                sel.appendChild(opt);
+                if (assigned.includes('ALL') || assigned.includes(t.Id) || assigned.includes(t.TenantId)) {
+                    const opt = document.createElement('option');
+                    opt.value = t.Id;
+                    opt.innerText = t.Name;
+                    sel.appendChild(opt);
+                }
             });
             onStudioTenantChange();
         }
 
         function onStudioTenantChange() {
             const sel = document.getElementById('studioTenantSelect');
+            if (!sel) return;
             const tenant = allTenants.find(t => t.Id === sel.value);
             if (tenant) {
                 document.getElementById('summaryCustomerName').innerText = tenant.Name;
+                const sumLogo = document.getElementById('summaryCustomerLogo');
+                if (sumLogo) {
+                    sumLogo.src = `/api/tenants/${tenant.Id}/logo?t=${Date.now()}`;
+                    sumLogo.classList.remove('hidden');
+                }
                 
                 // Telemetri modu (Canlı vs Simülasyon)
                 const dryRunBox = document.getElementById('studioDryRunCheck');
@@ -2296,10 +2322,17 @@
 
         function onTenantSelectionChange() {
             const sel = document.getElementById('topTenantSelector');
+            if (!sel) return;
+            const logoImg = document.getElementById('topTenantLogo');
             const tenantId = sel.value;
             if (tenantId === 'ALL') {
+                if (logoImg) logoImg.classList.add('hidden');
                 fetchGlobalStats();
             } else {
+                if (logoImg) {
+                    logoImg.src = `/api/tenants/${tenantId}/logo?t=${Date.now()}`;
+                    logoImg.classList.remove('hidden');
+                }
                 const t = allTenants.find(x => x.Id === tenantId);
                 if (t) {
                     document.getElementById('statEndpoints').innerText = Number(t.TotalEndpoints || 0).toLocaleString('tr-TR');

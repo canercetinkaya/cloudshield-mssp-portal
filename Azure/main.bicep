@@ -7,10 +7,10 @@
 @description('Kaynakların konuşlandırılacağı Azure bölgesi')
 param location string = resourceGroup().location
 
-@description('Kaynak adı öneki (Örn: kocsistem-mssp)')
+@description('Kaynak adı öneki (Örn: cloudshield-mssp)')
 @minLength(3)
 @maxLength(16)
-param prefix string = 'kocsistem-mssp'
+param prefix string = 'cloudshield-mssp'
 
 @description('Konuşlandırma ortamı')
 @allowed([
@@ -153,7 +153,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
     template: {
       containers: [
         {
-          name: 'kocsistem-mssp-portal'
+          name: 'cloudshield-mssp-portal'
           image: containerImage
           resources: {
             cpu: json(cpuCores)

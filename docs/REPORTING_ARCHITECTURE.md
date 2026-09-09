@@ -187,10 +187,10 @@ Raporlama motorumuz, aşağıdaki A4 kurumsal şablon mimarisini kullanır:
 ```mermaid
 graph TD
     subgraph Page1 ["Sayfa 1: Yonetici Ozeti and Deger Katmani"]
-        H1["Kurumsal Baslik (Cift Logo: Musteri Sol, KocSistem Sag)"]
+        H1["Kurumsal Baslik (Cift Logo: Musteri Sol, MSSP Sag)"]
         Summary["Yonetici Ozeti (Tehdit ve Cihaz Sayilari Ozeti)"]
         ValCards["Metrik Kartlari: Otonom Tehdit | Kazanilan Zaman | Analist Mudahalesi"]
-        ValueStory["KocSistem Yonetilen Hizmet Degeri:<br/>1. Otomasyon Katmani (KocSistem Yapilandirdi)<br/>2. Analist Mudahalesi (KocSistem Ekibi)<br/>3. Yapilandirma ve Iyilestirme (Muhendislik Eforu)"]
+        ValueStory["MSSP Yonetilen Hizmet Degeri:<br/>1. Otomasyon Katmani (MSSP Yapilandirdi)<br/>2. Analist Mudahalesi (MSSP Ekibi)<br/>3. Yapilandirma ve Iyilestirme (Muhendislik Eforu)"]
         Flags["Dikkat Gerektiren Basliklar (flag crit / warn / ok)"]
         Scope["Kapsam, Sensor Sagligi and OS Dagilimi"]
         Foot1["Damga: Sayfa 1 / 3"]

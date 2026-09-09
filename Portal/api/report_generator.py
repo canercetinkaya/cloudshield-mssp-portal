@@ -13,6 +13,7 @@ from datetime import datetime
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "ModernCorporate", "style.css")
+PROVIDER_NAME = os.environ.get("MSSP_PROVIDER_NAME", "CloudShield MSSP")
 
 # ─────────────────────────────────────────────────────────────
 # LIVE DATA LOADER
@@ -452,6 +453,84 @@ def get_golden_style_css():
             pass
     return get_style_css()
 
+def generate_customer_svg(customer_name):
+    words = [w for w in customer_name.replace("-", " ").replace("_", " ").split() if w]
+    initials = "".join([w[0].upper() for w in words[:2]]) or "CS"
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" width="240" height="60">
+  <defs>
+    <linearGradient id="cGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f4c81" />
+      <stop offset="100%" stop-color="#1e6bb8" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="56" height="56" rx="10" fill="url(#cGrad)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="30" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="800" fill="#ffffff" text-anchor="middle">{initials}</text>
+  <text x="70" y="28" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">{customer_name[:16]}</text>
+  <rect x="70" y="34" width="108" height="18" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="124" y="46" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="700" fill="#0284c7" text-anchor="middle">ENTRA ID VERIFIED</text>
+</svg>'''
+    return svg
+
+def get_customer_logo_data_uri(customer_name, tenant_id=None):
+    """
+    Fetch customer organization banner logo from Microsoft Entra ID CDN or return crisp SVG monogram.
+    """
+    import base64
+    import urllib.request
+    
+    tenant_guid = None
+    if tenant_id and len(tenant_id) > 25 and "-" in tenant_id:
+        tenant_guid = tenant_id
+    else:
+        try:
+            t_path = os.path.join(ROOT_DIR, "Data", "tenants.json")
+            if os.path.exists(t_path):
+                with open(t_path, "r", encoding="utf-8") as f:
+                    tenants = json.load(f)
+                    for t in tenants:
+                        if t.get("Id") == tenant_id or t.get("Name") == customer_name:
+                            tenant_guid = t.get("TenantId")
+                            break
+        except Exception:
+            pass
+
+    if tenant_guid:
+        entra_logo_url = f"https://login.microsoftonline.com/{tenant_guid}/promotedimages/bannerlogo.png"
+        try:
+            req = urllib.request.Request(entra_logo_url, headers={"User-Agent": "CloudShield-MSSP/2.5"})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    img_bytes = resp.read()
+                    if len(img_bytes) > 200:
+                        b64 = base64.b64encode(img_bytes).decode()
+                        return f"data:image/png;base64,{b64}"
+        except Exception:
+            pass
+
+    svg_content = generate_customer_svg(customer_name)
+    b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode()
+    return f"data:image/svg+xml;base64,{b64_svg}"
+
+def get_provider_logo_data_uri():
+    p = os.path.join(ROOT_DIR, "Engine", "Resources", "logo-provider.png")
+    if not os.path.exists(p):
+        p = os.path.join(ROOT_DIR, "Engine", "Resources", "logo.png")
+    if os.path.exists(p):
+        try:
+            import base64
+            with open(p, "rb") as f:
+                return f"data:image/png;base64,{base64.b64encode(f.read()).decode()}"
+        except Exception:
+            pass
+    import base64
+    prov_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48">
+  <rect x="0" y="0" width="48" height="48" rx="8" fill="#0f172a" />
+  <path d="M24 10 L34 16 L34 26 C34 32 29 37 24 39 C19 37 14 32 14 26 L14 16 Z" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/>
+  <text x="56" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800" fill="#0f172a">{PROVIDER_NAME}</text>
+  <text x="56" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#64748b">Managed Security</text>
+</svg>'''
+    return f"data:image/svg+xml;base64,{base64.b64encode(prov_svg.encode()).decode()}"
+
 def get_logo_data_uri(filename):
     p = os.path.join(ROOT_DIR, "Engine", "Resources", filename)
     if os.path.exists(p):
@@ -467,8 +546,8 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_logo_data_uri("logo-customer-placeholder.png")
-    logo_r = get_logo_data_uri("logo-kocsistem.png")
+    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     # MDE Metrics from live data
@@ -500,10 +579,10 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Aylik Guvenlik Raporu</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint Yonetilen EDR Hizmeti<br>
-  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: KocSistem</div>
+  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
 </header>
 
 <p class="note"><b>Rapor kapsami:</b> {period_label} (30 gun).
@@ -514,7 +593,7 @@ olaylar sorgulanamaz. Tum sayilar bu aralik icin gecerlidir.</p>
 <h2>Yonetici Ozeti</h2>
 <p>{period_label} doneminde {customer_name} ortaminda <b>{total_devices}</b> cihaz Microsoft Defender for Endpoint ile izlenmistir.
 Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_incidents}</b> incident uretilmis, bunlarin <b>{closed_incidents}</b> tanesi kapatilmistir.
-KocSistem tarafindan <b>{analyst_actions}</b> response aksiyonu yurutulmus, <b>1</b> cihaz agdan izole edilmistir.
+{PROVIDER_NAME} tarafindan <b>{analyst_actions}</b> response aksiyonu yurutulmus, <b>1</b> cihaz agdan izole edilmistir.
 Rapor tarihi itibariyla <b>{open_incidents}</b> incident acik durumdadir.</p>
 
 <div class="cards">
@@ -525,29 +604,29 @@ Rapor tarihi itibariyla <b>{open_incidents}</b> incident acik durumdadir.</p>
 </div>
 
 <div class="value">
-  <h3>KocSistem Yonetilen Hizmet Degeri</h3>
+  <h3>{PROVIDER_NAME} Yonetilen Hizmet Degeri</h3>
   <p>Bu donemde ortaminizin guvenligi uc katmanda saglandi. Otomasyon
-  katmani KocSistem tarafindan yapilandirildigi icin calisir; analist ve
-  muhendislik katmanlari dogrudan KocSistem ekibinin emegidir.</p>
+  katmani {PROVIDER_NAME} tarafindan yapilandirildigi icin calisir; analist ve
+  muhendislik katmanlari dogrudan {PROVIDER_NAME} ekibinin emegidir.</p>
   <dl>
-    <dt>1. Otomasyon katmani &mdash; KocSistem tarafindan yapilandirildi</dt>
+    <dt>1. Otomasyon katmani &mdash; {PROVIDER_NAME} tarafindan yapilandirildi</dt>
     <dd><b>{fmt_num(auto_blocked)}</b> tehdit analist beklemeden durduruldu.
         Bu katman ASR kurallari, antivirus politikalari ve otomasyon seviyesi
-        KocSistem tarafindan ayarlandigi icin devrededir.
+        {PROVIDER_NAME} tarafindan ayarlandigi icin devrededir.
         Tahmini kazanilan operasyonel zaman: <b>{saved_hours:.1f} saat</b>.</dd>
 
-    <dt>2. Analist mudahalesi &mdash; KocSistem ekibi</dt>
+    <dt>2. Analist mudahalesi &mdash; {PROVIDER_NAME} ekibi</dt>
     <dd><b>{analyst_actions}</b> dogrudan response aksiyonu (izolasyon, tarama,
         karantina) ve <b>{investigated}</b> olayin incelenip siniflandirilmasi
-        KocSistem analistleri tarafindan gerceklestirildi.</dd>
+        {PROVIDER_NAME} analistleri tarafindan gerceklestirildi.</dd>
 
-    <dt>3. Yapilandirma ve iyilestirme &mdash; KocSistem muhendisligi</dt>
+    <dt>3. Yapilandirma ve iyilestirme &mdash; {PROVIDER_NAME} muhendisligi</dt>
     <dd><b>0</b> yapilandirma degisikligi uygulandi.
         Guvenlik ayari uyum orani: <b>%{tvm_pct:.1f}</b>.</dd>
   </dl>
   <p class="note">Otomasyon katmanindaki mudahaleler Microsoft Defender for Endpoint
-  tarafindan yurutulur; KocSistem bu katmani yapilandirir, izler ve dogrular.
-  Analist ve muhendislik katmanlari dogrudan KocSistem eforudur.
+  tarafindan yurutulur; {PROVIDER_NAME} bu katmani yapilandirir, izler ve dogrular.
+  Analist ve muhendislik katmanlari dogrudan {PROVIDER_NAME} eforudur.
   Zaman tahmini: {fmt_num(auto_blocked)} x 45 dk ortalama triyaj suresi.</p>
 </div>
 
@@ -591,7 +670,7 @@ Aktiflik olcutu: son 30 gun icinde MDE'ye telemetri gonderen cihazlar.</p>
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Tehdit ve Olay Ozeti</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label} (Son 30 gun)</div>
 </header>
@@ -694,7 +773,7 @@ Kaynak: AlertInfo tablosu, yalnizca Defender for Endpoint alertleri.</p>
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Tehdit Avciligi ve Hizmet Faaliyetleri</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
@@ -771,7 +850,7 @@ yonetilen hizmet kapsaminda anormallik takibi ve triyaj girdisi olarak degerlend
   </div>
 </div>
 
-<p class="note">Bu rapor KocSistem Yonetilen EDR hizmeti kapsaminda Microsoft Defender for Endpoint verisinden otomatik uretilmistir.
+<p class="note">Bu rapor {PROVIDER_NAME} Yonetilen EDR hizmeti kapsaminda Microsoft Defender for Endpoint verisinden otomatik uretilmistir.
 6698 sayili KVKK, AB GDPR (Privacy-by-Design) ve ISO 27001 regülasyonlarina tam uyumlu uretilmistir.
 Gizlilik: Musteriye Ozel.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v6.0 Golden Standard</div>
@@ -784,8 +863,8 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_logo_data_uri("logo-customer-placeholder.png")
-    logo_r = get_logo_data_uri("logo-kocsistem.png")
+    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     # Purview Metrics from live data
@@ -811,10 +890,10 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Aylik Veri Guvenligi ve Uyum Raporu</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Yonetilen Veri Guvenligi ve Uyum Hizmeti<br>
-  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: KocSistem</div>
+  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
 </header>
 
 <p class="note"><b>Rapor kapsami:</b> {period_label} (30 gun).
@@ -825,7 +904,7 @@ Kisisel veriler 6698 sayili KVKK ve GDPR ilkelerine uygun olarak k-Anonymity (k 
 <h2>Yonetici Ozeti</h2>
 <p>{period_label} doneminde {customer_name} ortaminda <b>{total_matches}</b> hassas veri paylasim veya disari aktarim girisimi tespit edilmis,
 bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak engellenmistir (%{prot_rate:.1f} koruma orani).
-KocSistem Veri Guvenligi muhendisleri tarafindan <b>{eng_effort}</b> supheli override ve uyum olayi incelenmis,
+{PROVIDER_NAME} Veri Guvenligi muhendisleri tarafindan <b>{eng_effort}</b> supheli override ve uyum olayi incelenmis,
 <b>{endpoint_blocks}</b> adet yuksek riskli USB ve Web tarayici dosya aktarimi uc noktada basariyla bloke edilmistir.</p>
 
 <div class="cards">
@@ -836,20 +915,20 @@ KocSistem Veri Guvenligi muhendisleri tarafindan <b>{eng_effort}</b> supheli ove
 </div>
 
 <div class="value">
-  <h3>KocSistem Purview Yonetilen Hizmet Degeri</h3>
-  <p>Bu donemde veri guvenliginiz uc katmanda saglandi. Microsoft Purview otonom politikalari KocSistem muhendisleri tarafindan optimize edildigi icin calisir;
-  kural asimi (override) triyajlari ve regule veri hijyeni dogrudan KocSistem ekibinin uzmanligidir.</p>
+  <h3>{PROVIDER_NAME} Purview Yonetilen Hizmet Degeri</h3>
+  <p>Bu donemde veri guvenliginiz uc katmanda saglandi. Microsoft Purview otonom politikalari {PROVIDER_NAME} muhendisleri tarafindan optimize edildigi icin calisir;
+  kural asimi (override) triyajlari ve regule veri hijyeni dogrudan {PROVIDER_NAME} ekibinin uzmanligidir.</p>
   <dl>
-    <dt>1. Otomasyon katmani &mdash; KocSistem tarafindan yapilandirildi</dt>
+    <dt>1. Otomasyon katmani &mdash; {PROVIDER_NAME} tarafindan yapilandirildi</dt>
     <dd><b>{fmt_num(blocked_events)}</b> veri ihlali kullanici disina cikmadan durduruldu.
-        USB engelleme, web yukleme bloklari ve otomatik etiketleme kurallari KocSistem tarafindan devrededir.
+        USB engelleme, web yukleme bloklari ve otomatik etiketleme kurallari {PROVIDER_NAME} tarafindan devrededir.
         Tahmini kazanilan operasyonel zaman: <b>{saved_hours:.1f} saat</b>.</dd>
 
-    <dt>2. Analist mudahalesi &mdash; KocSistem ekibi</dt>
+    <dt>2. Analist mudahalesi &mdash; {PROVIDER_NAME} ekibi</dt>
     <dd><b>{overrides}</b> gerekceli kural asimi (override) ve <b>{eng_effort}</b> hassas veri sizinti olayi
-        KocSistem uyum analistleri tarafindan tek tek incelenerek siniflandirildi.</dd>
+        {PROVIDER_NAME} uyum analistleri tarafindan tek tek incelenerek siniflandirildi.</dd>
 
-    <dt>3. Yapilandirma ve iyilestirme &mdash; KocSistem muhendisligi</dt>
+    <dt>3. Yapilandirma ve iyilestirme &mdash; {PROVIDER_NAME} muhendisligi</dt>
     <dd>TCKN, Finansal Veri ve KVKK kurallarinda yanlis pozitifleri (False Positive) dusurmek adina
         duyarlilik etiketleri ve istisna tanimlari optimize edildi.</dd>
   </dl>
@@ -895,7 +974,7 @@ KocSistem Veri Guvenligi muhendisleri tarafindan <b>{eng_effort}</b> supheli ove
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Veri Kaybi Onleme (DLP) ve Ihlal Ozeti</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label} (Son 30 gun)</div>
 </header>
@@ -953,7 +1032,7 @@ k-Anonymity (k &ge; 5) ile maskelenerek kisilestirilemez hale getirilmistir.</p>
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Veri Yonetisimi, Ic Tehdit ve Copilot AI Guvenligi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
@@ -1015,7 +1094,7 @@ Saklama Ilkeleri (Retention Policies) ve Ic Tehdit (Insider Risk) loglarindan de
   </div>
 </div>
 
-<p class="note">Bu rapor KocSistem Yonetilen Microsoft Purview Veri Guvenligi ve Uyum Hizmeti kapsaminda uretilmistir.
+<p class="note">Bu rapor {PROVIDER_NAME} Yonetilen Microsoft Purview Veri Guvenligi ve Uyum Hizmeti kapsaminda uretilmistir.
 6698 sayili KVKK (md. 4 ve md. 12) ve AB GDPR (Privacy-by-Design md. 25, 32) ilkelerine tam uyumlu denetim iziyle korunur.
 Gizlilik: Musteriye Ozel.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v6.0 Golden Standard</div>
@@ -1028,8 +1107,8 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_logo_data_uri("logo-customer-placeholder.png")
-    logo_r = get_logo_data_uri("logo-kocsistem.png")
+    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     # Aggregate key metrics
@@ -1055,10 +1134,10 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Aylik Birlesik Guvenlik ve Uyum Raporu</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5/E7 Yonetilen Guvenlik ve Purview Hizmetleri<br>
-  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: KocSistem</div>
+  Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
 </header>
 
 <p class="note"><b>Rapor kapsami:</b> {period_label} (30 gun).
@@ -1067,7 +1146,7 @@ servislerinin konsolide yonetim ve performans karnesidir.</p>
 
 <h2>Yonetici Ozeti</h2>
 <p>{period_label} doneminde {customer_name} ortaminda <b>{len(services)}</b> aktif Microsoft guvenlik ve uyum servisi
-KocSistem muhendisleri tarafindan 7/24 proaktif izlenmis ve yonetilmistir.
+{PROVIDER_NAME} muhendisleri tarafindan 7/24 proaktif izlenmis ve yonetilmistir.
 Donem boyunca toplam <b>{fmt_num(total_blocks)}</b> tehdit ve veri sizintisi otonom olarak durdurulmus,
 kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir.</p>
 
@@ -1079,16 +1158,16 @@ kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir
 </div>
 
 <div class="value">
-  <h3>KocSistem Yonetilen Hizmet Degeri</h3>
+  <h3>{PROVIDER_NAME} Yonetilen Hizmet Degeri</h3>
   <p>Bu donemde kurumunuzun siber savunmasi ve veri guvenligi uc entegre katmanda saglandi:</p>
   <dl>
-    <dt>1. Otomasyon katmani &mdash; KocSistem tarafindan yapilandirildi</dt>
+    <dt>1. Otomasyon katmani &mdash; {PROVIDER_NAME} tarafindan yapilandirildi</dt>
     <dd><b>{fmt_num(total_blocks)}</b> olay EDR, E-posta ZAP ve Purview DLP otonom kurallariyla saniyeler icinde durduruldu.</dd>
 
-    <dt>2. Analist mudahalesi &mdash; KocSistem ekibi</dt>
+    <dt>2. Analist mudahalesi &mdash; {PROVIDER_NAME} ekibi</dt>
     <dd>Korele alarmlar, kullanici kural asimlari ve yuksek oncelikli incidentlar uzman muhendislerce triyajlandi.</dd>
 
-    <dt>3. Yapilandirma ve iyilestirme &mdash; KocSistem muhendisligi</dt>
+    <dt>3. Yapilandirma ve iyilestirme &mdash; {PROVIDER_NAME} muhendisligi</dt>
     <dd>Attack Surface Reduction (ASR), TVM zafiyet giderme ve DLP hassas bilgi turu (SIT) hijyeni tamamlandi.</dd>
   </dl>
 </div>
@@ -1109,7 +1188,7 @@ kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
-  {f"<img class='logo-r' src='{logo_r}' alt='KocSistem'/>" if logo_r else "<span class='brand'>KocSistem</span>"}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Capraz Tehdit ve Veri Koruma Performansi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
@@ -1131,7 +1210,7 @@ kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir
   <tr><td>Gecen hafta</td><td>Defender Office</td><td>Finans mudurunu taklit eden sahte fatura kimlik avi (Phishing)</td><td><span class='pill p-warn'>Medium</span></td><td>ZAP ile posta kutularindan kaldirildi</td></tr>
 </table>
 
-<p class="note">Bu rapor KocSistem Microsoft Yonetilen Guvenlik ve Purview Uyum Hizmetleri kapsaminda uretilmistir.
+<p class="note">Bu rapor {PROVIDER_NAME} Microsoft Yonetilen Guvenlik ve Purview Uyum Hizmetleri kapsaminda uretilmistir.
 Gizlilik: Musteriye Ozel &bull; 6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 regülasyonlarina tam uyumludur.</p>
 <div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v6.0 Golden Standard</div>
 </div>

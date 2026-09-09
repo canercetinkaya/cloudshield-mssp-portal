@@ -37,7 +37,7 @@
     "DisplayName": "Zeynep Kaya",
     "Department": "Veri Güvenliği & Purview Uyum",
     "Role": "ComplianceSpecialist",
-    "AssignedTenants": ["tenant-001", "tenant-002"],
+    "AssignedTenants": ["tenant-002"],
     "Permissions": {
       "CanViewDashboard": true,
       "CanGenerateReports": true,
@@ -62,5 +62,37 @@
       "CanManageSettings": false
     },
     "LastLogin": "2026-09-09 12:15"
+  },
+  {
+    "Id": "usr-005",
+    "Upn": "customer.ciso@emre-tenant.com",
+    "DisplayName": "Emre-TestTenant CISO",
+    "Department": "Kurumsal Bilgi Güvenliği",
+    "Role": "CustomerCISO",
+    "AssignedTenants": ["tenant-002"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": false,
+      "CanManageTenants": false,
+      "CanManageSettings": false
+    },
+    "LastLogin": "2026-09-09 14:00"
+  },
+  {
+    "Id": "usr-006",
+    "Upn": "external.ciso@other-client.com",
+    "DisplayName": "Farklı Müşteri Yöneticisi (İzolasyon Testi)",
+    "Department": "Diğer Müşteri IT",
+    "Role": "CustomerViewer",
+    "AssignedTenants": ["tenant-isolated-other"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": false,
+      "CanAccessGdap": false,
+      "CanManageTenants": false,
+      "CanManageSettings": false
+    },
+    "LastLogin": "2026-09-09 08:30"
   }
 ]

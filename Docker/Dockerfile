@@ -1,11 +1,11 @@
-# KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+# CloudShield Managed Security Operations & Reporting Platform (MSSP Portal)
 # Multi-stage Containerfile for Azure Container Apps & On-Premises Docker
 
 FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
 
-LABEL maintainer="KoçSistem Managed Security Services Team <siberguvenlik@kocsistem.com.tr>"
-LABEL description="KoçSistem Microsoft Security & Purview Monthly Reporting Engine and MSSP SaaS Portal"
-LABEL version="2.0.0"
+LABEL maintainer="CloudShield MSSP Security Engineering Team <security@cloudshield-mssp.com>"
+LABEL description="CloudShield Microsoft Security & Purview Monthly Reporting Engine and MSSP SaaS Portal"
+LABEL version="2.5.0"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080

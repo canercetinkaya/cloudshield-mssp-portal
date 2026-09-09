@@ -3,7 +3,7 @@
     "Id": "tenant-002",
     "Name": "Emre-TestTenant",
     "TenantId": "c9c0ee10-6398-473c-9681-d2fffaa55531",
-    "ContactEmail": "caner.cetinkaya@kocsistem.com.tr",
+    "ContactEmail": "security-lead@cloudshield-mssp.com",
     "ReportMode": "Consolidated",
     "SelectedPackage": "PKG-10",
     "IsSimulation": false,
@@ -29,7 +29,7 @@
       "DayOfMonth": 1,
       "Time": "08:30",
       "Recipients": [
-        "caner.cetinkaya@kocsistem.com.tr",
+        "security-lead@cloudshield-mssp.com",
         "mssp-reports@cloudshield-mssp.com"
       ],
       "Channels": [
@@ -50,7 +50,7 @@
     "DispatchDay": 1,
     "DispatchTime": "09:00",
     "RecipientEmails": [
-      "caner.cetinkaya@kocsistem.com.tr",
+      "security-lead@cloudshield-mssp.com",
       "mssp-reporting@cloudshield-mssp.com"
     ],
     "AttachPdf": true,

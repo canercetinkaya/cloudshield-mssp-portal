@@ -65,10 +65,13 @@ def log_test(category, name, passed, details="", duration_ms=0):
     results[category].append(entry)
     print(f"{status_str} [{category}] {name} ({round(duration_ms, 1)}ms) - {details[:90]}")
 
-def http_get(path):
+def http_get(path, token=None):
     url = f"{BASE_URL}{path}"
     start = time.time()
-    req = urllib.request.Request(url, headers={"User-Agent": "CloudShield-QA-TestAutomation/1.0"})
+    headers = {"User-Agent": "CloudShield-QA-TestAutomation/1.0"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             dur = (time.time() - start) * 1000
@@ -89,13 +92,16 @@ def http_get(path):
         dur = (time.time() - start) * 1000
         return 0, str(e), dur, b""
 
-def http_post(path, payload):
+def http_post(path, payload, token=None):
     url = f"{BASE_URL}{path}"
     body = json.dumps(payload).encode("utf-8")
     start = time.time()
+    headers = {"Content-Type": "application/json", "User-Agent": "CloudShield-QA-TestAutomation/1.0"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(
         url, data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "CloudShield-QA-TestAutomation/1.0"},
+        headers=headers,
         method="POST"
     )
     try:
@@ -245,6 +251,49 @@ def run_api_tests():
         is_html_valid = h_status == 200 and (b"<!DOCTYPE html>" in h_content or b"<html" in h_content)
         passed = is_pdf_valid and is_html_valid
         log_test("api_tests", "GET /api/reports/download - PDF/HTML Vektörel Dosya Bütünlüğü", passed, f"PdfSize={len(p_content)}B, HtmlSize={len(h_content)}B, ValidPdfHeader={is_pdf_valid}", p_dur + h_dur)
+
+    # 2.13 GET /api/tenants/tenant-002/logo - Entra ID Logo ve Dinamik Monogram Doğrulaması
+    status, logo_content, dur, _ = http_get("/api/tenants/tenant-002/logo")
+    is_valid_logo = status == 200 and (logo_content.startswith(b"\x89PNG") or b"<svg" in logo_content)
+    log_test("api_tests", "GET /api/tenants/tenant-002/logo - Entra ID Müşteri Logosu / Vektörel Monogram (200 OK)", is_valid_logo, f"Status={status}, ContentSize={len(logo_content)}B, IsImageOrSvg={is_valid_logo}", dur)
+
+    # 2.14 POST /api/auth/login - Müşteri CISO (usr-005) Oturum Açma
+    status_u5, body_u5, dur_u5 = http_post("/api/auth/login", {"username": "customer.ciso@emre-tenant.com", "password": admin_pass})
+    tok_u5 = body_u5.get("token", "")
+    u5_passed = status_u5 == 200 and body_u5.get("user", {}).get("role") == "CustomerCISO" and body_u5.get("user", {}).get("AssignedTenants") == ["tenant-002"]
+    log_test("api_tests", "POST /api/auth/login - Müşteri CISO (usr-005) RBAC Doğrulaması", u5_passed, f"Status={status_u5}, Role={body_u5.get('user', {}).get('role')}, Tenants={body_u5.get('user', {}).get('AssignedTenants')}", dur_u5)
+
+    # 2.15 GET /api/tenants - Müşteri CISO (usr-005) Sadece Atanmış Kiracısını Görür
+    status_t5, body_t5, dur_t5, _ = http_get("/api/tenants", token=tok_u5)
+    t5_passed = status_t5 == 200 and len(body_t5) == 1 and body_t5[0].get("Id") == "tenant-002"
+    log_test("api_tests", "GET /api/tenants - usr-005 Oturumunda Sadece Atanmış Kiracı İzolasyonu", t5_passed, f"Status={status_t5}, Count={len(body_t5)}, VisibleTenants={[t.get('Id') for t in body_t5]}", dur_t5)
+
+    # 2.16 POST /api/auth/login - Farklı Müşteri Yöneticisi (usr-006) Oturum Açma
+    status_u6, body_u6, dur_u6 = http_post("/api/auth/login", {"username": "external.ciso@other-client.com", "password": admin_pass})
+    tok_u6 = body_u6.get("token", "")
+    u6_passed = status_u6 == 200 and body_u6.get("user", {}).get("role") == "CustomerViewer" and body_u6.get("user", {}).get("AssignedTenants") == ["tenant-isolated-other"]
+    log_test("api_tests", "POST /api/auth/login - Farklı Müşteri (usr-006) RBAC Oturum Doğrulaması", u6_passed, f"Status={status_u6}, Role={body_u6.get('user', {}).get('role')}, Tenants={body_u6.get('user', {}).get('AssignedTenants')}", dur_u6)
+
+    # 2.17 GET /api/tenants - usr-006 Oturumunda tenant-002 Asla Görünmez (Sıfır İhlal)
+    status_t6, body_t6, dur_t6, _ = http_get("/api/tenants", token=tok_u6)
+    has_tenant_002 = any(t.get("Id") == "tenant-002" for t in body_t6)
+    t6_passed = status_t6 == 200 and not has_tenant_002
+    log_test("api_tests", "GET /api/tenants - usr-006 Çapraz Kiracı Veri İzolasyonu (tenant-002 Görünmez)", t6_passed, f"Status={status_t6}, Count={len(body_t6)}, HasTenant002={has_tenant_002}", dur_t6)
+
+    # 2.18 POST /api/reports/generate - usr-006 Yetkisiz Kiracı İçin Rapor Üretimi (403 Forbidden)
+    status_gen_403, body_gen_403, dur_gen_403 = http_post("/api/reports/generate", {"tenantId": "tenant-002", "services": ["SVC-MDE"], "dryRun": True}, token=tok_u6)
+    gen_403_passed = status_gen_403 == 403 and body_gen_403.get("success") is False
+    log_test("api_tests", "POST /api/reports/generate - usr-006 Çapraz Kiracı Rapor İhlali 403 Reddi", gen_403_passed, f"Status={status_gen_403}, Error={body_gen_403.get('error')}", dur_gen_403)
+
+    # 2.19 POST /api/tenants/tenant-002/test - usr-006 Yetkisiz Kiracı Testi (403 Forbidden)
+    status_test_403, body_test_403, dur_test_403 = http_post("/api/tenants/tenant-002/test", {}, token=tok_u6)
+    test_403_passed = status_test_403 == 403 and body_test_403.get("success") is False
+    log_test("api_tests", "POST /api/tenants/tenant-002/test - usr-006 Çapraz Kiracı Test İhlali 403 Reddi", test_403_passed, f"Status={status_test_403}, Error={body_test_403.get('error')}", dur_test_403)
+
+    # 2.20 GET /api/reports/download - usr-006 Yetkisiz Rapor İndirme Girişimi (403 Forbidden)
+    status_dl_403, body_dl_403, dur_dl_403, _ = http_get(f"/api/reports/download?file=Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf", token=tok_u6)
+    dl_403_passed = status_dl_403 == 403
+    log_test("api_tests", "GET /api/reports/download - usr-006 Çapraz Müşteri Rapor İndirme 403 Reddi", dl_403_passed, f"Status={status_dl_403}", dur_dl_403)
 
 # ==============================================================================
 # 3. MULTI-TENANT CONCURRENCY & ISOLATION
