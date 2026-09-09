@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-MDO",
+  "Name": "DefenderOffice",
+  "DisplayName": "Microsoft Defender for Office 365 (MDO & EOP)",
+  "Category": "Email",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "E-posta hijyeni, Safe Links/Attachments, ZAP, kullanıcı bildirimleri ve karantina yönetimi raporlama eklentisi."
+}

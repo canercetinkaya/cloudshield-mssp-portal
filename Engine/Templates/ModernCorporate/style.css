@@ -1,0 +1,272 @@
+/* KoçSistem Security Reporting Platform - ModernCorporate Style */
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+
+:root {
+    --ks-navy: #002B49;
+    --ks-navy-light: #003e6b;
+    --ks-red: #D71920;
+    --ks-blue: #0078D4;
+    --ks-gray-bg: #F8FAFC;
+    --ks-card-bg: #FFFFFF;
+    --ks-border: #E2E8F0;
+    --ks-text-main: #0F172A;
+    --ks-text-muted: #64748B;
+    --ks-success: #10B981;
+    --ks-warning: #F59E0B;
+    --ks-danger: #EF4444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background-color: var(--ks-gray-bg);
+    color: var(--ks-text-main);
+    line-height: 1.5;
+    font-size: 13px;
+    padding: 0;
+    margin: 0;
+}
+
+/* HEADER */
+.report-header {
+    background: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-navy-light) 100%);
+    color: #FFFFFF;
+    padding: 24px 36px;
+    border-bottom: 4px solid var(--ks-red);
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo-provider {
+    max-height: 48px;
+    max-width: 180px;
+    object-fit: contain;
+}
+
+.header-title-block {
+    text-align: center;
+    flex-grow: 1;
+}
+
+.header-title-block h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.header-title-block .subtitle {
+    font-size: 13px;
+    color: #CBD5E1;
+    margin-top: 4px;
+}
+
+.logo-customer {
+    max-height: 42px;
+    max-width: 140px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* MAIN BODY */
+.report-body {
+    max-width: 1200px;
+    margin: 24px auto;
+    padding: 0 20px;
+}
+
+/* EXECUTIVE SUMMARY */
+.executive-summary-container {
+    background: var(--ks-card-bg);
+    border: 1px solid var(--ks-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* SERVICE SECTION */
+.service-section {
+    background: var(--ks-card-bg);
+    border: 1px solid var(--ks-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    page-break-inside: avoid;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--ks-navy);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ks-navy);
+}
+
+.section-tag {
+    background-color: #E2E8F0;
+    color: var(--ks-navy);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+/* KPI GRID */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: var(--ks-gray-bg);
+    border: 1px solid var(--ks-border);
+    border-radius: 6px;
+    padding: 16px;
+    position: relative;
+    border-left: 4px solid var(--ks-navy);
+}
+
+.kpi-card.highlight {
+    border-left-color: var(--ks-red);
+    background: #FFF5F5;
+}
+
+.kpi-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--ks-text-muted);
+    letter-spacing: 0.5px;
+}
+
+.kpi-value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ks-text-main);
+}
+
+.kpi-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge.positive { background-color: #D1FAE5; color: #065F46; }
+.badge.negative { background-color: #FEE2E2; color: #991B1B; }
+.badge.neutral  { background-color: #F1F5F9; color: #475569; }
+
+.kpi-description {
+    font-size: 11px;
+    color: var(--ks-text-muted);
+    margin-top: 4px;
+}
+
+/* DATA TABLES */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 12px;
+}
+
+.data-table th {
+    background-color: var(--ks-navy);
+    color: #FFFFFF;
+    text-align: left;
+    padding: 9px 12px;
+    font-weight: 600;
+}
+
+.data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--ks-border);
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #F8FAFC;
+}
+
+/* CALLOUTS */
+.callout-box {
+    background-color: #EFF6FF;
+    border-left: 4px solid var(--ks-blue);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 12px;
+}
+
+.callout-box.danger {
+    background-color: #FEF2F2;
+    border-left-color: var(--ks-red);
+}
+
+/* FOOTER */
+.report-footer {
+    background-color: var(--ks-navy);
+    color: #94A3B8;
+    padding: 16px 36px;
+    font-size: 11px;
+    margin-top: 36px;
+}
+
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* PRINT & PDF RULES */
+@media print {
+    body {
+        background-color: #FFFFFF !important;
+        font-size: 11px;
+    }
+    .report-body {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .service-section {
+        border: 1px solid #CBD5E1;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    .report-header, .report-footer {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

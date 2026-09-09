@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "CatalogVersion": "1.0.0",
+  "LastUpdated": "2026-09-09",
+  "Resources": {
+    "Graph": {
+      "AppId": "00000003-0000-0000-c000-000000000000",
+      "Name": "Microsoft Graph"
+    },
+    "MDE": {
+      "AppId": "fc780465-2017-40d4-a0c5-307022471b92",
+      "Name": "WindowsDefenderATP"
+    },
+    "Exchange": {
+      "AppId": "00000002-0000-0ff1-ce00-000000000000",
+      "Name": "Office 365 Exchange Online"
+    }
+  },
+  "Services": {
+    "SVC-MDE": {
+      "Name": "Microsoft Defender for Endpoint (MDE)",
+      "DisplayNameTr": "Yönetilen Uç Nokta Güvenliği (EDR)",
+      "Category": "Endpoint",
+      "PluginFolder": "DefenderEndpoint",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "MDE", "Name": "Machine.Read.All", "Scope": "Application", "Why": "Cihaz envanteri, sensör sağlığı ve response aksiyonları" },
+        { "Resource": "MDE", "Name": "Alert.Read.All", "Scope": "Application", "Why": "Uç nokta alarm telemetrileri" },
+        { "Resource": "MDE", "Name": "AdvancedQuery.Read.All", "Scope": "Application", "Why": "KQL Tehdit Avı (Hunting) sorguları" },
+        { "Resource": "Graph", "Name": "ThreatHunting.Read.All", "Scope": "Application", "Why": "Graph birleşik tehdit avı API'si" }
+      ]
+    },
+    "SVC-MDO": {
+      "Name": "Microsoft Defender for Office 365 (MDO & EOP)",
+      "DisplayNameTr": "Yönetilen E-Posta Güvenliği (MDO + EOP)",
+      "Category": "Email",
+      "PluginFolder": "DefenderOffice",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "MDO e-posta alarmları" },
+        { "Resource": "Graph", "Name": "ThreatHunting.Read.All", "Scope": "Application", "Why": "EmailEvents, EmailUrlInfo ve ZAP KQL sorguları" },
+        { "Resource": "Graph", "Name": "SecurityIncident.Read.All", "Scope": "Application", "Why": "MDO kaynaklı incident korelasyonu" }
+      ]
+    },
+    "SVC-MDI": {
+      "Name": "Microsoft Defender for Identity (MDI)",
+      "DisplayNameTr": "Yönetilen Kimlik Tehdit Koruması (MDI)",
+      "Category": "Identity",
+      "PluginFolder": "DefenderIdentity",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "MDI kimlik alarmları" },
+        { "Resource": "Graph", "Name": "ThreatHunting.Read.All", "Scope": "Application", "Why": "IdentityLogonEvents, IdentityDirectoryEvents KQL sorguları" },
+        { "Resource": "Graph", "Name": "IdentityRiskyUser.Read.All", "Scope": "Application", "Why": "Entra ID riskli kullanıcı korelasyonu" }
+      ]
+    },
+    "SVC-MDCA": {
+      "Name": "Microsoft Defender for Cloud Apps (MDCA)",
+      "DisplayNameTr": "Yönetilen Bulut Uygulama Güvenliği (CASB)",
+      "Category": "CloudApp",
+      "PluginFolder": "DefenderCloudApps",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "MDCA anomali ve bulut alarmları" },
+        { "Resource": "Graph", "Name": "ThreatHunting.Read.All", "Scope": "Application", "Why": "CloudAppEvents KQL sorguları" },
+        { "Resource": "Graph", "Name": "Application.Read.All", "Scope": "Application", "Why": "OAuth App Governance izin ve risk analizi" }
+      ]
+    },
+    "SVC-XDR": {
+      "Name": "Microsoft Defender XDR Unified Incidents",
+      "DisplayNameTr": "Yönetilen XDR Olay Yönetimi & MTTR",
+      "Category": "XDR",
+      "PluginFolder": "DefenderXdr",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityIncident.Read.All", "Scope": "Application", "Why": "Korele XDR incident telemetrisi ve MTTA/MTTR süreleri" },
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "Tüm servis kaynaklı alarmların korelasyonu" }
+      ]
+    },
+    "SVC-INTUNE": {
+      "Name": "Microsoft Intune Endpoint Management",
+      "DisplayNameTr": "Yönetilen Cihaz Uyum & Hijyen (Intune)",
+      "Category": "EndpointManagement",
+      "PluginFolder": "IntuneCompliance",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "DeviceManagementManagedDevices.Read.All", "Scope": "Application", "Why": "Yönetilen cihaz envanteri, uyum ve BitLocker durumu" },
+        { "Resource": "Graph", "Name": "DeviceManagementConfiguration.Read.All", "Scope": "Application", "Why": "Intune uyum ve yapılandırma politikaları" }
+      ]
+    },
+    "SVC-ENTRA-PIM": {
+      "Name": "Microsoft Entra ID Governance & PIM",
+      "DisplayNameTr": "Yönetilen Ayrıcalıklı Kimlik ve PIM (Entra)",
+      "Category": "IdentityGovernance",
+      "PluginFolder": "EntraGovernance",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "PrivilegedAccess.Read.AzureADGroup", "Scope": "Application", "Why": "PIM rol aktivasyonları ve kalıcı admin denetimi" },
+        { "Resource": "Graph", "Name": "RoleManagement.Read.Directory", "Scope": "Application", "Why": "Yalnızca dizin rolleri ve atamalarının analizi" }
+      ]
+    },
+    "SVC-PRV-DLP": {
+      "Name": "Microsoft Purview Data Loss Prevention (DLP)",
+      "DisplayNameTr": "Yönetilen Veri Kaybı Önleme (Purview DLP)",
+      "Category": "Compliance",
+      "PluginFolder": "PurviewDlp",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "DLP politika ihlalleri ve uyarıları" },
+        { "Resource": "Graph", "Name": "InformationProtectionPolicy.Read.All", "Scope": "Application", "Why": "DLP politikaları ve koruma kurallarının okunması" }
+      ]
+    },
+    "SVC-PRV-CLASS": {
+      "Name": "Microsoft Purview Information Protection & Classification",
+      "DisplayNameTr": "Yönetilen Veri Envanteri ve Sınıflandırma",
+      "Category": "Compliance",
+      "PluginFolder": "PurviewClassification",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "InformationProtectionPolicy.Read.All", "Scope": "Application", "Why": "Hassas Bilgi Türleri (SIT) ve Duyarlılık Etiketleri envanteri" }
+      ]
+    },
+    "SVC-PRV-GOV": {
+      "Name": "Microsoft Purview Data Lifecycle & Records Management",
+      "DisplayNameTr": "Yönetilen Saklama ve İmha Politikaları",
+      "Category": "Compliance",
+      "PluginFolder": "PurviewGovernance",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "RecordsManagement.Read.All", "Scope": "Application", "Why": "Saklama etiketleri ve yaşam döngüsü politikaları" }
+      ]
+    },
+    "SVC-PRV-RISK": {
+      "Name": "Microsoft Purview Insider Risk & Communication Compliance",
+      "DisplayNameTr": "Yönetilen İç Tehdit ve İletişim Uyumu",
+      "Category": "ComplianceIsolated",
+      "PluginFolder": "PurviewRiskCompliance",
+      "CanBeStandalone": true,
+      "RequiresIsolatedApp": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "SecurityAlert.Read.All", "Scope": "Application", "Why": "İç risk ve iletişim denetimi alarmları (yalnızca agregasyon)" }
+      ]
+    },
+    "SVC-AI-SECURITY": {
+      "Name": "Microsoft Purview DSPM for AI & Copilot Security",
+      "DisplayNameTr": "Yönetilen Yapay Zeka & Copilot Güvenliği",
+      "Category": "AIProtection",
+      "PluginFolder": "PurviewAiSecurity",
+      "CanBeStandalone": true,
+      "Dependencies": [],
+      "Permissions": [
+        { "Resource": "Graph", "Name": "AuditLog.Read.All", "Scope": "Application", "Why": "CopilotInteraction ve yapay zeka denetim telemetrisi" }
+      ]
+    }
+  },
+  "Packages": {
+    "PKG-01": {
+      "Name": "KoçSistem Yönetilen Uç Nokta Güvenliği (EDR)",
+      "Services": ["SVC-MDE"]
+    },
+    "PKG-02": {
+      "Name": "KoçSistem Yönetilen E-Posta Güvenliği (MDO + EOP)",
+      "Services": ["SVC-MDO"]
+    },
+    "PKG-03": {
+      "Name": "KoçSistem Yönetilen Kimlik Tehdit Koruması (MDI)",
+      "Services": ["SVC-MDI"]
+    },
+    "PKG-04": {
+      "Name": "KoçSistem Yönetilen Bulut Uygulama Güvenliği (CASB)",
+      "Services": ["SVC-MDCA"]
+    },
+    "PKG-05": {
+      "Name": "KoçSistem Tehdit Koruması & XDR Tam Paket",
+      "Services": ["SVC-MDE", "SVC-MDO", "SVC-MDI", "SVC-MDCA", "SVC-XDR"]
+    },
+    "PKG-06": {
+      "Name": "KoçSistem Yönetilen Purview Veri Güvenliği (DLP & Sınıflandırma)",
+      "Services": ["SVC-PRV-DLP", "SVC-PRV-CLASS"]
+    },
+    "PKG-07": {
+      "Name": "KoçSistem Yönetilen Purview Tam Uyum ve Yönetişim",
+      "Services": ["SVC-PRV-DLP", "SVC-PRV-CLASS", "SVC-PRV-GOV", "SVC-PRV-RISK"]
+    },
+    "PKG-08": {
+      "Name": "KoçSistem Yönetilen Cihaz Uyum & Intune Paketi",
+      "Services": ["SVC-INTUNE", "SVC-MDE"]
+    },
+    "PKG-09": {
+      "Name": "KoçSistem Yönetilen Yapay Zeka & Veri Postürü (DSPM for AI)",
+      "Services": ["SVC-AI-SECURITY", "SVC-PRV-DLP", "SVC-PRV-CLASS"]
+    },
+    "PKG-10": {
+      "Name": "KoçSistem Microsoft 365 E5 / E7 Birleşik Yönetilen Güvenlik Paketi",
+      "Services": [
+        "SVC-MDE", "SVC-MDO", "SVC-MDI", "SVC-MDCA", "SVC-XDR",
+        "SVC-INTUNE", "SVC-ENTRA-PIM",
+        "SVC-PRV-DLP", "SVC-PRV-CLASS", "SVC-PRV-GOV", "SVC-PRV-RISK", "SVC-AI-SECURITY"
+      ]
+    }
+  }
+}

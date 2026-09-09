@@ -1,0 +1,89 @@
+{
+  "Customer": {
+    "Name": "Ornek-Musteri-AS",
+    "TenantId": "00000000-0000-0000-0000-000000000000",
+    "CustomerLogoPath": "Resources/logo-customer-placeholder.png",
+    "CustomerLogoSource": "Auto",
+    "TimeZone": "Turkey Standard Time"
+  },
+  "Subscriptions": {
+    "ReportMode": "Consolidated",
+    "SelectedPackage": "PKG-05",
+    "ActiveServices": [
+      "SVC-MDE",
+      "SVC-MDO",
+      "SVC-MDI",
+      "SVC-MDCA",
+      "SVC-XDR"
+    ]
+  },
+  "Authentication": {
+    "CoreApp": {
+      "ClientId": "00000000-0000-0000-0000-000000000000",
+      "AuthMethod": "Certificate",
+      "CertificateThumbprint": "",
+      "CertificateFilePath": "",
+      "SecretEncrypted": "",
+      "DataProtectionScope": "CurrentUser",
+      "CredentialExpiry": ""
+    },
+    "IsolatedApp": {
+      "Enabled": false,
+      "ClientId": "",
+      "AuthMethod": "Certificate",
+      "CertificateThumbprint": "",
+      "CertificateFilePath": "",
+      "SecretEncrypted": "",
+      "DataProtectionScope": "CurrentUser",
+      "CredentialExpiry": ""
+    }
+  },
+  "Reporting": {
+    "Schedule": "Monthly",
+    "AttachPdf": true,
+    "ExportCsv": true,
+    "RetentionMonths": 24,
+    "DashboardRefreshMinutes": 60
+  },
+  "Privacy": {
+    "AnonymizeUsers": true,
+    "KAnonymityThreshold": 5,
+    "MaskDomain": false
+  },
+  "Delivery": {
+    "Method": "Graph",
+    "From": "soc-reports@kocsistem.com.tr",
+    "To": [
+      "ciso@musteri.com"
+    ],
+    "Cc": [
+      "soc-team@kocsistem.com.tr"
+    ],
+    "AlertTo": "soc-alerts@kocsistem.com.tr",
+    "SendDashboard": true,
+    "ServiceSpecificRouting": {
+      "SVC-MDO": {
+        "To": [],
+        "Cc": []
+      },
+      "SVC-PRV-DLP": {
+        "To": [],
+        "Cc": []
+      }
+    }
+  },
+  "Smtp": {
+    "Server": "smtp.office365.com",
+    "Port": 587,
+    "UseSsl": true,
+    "User": "",
+    "PasswordEncrypted": ""
+  },
+  "Thresholds": {
+    "InactiveDevicePct": 5,
+    "RiskyHostAlerts": 3,
+    "RansomRenameCount": 100,
+    "AutoIrMinutes": 45,
+    "OpenIncidentAgeDays": 14
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-PRV-DLP",
+  "Name": "PurviewDlp",
+  "DisplayName": "Microsoft Purview Data Loss Prevention (DLP)",
+  "Category": "Compliance",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "Exchange, SharePoint, OneDrive, Teams ve Endpoint DLP politika ihlalleri, engellemeler ve kullanıcı override analitiği eklentisi."
+}

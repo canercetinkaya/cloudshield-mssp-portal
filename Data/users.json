@@ -1,0 +1,66 @@
+[
+  {
+    "Id": "usr-001",
+    "Upn": "caner.cetinkaya@kocsistem.com.tr",
+    "DisplayName": "Caner Çetinkaya",
+    "Department": "Siber Güvenlik Çözüm Mimarlığı & Otomasyon",
+    "Role": "PlatformAdmin",
+    "AssignedTenants": ["ALL"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": true,
+      "CanManageTenants": true,
+      "CanManageSettings": true
+    },
+    "LastLogin": "2026-09-09 13:00"
+  },
+  {
+    "Id": "usr-002",
+    "Upn": "edr.analyst@kocsistem.com.tr",
+    "DisplayName": "Ahmet Yılmaz",
+    "Department": "Core-MSSP / EDR Ekibi",
+    "Role": "EdrEngineer",
+    "AssignedTenants": ["ALL"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": true,
+      "CanManageTenants": false,
+      "CanManageSettings": false
+    },
+    "LastLogin": "2026-09-09 11:20"
+  },
+  {
+    "Id": "usr-003",
+    "Upn": "compliance.lead@kocsistem.com.tr",
+    "DisplayName": "Zeynep Kaya",
+    "Department": "Veri Güvenliği & Purview Uyum",
+    "Role": "ComplianceSpecialist",
+    "AssignedTenants": ["tenant-001", "tenant-002"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": true,
+      "CanManageTenants": false,
+      "CanManageSettings": false
+    },
+    "LastLogin": "2026-09-09 09:45"
+  },
+  {
+    "Id": "usr-004",
+    "Upn": "xdr.engineer@kocsistem.com.tr",
+    "DisplayName": "Murat Demir",
+    "Department": "Bütünleşik Tehdit Yönetimi (Defender XDR)",
+    "Role": "XdrEngineer",
+    "AssignedTenants": ["ALL"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": true,
+      "CanManageTenants": false,
+      "CanManageSettings": false
+    },
+    "LastLogin": "2026-09-09 12:15"
+  }
+]

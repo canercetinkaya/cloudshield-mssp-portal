@@ -1,0 +1,10 @@
+{
+  "ServiceCode": "SVC-PRV-RISK",
+  "Name": "PurviewRiskCompliance",
+  "DisplayName": "Microsoft Purview İç Tehdit ve İletişim Uyumu (IRM/CC)",
+  "Category": "ComplianceIsolated",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "RequiresIsolatedApp": true,
+  "Description": "İçeriden gelen riskler (IRM) ve kurumsal iletişim gözetimi (CC) için gizlilik odaklı agregasyon raporlama eklentisi."
+}

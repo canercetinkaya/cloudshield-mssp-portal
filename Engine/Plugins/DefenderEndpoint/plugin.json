@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-MDE",
+  "Name": "DefenderEndpoint",
+  "DisplayName": "Microsoft Defender for Endpoint (EDR)",
+  "Category": "Endpoint",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "Uç nokta envanteri, sensör sağlığı, ASR kuralları, TVM uyumu, hayalet cihazlar ve otonom müdahale raporlama eklentisi."
+}

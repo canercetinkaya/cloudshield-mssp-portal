@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-PRV-CLASS",
+  "Name": "PurviewClassification",
+  "DisplayName": "Microsoft Purview Veri Sınıflandırma ve Etiketleme",
+  "Category": "Compliance",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "Hassas Bilgi Türleri (SIT), duyarlılık etiketleri envanteri ve etiket kullanım trendleri eklentisi."
+}

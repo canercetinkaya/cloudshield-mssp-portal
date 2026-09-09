@@ -1,0 +1,63 @@
+[
+  {
+    "Id": "tenant-sandbox",
+    "Name": "KoçSistem Demo & Test Ortamı (Sandbox)",
+    "TenantId": "f0000000-0000-0000-0000-000000000001",
+    "ContactEmail": "mssp-demo@kocsistem.com.tr",
+    "ReportMode": "Consolidated",
+    "SelectedPackage": "PKG-10",
+    "IsSimulation": true,
+    "ConnectionStatus": "SimulationActive",
+    "HealthStatus": "Healthy",
+    "TotalEndpoints": 1450,
+    "GhostDevices": 12,
+    "OpenHighAlerts": 2,
+    "SecureScore": 84.5,
+    "LastReportDate": "2026-09-09",
+    "ActiveServices": [
+      "SVC-MDE",
+      "SVC-MDO",
+      "SVC-MDI",
+      "SVC-MDCA",
+      "SVC-XDR",
+      "SVC-PRV-DLP",
+      "SVC-PRV-CLASS",
+      "SVC-PRV-GOV",
+      "SVC-PRV-RISK",
+      "SVC-AI-SECURITY"
+    ],
+    "Schedule": {
+      "Frequency": "Monthly",
+      "DayOfMonth": 1,
+      "Time": "08:30",
+      "Recipients": [
+        "mssp-reports@kocsistem.com.tr",
+        "ciso-demo@kocsistem.com.tr"
+      ],
+      "Channels": [
+        "Email",
+        "HtmlReport",
+        "VectorPdf"
+      ],
+      "Status": "Active",
+      "LastDispatched": "2026-09-01 08:30:00",
+      "NextScheduledDispatch": "2026-10-01 08:30:00"
+    },
+    "Auth": {
+      "Method": "SimulationEngine",
+      "ClientId": "sandbox-demo-client-id",
+      "KeyVaultSecretName": "Sandbox-Mock-Secret"
+    },
+    "Description": "KoçSistem MSSP Laboratuvar & Test Kiracısı (Zengin Sentetik Telemetri)",
+    "ScheduleFrequency": "Monthly",
+    "DispatchDay": 2,
+    "DispatchTime": "10:00",
+    "RecipientEmails": [
+      "qa-test@kocsistem.com.tr",
+      "mssp-reporting@kocsistem.com.tr"
+    ],
+    "IsDispatchActive": true,
+    "LastDispatchDate": "2026-09-09 15:57",
+    "LastDispatchStatus": "Delivered"
+  }
+]

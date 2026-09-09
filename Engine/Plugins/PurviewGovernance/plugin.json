@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-PRV-GOV",
+  "Name": "PurviewGovernance",
+  "DisplayName": "Microsoft Purview Veri Yaşam Döngüsü ve Saklama",
+  "Category": "Compliance",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "Kurumsal saklama etiketleri (Retention), otomatik imha kuralları ve veri yaşam döngüsü analitiği eklentisi."
+}

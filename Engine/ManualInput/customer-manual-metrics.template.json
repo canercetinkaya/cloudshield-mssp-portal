@@ -1,0 +1,22 @@
+{
+  "Period": "2026-08",
+  "SocHumanOperations": {
+    "TotalTicketsOpened": 142,
+    "TotalTicketsResolvedBySoc": 138,
+    "FalsePositiveTickets": 12,
+    "ProactiveThreatHuntsConducted": 4,
+    "EmergencyContainmentActions": 2,
+    "CustomerAdvisoryBulletinsSent": 3,
+    "AnalystWorkHours": 86.5
+  },
+  "HuntOfTheMonth": {
+    "Title": "CVE-2026-XXXX Mimikatz Bellek Enjeksiyon Taraması",
+    "Target": "Tüm Windows Domain Controller ve Sunucu Grubu",
+    "Action": "Gelişmiş KQL bellek anomalisi taraması yapıldı, 2 sunucuda şüpheli servis durduruldu.",
+    "Result": "Başarılı izolasyon sağlandı, kurumsal kimlik sızıntısı önlendi."
+  },
+  "ExecutiveNotes": [
+    "Bu ay içinde gerçekleştirilen ASR sıkılaştırması sayesinde uç noktalarda şüpheli PowerShell yürütme girişimleri %40 oranında azalmıştır.",
+    "İnsan kaynakları birimiyle koordineli olarak yürütülen Purview DLP pilot çalışmasında 24 hassas veri sızıntısı girişimi engellenmiştir."
+  ]
+}

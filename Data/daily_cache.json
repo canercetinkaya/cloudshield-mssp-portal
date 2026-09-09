@@ -1,0 +1,13 @@
+{
+  "lastSyncTimestamp": "2026-09-09 15:52:07",
+  "nextScheduledSync": "2026-09-10 06:00:00",
+  "syncMode": "DailyScheduled",
+  "isCacheActive": true,
+  "globalStats": {
+    "totalTenants": 1,
+    "totalEndpoints": 1450,
+    "totalGhostDevices": 12,
+    "totalCriticalAlerts": 2,
+    "averageSecureScore": 84.5
+  }
+}

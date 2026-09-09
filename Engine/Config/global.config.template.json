@@ -1,0 +1,28 @@
+{
+  "Provider": {
+    "Name": "KoçSistem Bilgi ve İletişim Hizmetleri A.Ş.",
+    "ShortName": "KoçSistem",
+    "BrandColorPrimary": "#002B49",
+    "BrandColorSecondary": "#D71920",
+    "BrandColorAccent": "#0078D4",
+    "LogoPath": "Resources/logo-kocsistem.png",
+    "LogoUrl": "https://www.kocsistem.com.tr/images/koc-logo-main.png",
+    "SupportEmail": "soc-reports@kocsistem.com.tr",
+    "PortalUrl": "https://security.kocsistem.com.tr"
+  },
+  "Defaults": {
+    "AutoIrSavedMinutesPerAction": 45,
+    "TargetResolutionHoursHigh": 4,
+    "TargetResolutionHoursMedium": 8,
+    "TargetResolutionHoursLow": 24,
+    "GhostDeviceDaysThreshold": 7,
+    "RansomRenameDailyThreshold": 100,
+    "RiskyHostAlertThreshold": 3,
+    "PrivacyKAnonymity": 5
+  },
+  "Endpoints": {
+    "Graph": "https://graph.microsoft.com",
+    "Mde": "https://api.securitycenter.microsoft.com",
+    "Mdca": "https://api.cloudappsecurity.com"
+  }
+}

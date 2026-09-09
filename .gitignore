@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+env/
+venv/
+
+# PowerShell
+*.ps1xml
+*.log
+
+# Sensitive credentials & keys
+Engine/Config/*.local.json
+Engine/Data/temp/
+*.pfx
+*.pem
+*.key
+
+# Output artifacts
+Engine/Output/*
+!Engine/Output/.gitkeep
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

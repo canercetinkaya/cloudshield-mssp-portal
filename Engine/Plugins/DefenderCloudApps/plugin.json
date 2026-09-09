@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-MDCA",
+  "Name": "DefenderCloudApps",
+  "DisplayName": "Microsoft Defender for Cloud Apps (CASB)",
+  "Category": "CloudApp",
+  "Version": "1.0.0",
+  "Author": "KoçSistem MSSP Automation Team",
+  "Description": "Gölge BT (Shadow IT) keşfi, uygulama risk skorlaması, yüksek yetkili OAuth uygulamaları ve SaaS anomali analizi eklentisi."
+}
