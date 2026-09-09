@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     CloudShield Microsoft Yönetilen Güvenlik ve Uyum Hizmetleri (MSSP)
     Otomatik Müşteri Tenant Onboarding ve Yetkilendirme Betiği
@@ -77,9 +77,8 @@ $RequiredPermissions = @(
 Write-Host '`n[1/5] Microsoft Entra ID Yetkilendirme Başlatılıyor...' -ForegroundColor Cyan
 $Scope = 'https://graph.microsoft.com/Application.ReadWrite.All https://graph.microsoft.com/AppRoleAssignment.ReadWrite.All https://graph.microsoft.com/Directory.Read.All'
 
-# Azure CLI Public Client ID (Tüm Microsoft Entra tenantlarında önceden onaylıdır)
-# Microsoft Azure PowerShell Public Client ID (Pre-authorized on all Entra ID tenants)
-$CliAppId = '1950a258-227b-4e31-a9cf-717495945fc2'
+# Microsoft Graph Command Line Tools Public Client ID (MDEReport.ps1 ile birebir aynı resmi Microsoft Graph App ID)
+$CliAppId = '14d82eec-204b-4c2f-b7e8-296a70dab67e'
 
 $body = @{ 
     client_id = $CliAppId

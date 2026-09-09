@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import urllib.parse
+import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 
