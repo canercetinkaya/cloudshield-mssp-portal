@@ -36,61 +36,59 @@ if (-not $gitCmd) {
 
 if (-not $gitCmd) {
     Write-Host "[!] 'git' komut satırı aracı sisteminizde bulunamadı." -ForegroundColor Yellow
-    Write-Host "[i] Git for Windows kurulu değilse: winget install --id Git.Git -e" -ForegroundColor White
-    Write-Host "[i] veya GitHub Desktop / VS Code ile bu klasörü ($portalDir) açarak doğrudan commit ve push yapabilirsiniz." -ForegroundColor White
-    Write-Host "`nAlternatif Komutlar:" -ForegroundColor Cyan
-    Write-Host "  git init" -ForegroundColor Gray
-    Write-Host "  git branch -M main" -ForegroundColor Gray
-    Write-Host "  git remote add origin $RemoteUrl" -ForegroundColor Gray
-    Write-Host "  git add ." -ForegroundColor Gray
-    Write-Host "  git commit -m `"$CommitMessage`"" -ForegroundColor Gray
-    Write-Host "  git push -u origin main" -ForegroundColor Gray
     return
 }
 
 $gitExe = if ($gitCmd -is [string]) { $gitCmd } else { $gitCmd.Source }
-Write-Host "[+] Git Aracı Tespit Edildi: $gitExe" -ForegroundColor Green
+Write-Host "[+] Git Aracı: $gitExe" -ForegroundColor Green
 
 Set-Location $portalDir
 
-# 2. Git init
+# 2. Git Kimlik Kontrolü
+$userName = & $gitExe config user.name
+$userEmail = & $gitExe config user.email
+if (-not $userName) {
+    & $gitExe config user.name "Caner Çetinkaya"
+    Write-Host "[+] Git Kullanıcı Adı Ayarlandı: Caner Çetinkaya" -ForegroundColor Green
+}
+if (-not $userEmail) {
+    & $gitExe config user.email "caner.cetinkaya@kocsistem.com.tr"
+    Write-Host "[+] Git E-posta Ayarlandı: caner.cetinkaya@kocsistem.com.tr" -ForegroundColor Green
+}
+
+# 3. Git init
 if (-not (Test-Path "$portalDir\.git")) {
     Write-Host "[+] Git deposu başlatılıyor..." -ForegroundColor White
     & $gitExe init
     & $gitExe branch -M $Branch
 }
 
-# 3. Remote Ekle / Güncelle
+# 4. Remote Ekle / Güncelle
 $remotes = & $gitExe remote
 if ($remotes -contains "origin") {
     & $gitExe remote set-url origin $RemoteUrl
 } else {
     & $gitExe remote add origin $RemoteUrl
 }
-Write-Host "[+] Remote origin ayarlandı: $RemoteUrl" -ForegroundColor Green
+Write-Host "[+] Remote origin: $RemoteUrl" -ForegroundColor Green
 
-# 4. Dosyaları Ekle
-Write-Host "[+] Dosyalar hazırlanıyor (git add)..." -ForegroundColor White
+# 5. Dosyaları Ekle
 & $gitExe add .
 
-# 5. Commit
+# 6. Commit
 $status = & $gitExe status --porcelain
 if ($status) {
     Write-Host "[+] Değişiklikler commit ediliyor..." -ForegroundColor White
     & $gitExe commit -m $CommitMessage
 } else {
-    Write-Host "[i] Yeni bir değişiklik yok, çalışma dizini temiz." -ForegroundColor Yellow
+    Write-Host "[i] Çalışma dizini temiz (tüm dosyalar commit edildi)." -ForegroundColor Green
 }
 
-# 6. Push
+# 7. Push
 Write-Host "`n[+] GitHub'a gönderiliyor (git push -u origin $Branch)..." -ForegroundColor Cyan
-try {
-    & $gitExe push -u origin $Branch
-    Write-Host "`n[OK] BAŞARILI! Kodlar depoya aktarıldı." -ForegroundColor Green
-    Write-Host "     Depo URL: https://github.com/canercetinkaya/kocsistem-mssp-portal" -ForegroundColor Cyan
-    Write-Host "     Deploy to Azure Butonu artık aktif ve kullanıma hazır!" -ForegroundColor Green
-} catch {
-    Write-Host "`n[!] Push işlemi sırasında kimlik doğrulama istendi veya hata oluştu:" -ForegroundColor Yellow
-    Write-Host "    $_" -ForegroundColor Red
-    Write-Host "    Lütfen 'git push -u origin main' komutunu terminalde çalıştırarak GitHub oturumunuzu onaylayınız." -ForegroundColor White
-}
+Write-Host "[i] İlk push işleminde tarayıcınızda GitHub oturum açma penceresi açılabilir." -ForegroundColor Yellow
+& $gitExe push -u origin $Branch
+
+Write-Host "`n[OK] BAŞARILI! Kodlar GitHub deposuna aktarıldı." -ForegroundColor Green
+Write-Host "     Depo URL: https://github.com/canercetinkaya/kocsistem-mssp-portal" -ForegroundColor Cyan
+Write-Host "     Deploy to Azure Butonu artık aktif ve kullanıma hazır!" -ForegroundColor Green
