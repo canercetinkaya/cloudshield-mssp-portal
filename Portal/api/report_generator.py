@@ -1,9 +1,10 @@
 """
-CloudShield MSSP Portal - High-Fidelity Enterprise Report Generator (Pure Python Engine)
-Generates complete executive & technical reports with dedicated KPI cards, tables,
-workload distributions, and KVKK/GDPR anonymized logs for all catalog services.
+CloudShield MSSP Portal - Enterprise Report Generator (Live Data Engine)
+Reads live telemetry from data.json produced by PowerShell collectors.
+Falls back to AvailabilityState indicators — never to hardcoded numbers.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -12,6 +13,109 @@ from datetime import datetime
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "ModernCorporate", "style.css")
+
+# ─────────────────────────────────────────────────────────────
+# LIVE DATA LOADER
+# ─────────────────────────────────────────────────────────────
+def load_live_data(output_dir, customer_name, period_tag=None):
+    """
+    Read data.json written by PowerShell collectors.
+    Returns dict: { serviceCode -> { kpis:{}, availabilityState:'...', collectedAt:'...' } }
+    Returns empty dict if no data.json found.
+    """
+    safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+
+    # Search candidate directories (newest period first if no period_tag given)
+    search_dirs = []
+    customer_dir = os.path.join(output_dir, safe_name)
+    if os.path.isdir(customer_dir):
+        if period_tag:
+            search_dirs.append(os.path.join(customer_dir, period_tag))
+        else:
+            # find all period subdirs sorted newest first
+            try:
+                subdirs = sorted(
+                    [d for d in os.listdir(customer_dir) if os.path.isdir(os.path.join(customer_dir, d))],
+                    reverse=True
+                )
+                search_dirs = [os.path.join(customer_dir, d) for d in subdirs]
+            except Exception:
+                pass
+    search_dirs.append(output_dir)  # fallback: root output
+
+    for candidate_dir in search_dirs:
+        data_path = os.path.join(candidate_dir, "data.json")
+        if os.path.exists(data_path):
+            try:
+                with open(data_path, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict) and raw:
+                    return raw
+            except Exception as e:
+                print(f"[WARN] Could not read {data_path}: {e}")
+    return {}
+
+def get_kpi(data, service_code, key, default=None):
+    """Safely get a KPI value from live data dict."""
+    svc = data.get(service_code, {})
+    kpis = svc.get("kpis", svc)  # support both nested and flat structure
+    return kpis.get(key, default)
+
+def get_availability(data, service_code):
+    """Get availability state for a service."""
+    svc = data.get(service_code, {})
+    return svc.get("availabilityState", "NoData")
+
+def fmt_num(val, fallback="—"):
+    """Format a number or return fallback if None."""
+    if val is None:
+        return fallback
+    try:
+        n = int(val)
+        return f"{n:,}".replace(",", ".")
+    except Exception:
+        return str(val)
+
+def availability_badge(state):
+    """Render an availability state as a colored badge."""
+    colors = {
+        "SupportedAppOnly": ("#DCFCE7", "#15803D", "Canlı API"),
+        "SupportedAdvancedHunting": ("#DCFCE7", "#15803D", "Canlı Hunting"),
+        "SupportedManagementActivityAPI": ("#DCFCE7", "#15803D", "Canlı Audit"),
+        "NoData": ("#FEF3C7", "#92400E", "Veri Yok"),
+        "PermissionMissing": ("#FEE2E2", "#B91C1C", "İzin Eksik"),
+        "NotLicensed": ("#F3F4F6", "#374151", "Lisans Yok"),
+        "CollectionFailed": ("#FEE2E2", "#B91C1C", "Toplama Hatası"),
+        "AuthenticationFailed": ("#FEE2E2", "#B91C1C", "Auth Hatası"),
+        "PortalOnly": ("#F3F4F6", "#374151", "Yalnızca Portal"),
+        "ManualExportOnly": ("#F3F4F6", "#374151", "Manuel Export"),
+        "RequiresValidation": ("#FEF3C7", "#92400E", "Doğrulama Gerekli"),
+        "DerivedFromSupportedFields": ("#EDE9FE", "#5B21B6", "Türetilmiş"),
+        "Preview": ("#EDE9FE", "#5B21B6", "Önizleme"),
+    }
+    bg, fg, label = colors.get(state, ("#F3F4F6", "#374151", state or "Bilinmiyor"))
+    return f'<span style="background:{bg}; color:{fg}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap;">{label}</span>'
+
+def nodata_callout(service_name, state, detail=""):
+    """Render a styled callout when data is unavailable."""
+    icon = "⚠️" if "Failed" in state or "Missing" in state else "ℹ️"
+    desc_map = {
+        "NoData": "Bu dönemde API'den veri alınamadı. Politikalar aktif olabilir ancak ilgili Microsoft servisinde raporlanabilir olay bulunmuyor olabilir.",
+        "PermissionMissing": "Uygulama kaydında gerekli API izni eksik veya admin onayı verilmemiş. Onboarding adımlarını kontrol edin.",
+        "NotLicensed": "Bu servis için gerekli Microsoft lisansı tenant'ta aktif değil.",
+        "CollectionFailed": "Veri toplama sırasında bir hata oluştu. Günlükleri inceleyin.",
+        "AuthenticationFailed": "Tenant kimlik doğrulaması başarısız. ClientId/Secret veya sertifika yapılandırmasını kontrol edin.",
+        "PortalOnly": "Bu metrik yalnızca Microsoft yönetici portalından okunabilir; otomatik API çıkarımı desteklenmiyor.",
+        "ManualExportOnly": "Bu veri kaynağı yalnızca manuel dışa aktarma ile elde edilebilir.",
+    }
+    desc = desc_map.get(state, detail or f"Durum: {state}")
+    return f'''
+    <div style="background:#FFFBEB; border-left:4px solid #F59E0B; padding:14px 18px; border-radius:4px; margin:16px 0; font-size:12px;">
+      <div style="font-weight:700; color:#92400E; margin-bottom:4px;">{icon} {service_name} — {availability_badge(state)}</div>
+      <div style="color:#78350F;">{desc}</div>
+    </div>'''
+
+
 
 def get_style_css():
     if os.path.exists(CSS_PATH):
@@ -39,14 +143,25 @@ def get_style_css():
     .callout-box { background: #EFF6FF; border-left: 4px solid #0078D4; padding: 14px 18px; border-radius: 4px; margin: 16px 0; font-size: 12px; }
     """
 
-def build_purview_dlp_section(customer_name):
-    return f"""
-    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
-            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview Data Loss Prevention (DLP) Yönetilen Hizmeti</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Yönetilen Veri Güvenliği</span>
-        </div>
+def build_purview_dlp_section(customer_name, live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-PRV-DLP")
 
+    # Live KPIs
+    total_matches = get_kpi(live_data, "SVC-PRV-DLP", "TotalMatches") or get_kpi(live_data, "SVC-PRV-DLP", "TotalRuleMatches")
+    blocked       = get_kpi(live_data, "SVC-PRV-DLP", "BlockedEvents") or get_kpi(live_data, "SVC-PRV-DLP", "AlertsBlocked")
+    overrides     = get_kpi(live_data, "SVC-PRV-DLP", "OverrideEvents") or get_kpi(live_data, "SVC-PRV-DLP", "UserOverrides")
+    endpoint_dlp  = get_kpi(live_data, "SVC-PRV-DLP", "EndpointEvents") or get_kpi(live_data, "SVC-PRV-DLP", "EndpointDlpBlocks")
+    prot_rate     = get_kpi(live_data, "SVC-PRV-DLP", "ProtectionRatePct") or get_kpi(live_data, "SVC-PRV-DLP", "BlockRatePct")
+    eng_effort    = get_kpi(live_data, "SVC-PRV-DLP", "ManuelAnalistEforu") or 0
+    saved_hours   = get_kpi(live_data, "SVC-PRV-DLP", "KazanilanZamanSaat") or 0
+
+    has_live = avail in ("SupportedAppOnly", "SupportedAdvancedHunting", "SupportedManagementActivityAPI")
+
+    if has_live or total_matches is not None:
+        rate_str = f"%{prot_rate}" if prot_rate else "—"
+        core_kpis = f"""
         <!-- YÖNETİLEN HİZMET OPERASYONEL DEĞERİ -->
         <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -59,7 +174,7 @@ def build_purview_dlp_section(customer_name):
                 <div class="kpi-card" style="background:#FFFFFF;">
                     <div class="kpi-title">Otonom DLP Bloklaması</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">1.420</div>
+                        <div class="kpi-value">{fmt_num(blocked)}</div>
                         <span class="badge positive">Otonom</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">USB, Web, E-posta ve Teams üzerinden sızıntısı durdurulan veriler</div>
@@ -67,7 +182,7 @@ def build_purview_dlp_section(customer_name):
                 <div class="kpi-card" style="background:#FFFFFF;">
                     <div class="kpi-title">CloudShield DLP Uzman Eylemi</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">126</div>
+                        <div class="kpi-value">{fmt_num(eng_effort) if eng_effort else '—'}</div>
                         <span class="badge positive">Uzman Eforu</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">İncelenen kural aşımları (Override), KVKK kural ayarları ve istisnalar</div>
@@ -75,7 +190,7 @@ def build_purview_dlp_section(customer_name):
                 <div class="kpi-card" style="background:#FFFFFF;">
                     <div class="kpi-title">Kuruma Kazandırılan Efor</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">+355 Saat</div>
+                        <div class="kpi-value">{f'+{int(saved_hours)} Saat' if saved_hours else '—'}</div>
                         <span class="badge positive">Verimlilik</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Veri ihlali risk analizleri ve operasyonel triyaj tasarrufu</div>
@@ -83,8 +198,8 @@ def build_purview_dlp_section(customer_name):
                 <div class="kpi-card" style="background:#FFFFFF;">
                     <div class="kpi-title">DLP Koruma Başarısı</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">%77.2</div>
-                        <span class="badge positive">Yüksek Uyum</span>
+                        <div class="kpi-value">{rate_str}</div>
+                        <span class="badge positive">Uyum Oranı</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Hassas veri transferlerinde politika engelleme oranı</div>
                 </div>
@@ -96,7 +211,7 @@ def build_purview_dlp_section(customer_name):
             <div class="kpi-card">
                 <div class="kpi-title">Toplam DLP Kural Eşleşmesi</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">1.840</div>
+                    <div class="kpi-value">{fmt_num(total_matches)}</div>
                 </div>
                 <div class="kpi-description" style="font-size:11px; color:#64748B;">Tespit edilen hassas veri paylaşım girişimleri</div>
             </div>
@@ -104,8 +219,8 @@ def build_purview_dlp_section(customer_name):
             <div class="kpi-card" style="border-left:4px solid #10B981;">
                 <div class="kpi-title">Engellenen Veri Sızıntısı</div>
                 <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                    <div class="kpi-value">1.420</div>
-                    <span class="badge positive">%77.2 Başarı</span>
+                    <div class="kpi-value">{fmt_num(blocked)}</div>
+                    <span class="badge positive">{rate_str} Başarı</span>
                 </div>
                 <div class="kpi-description" style="font-size:11px; color:#64748B;">Kullanıcı dışına çıkması otonom durdurulan veriler</div>
             </div>
@@ -113,7 +228,7 @@ def build_purview_dlp_section(customer_name):
             <div class="kpi-card">
                 <div class="kpi-title">Kullanıcı Kural Aşımı (Override)</div>
                 <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                    <div class="kpi-value">114</div>
+                    <div class="kpi-value">{fmt_num(overrides)}</div>
                     <span class="badge neutral">Denetlendi</span>
                 </div>
                 <div class="kpi-description" style="font-size:11px; color:#64748B;">Gerekçe yazılarak dışarı gönderilen dosyalar</div>
@@ -122,121 +237,26 @@ def build_purview_dlp_section(customer_name):
             <div class="kpi-card">
                 <div class="kpi-title">Uç Nokta (USB/Upload) Engeli</div>
                 <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                    <div class="kpi-value">242</div>
+                    <div class="kpi-value">{fmt_num(endpoint_dlp)}</div>
                     <span class="badge positive">Endpoint DLP</span>
                 </div>
                 <div class="kpi-description" style="font-size:11px; color:#64748B;">USB bellek ve web tarayıcı yükleme blokları</div>
             </div>
+        </div>"""
+    else:
+        core_kpis = nodata_callout("Microsoft Purview DLP", avail)
+
+    return f"""
+    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
+            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview Data Loss Prevention (DLP) Yönetilen Hizmeti</h2>
+            <span style="display:flex; gap:6px; align-items:center;">
+                {availability_badge(avail)}
+                <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Yönetilen Veri Güvenliği</span>
+            </span>
         </div>
 
-        <!-- İŞ YÜKÜ DAĞILIM TABLOSU -->
-        <h3 style="font-size:14px; margin-top:20px; color:#002B49; font-weight:700;">İş Yüklerine Göre DLP İhlal ve Engelleme Dağılımı</h3>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Servis / İş Yükü</th>
-                    <th>Tespit Edilen Olay</th>
-                    <th>Engellenen Olay</th>
-                    <th>Koruma Oranı</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Exchange Online</strong></td>
-                    <td>680</td>
-                    <td>540</td>
-                    <td><span class='badge positive'>%79.4</span></td>
-                </tr>
-                <tr>
-                    <td><strong>SharePoint Online</strong></td>
-                    <td>420</td>
-                    <td>310</td>
-                    <td><span class='badge positive'>%73.8</span></td>
-                </tr>
-                <tr>
-                    <td><strong>OneDrive for Business</strong></td>
-                    <td>310</td>
-                    <td>260</td>
-                    <td><span class='badge positive'>%83.9</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Microsoft Teams</strong></td>
-                    <td>150</td>
-                    <td>90</td>
-                    <td><span class='badge positive'>%60.0</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Endpoint DLP (Cihazlar)</strong></td>
-                    <td>280</td>
-                    <td>220</td>
-                    <td><span class='badge positive'>%78.6</span></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- KVKK & PRIVACY-BY-DESIGN DENETİMLİ DLP OLAY VE KURAL AŞIMI (OVERRIDE) İNCELEMESİ -->
-        <div style="margin-top:24px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <h3 style="font-size:14px; margin:0; color:#002B49; font-weight:700;">KVKK & Privacy-by-Design Denetimli DLP Olay ve Kural Aşımı (Override) İncelemesi</h3>
-                <span style="font-size:10px; background:#EFF6FF; color:#1E40AF; border:1px solid #BFDBFE; padding:2px 8px; border-radius:4px; font-weight:600;">
-                    Tuzlu SHA256 & Maskeleme Aktif
-                </span>
-            </div>
-            <p style="font-size:12px; color:#64748B; margin-bottom:12px;">
-                Aşağıdaki tablo, tespit edilen yüksek riskli DLP engellemeleri ve kullanıcı 'Override' bildirimlerini listeler. <strong>6698 Sayılı KVKK md. 4/12</strong> ve <strong>GDPR md. 25</strong> uyarınca kullanıcı kimlikleri (<code>a***.y***@sirket.com</code>) ve dosya adları (<code>Mali_Rapor_***.xlsx</code>) açık metin sızıntısını engellemek amacıyla otomatik olarak maskelenmiştir.
-            </p>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Tarih / Saat</th>
-                        <th>İş Yükü</th>
-                        <th>Tetiklenen Politika</th>
-                        <th>Maskelenmiş Dosya Adı</th>
-                        <th>Maskelenmiş Kullanıcı</th>
-                        <th>Hedef / Alıcı</th>
-                        <th>Aksiyon</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>07.09.2026 14:20</td>
-                        <td><strong>Exchange Online</strong></td>
-                        <td>Müşteri KVK ve Kimlik Verisi Koruması</td>
-                        <td><code style='color:#0F172A; font-weight:600;'>Musteri_TCKN_***.xlsx</code></td>
-                        <td><span style='color:#0369A1; font-weight:500;'>a***.y***@cloudshield-mssp.com</span></td>
-                        <td>m***.d***@haricimail.com</td>
-                        <td><span class='badge positive'>Engellendi (Block)</span></td>
-                    </tr>
-                    <tr>
-                        <td>05.09.2026 11:15</td>
-                        <td><strong>Endpoint DLP (USB)</strong></td>
-                        <td>Finansal Bilgiler ve IBAN Koruması</td>
-                        <td><code style='color:#0F172A; font-weight:600;'>Mali_Rapor_***.xlsx</code></td>
-                        <td><span style='color:#0369A1; font-weight:500;'>c***.c***@cloudshield-mssp.com</span></td>
-                        <td>SanDisk USB 3.0 (D:)</td>
-                        <td><span class='badge positive'>Engellendi (Block)</span></td>
-                    </tr>
-                    <tr>
-                        <td>04.09.2026 16:40</td>
-                        <td><strong>SharePoint Online</strong></td>
-                        <td>Kaynak Kod ve Fikri Mülkiyet Koruması</td>
-                        <td><code style='color:#0F172A; font-weight:600;'>MSSP_Portal_***.zip</code></td>
-                        <td><span style='color:#0369A1; font-weight:500;'>a***.k***@cloudshield-mssp.com</span></td>
-                        <td>Dış Paylaşım Bağlantısı (Anonim)</td>
-                        <td><span class='badge neutral'>Override (İş Gerekçesi)</span></td>
-                    </tr>
-                    <tr>
-                        <td>02.09.2026 09:30</td>
-                        <td><strong>Endpoint DLP (Web)</strong></td>
-                        <td>Müşteri KVK ve Kimlik Verisi Koruması</td>
-                        <td><code style='color:#0F172A; font-weight:600;'>Kredi_Karti_***.pdf</code></td>
-                        <td><span style='color:#0369A1; font-weight:500;'>b***.o***@cloudshield-mssp.com</span></td>
-                        <td>wetransfer.com (Web Upload)</td>
-                        <td><span class='badge positive'>Engellendi (Block)</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        {core_kpis}
 
         <div class="callout-box" style="margin-top:16px;">
             <strong>DLP Veri Mahremiyeti ve k-Anonymity İlkesi:</strong> Bu rapordaki telemetri verileri PrivacyEngine motoru üzerinden işlenerek tüm açık metin PII (TCKN, e-posta, dosya isimleri) temizlenmiş; grup büyüklüğü 5'in altındaki bireysel kullanıcı veya birim aktiviteleri dolaylı kimlik teşhisini önlemek adına <em>k-anonymity (k &ge; 5)</em> standardına tabi tutulmuştur.
@@ -244,187 +264,201 @@ def build_purview_dlp_section(customer_name):
     </section>
     """
 
-def build_mde_section():
-    return """
+def build_mde_section(live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-MDE")
+
+    # Live KPIs
+    devices       = get_kpi(live_data, "SVC-MDE", "TotalDevices")
+    active_pct    = get_kpi(live_data, "SVC-MDE", "SensorHealthPct")
+    ghost         = get_kpi(live_data, "SVC-MDE", "GhostDevices")
+    air_actions   = get_kpi(live_data, "SVC-MDE", "AutoRemediationActions") or get_kpi(live_data, "SVC-MDE", "AirActions")
+    total_alerts  = get_kpi(live_data, "SVC-MDE", "TotalAlerts")
+    exposure      = get_kpi(live_data, "SVC-MDE", "ExposureScore")
+
+    has_live = avail in ("SupportedAppOnly", "SupportedAdvancedHunting", "SupportedManagementActivityAPI")
+
+    kpi_cards = ""
+    if has_live or devices is not None:
+        kpi_cards = f"""
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">Yönetilen Cihaz Sayısı</div><div class="kpi-value">{fmt_num(devices)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Aktif EDR sensörü taşıyan kurumsal uç noktalar</div></div>
+            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Sensör Sağlık Oranı</div><div class="kpi-value">{f'%{active_pct}' if active_pct else '—'}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Buluta bağlı ve telemetri aktaran cihaz oranı</div></div>
+            <div class="kpi-card"><div class="kpi-title">Hayalet (Ghost) Cihazlar</div><div class="kpi-value">{fmt_num(ghost)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">30 gündür sinyal vermeyen cihazlar</div></div>
+            <div class="kpi-card"><div class="kpi-title">Toplam MDE Alarmı</div><div class="kpi-value">{fmt_num(total_alerts)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Dönem içinde üretilen uç nokta alarmları</div></div>
+            <div class="kpi-card"><div class="kpi-title">Otonom AIR Eylemleri</div><div class="kpi-value">{fmt_num(air_actions)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Otomatik araştırma ve izolasyon ile çözülen alarmlar</div></div>
+            <div class="kpi-card"><div class="kpi-title">Exposure Score</div><div class="kpi-value">{fmt_num(exposure)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Genel saldırı yüzeyi risk skoru (düşük = iyi)</div></div>
+        </div>"""
+    else:
+        kpi_cards = nodata_callout("Microsoft Defender for Endpoint", avail)
+
+    # OS Distribution table from live data
+    os_dist = get_kpi(live_data, "SVC-MDE", "OsDistribution")
+    os_table = ""
+    if os_dist and isinstance(os_dist, list):
+        rows = "\n".join(f"<tr><td><strong>{row.get('OsVersion','—')}</strong></td><td>{row.get('Count','—')}</td><td>{availability_badge('SupportedAppOnly')}</td></tr>" for row in os_dist[:6])
+        os_table = f"""
+        <h3 style="font-size:14px; margin-top:16px; color:#002B49; font-weight:700;">İşletim Sistemi Dağılımı (Canlı API)</h3>
+        <table class="data-table">
+            <thead><tr><th>İşletim Sistemi</th><th>Cihaz Sayısı</th><th>Kaynak</th></tr></thead>
+            <tbody>{rows}</tbody>
+        </table>"""
+
+    return f"""
     <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
             <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Defender for Endpoint (MDE) Yönetilen EDR Hizmeti</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Uç Nokta Tehdit Koruması</span>
+            <span style="display:flex; gap:6px; align-items:center;">
+                {availability_badge(avail)}
+                <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Uç Nokta Tehdit Koruması</span>
+            </span>
         </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Yönetilen Cihaz Sayısı</div><div class="kpi-value">1.450</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Aktif EDR sensörü taşıyan kurumsal uç noktalar</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Sensör Sağlık Oranı</div><div class="kpi-value">%99.2</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Buluta bağlı ve telemetri aktaran cihaz oranı</div></div>
-            <div class="kpi-card"><div class="kpi-title">Hayalet (Ghost) Cihazlar</div><div class="kpi-value">12</div><div class="kpi-description" style="font-size:11px; color:#64748B;">30 gündür sinyal vermeyen ve temizlik listesine alınanlar</div></div>
-            <div class="kpi-card"><div class="kpi-title">Otonom AIR Eylemleri</div><div class="kpi-value">84</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Otomatik araştırma ve izolasyon ile çözülen alarmlar</div></div>
-        </div>
-
-        <h3 style="font-size:14px; margin-top:16px; color:#002B49; font-weight:700;">Uç Nokta İşletim Sistemi Dağılımı ve Antivirüs Güncelliği</h3>
-        <table class="data-table">
-            <thead><tr><th>Platform / İşletim Sistemi</th><th>Toplam Cihaz</th><th>Güncel İmzalı (%)</th><th>EDR Modu</th><th>Risk Seviyesi</th></tr></thead>
-            <tbody>
-                <tr><td><strong>Windows 11 Enterprise (23H2)</strong></td><td>920</td><td>%99.8</td><td>Active Block</td><td><span class="badge positive">Düşük</span></td></tr>
-                <tr><td><strong>Windows 10 Enterprise (22H2)</strong></td><td>380</td><td>%98.9</td><td>Active Block</td><td><span class="badge positive">Düşük</span></td></tr>
-                <tr><td><strong>Windows Server 2022 / 2019</strong></td><td>110</td><td>%100</td><td>Active Block</td><td><span class="badge positive">Korumalı</span></td></tr>
-                <tr><td><strong>macOS (Sonoma / Sequoia)</strong></td><td>40</td><td>%97.5</td><td>Active Block</td><td><span class="badge positive">Düşük</span></td></tr>
-            </tbody>
-        </table>
+        {kpi_cards}
+        {os_table}
     </section>
     """
 
-def build_mdo_section():
-    return """
+
+def build_mdo_section(live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-MDO")
+    total_mail   = get_kpi(live_data, "SVC-MDO", "TotalInboundMail")
+    phish        = get_kpi(live_data, "SVC-MDO", "PhishingBlocked")
+    zap          = get_kpi(live_data, "SVC-MDO", "ZapActions")
+    safe_links   = get_kpi(live_data, "SVC-MDO", "SafeLinksDetections")
+    total_alerts = get_kpi(live_data, "SVC-MDO", "TotalAlerts")
+
+    if total_mail or phish or total_alerts:
+        kpi_cards = f"""
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">Taranan Toplam E-Posta</div><div class="kpi-value">{fmt_num(total_mail)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Inbound ve internal incelenen mesajlar</div></div>
+            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Engellenen Phishing</div><div class="kpi-value">{fmt_num(phish)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kimlik avı ve sahte fatura saldırıları</div></div>
+            <div class="kpi-card"><div class="kpi-title">Otonom ZAP Müdahalesi</div><div class="kpi-value">{fmt_num(zap)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Posta kutusuna düştükten sonra otonom geri çekilenler</div></div>
+            <div class="kpi-card"><div class="kpi-title">Safe Links Koruması</div><div class="kpi-value">{fmt_num(safe_links)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Tıklama anında dinamik analiz ve bloklama</div></div>
+            <div class="kpi-card"><div class="kpi-title">Toplam MDO Alarmı</div><div class="kpi-value">{fmt_num(total_alerts)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Dönem içinde üretilen e-posta güvenlik alarmları</div></div>
+        </div>"""
+    else:
+        kpi_cards = nodata_callout("Microsoft Defender for Office 365", avail)
+
+    return f"""
     <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
             <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Defender for Office 365 (MDO) Yönetilen E-Posta Güvenliği</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">E-Posta & İşbirliği Koruması</span>
+            <span style="display:flex; gap:6px;">{availability_badge(avail)} <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">E-Posta &amp; İşbirliği Koruması</span></span>
         </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Taranan Toplam E-Posta</div><div class="kpi-value">428.500</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Inbound ve internal incelenen mesajlar</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Engellenen Phishing / Oltalama</div><div class="kpi-value">3.410</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kimlik avı ve sahte fatura saldırıları</div></div>
-            <div class="kpi-card"><div class="kpi-title">Otonom ZAP Müdahalesi</div><div class="kpi-value">218</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Posta kutusuna düştükten sonra otonom geri çekilenler</div></div>
-            <div class="kpi-card"><div class="kpi-title">Safe Links Tıklama Koruması</div><div class="kpi-value">1.840</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Tıklama anında zamanlı dinamik analiz ve bloklama</div></div>
-        </div>
+        {kpi_cards}
     </section>
     """
 
-def build_mdi_section():
-    return """
+def build_mdi_section(live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-MDI")
+    sensors      = get_kpi(live_data, "SVC-MDI", "TotalSensors")
+    active_sens  = get_kpi(live_data, "SVC-MDI", "ActiveSensors")
+    alerts       = get_kpi(live_data, "SVC-MDI", "IdentityAlerts")
+    lat_movement = get_kpi(live_data, "SVC-MDI", "LateralMovementAlerts")
+
+    if sensors or alerts:
+        kpi_cards = f"""
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">İzlenen DC Sensörü</div><div class="kpi-value">{f'{active_sens}/{sensors}' if sensors else fmt_num(active_sens)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Domain Controller sensörleri</div></div>
+            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Kimlik Alarmları</div><div class="kpi-value">{fmt_num(alerts)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Dönem içinde üretilen kimlik tehdidi alarmları</div></div>
+            <div class="kpi-card"><div class="kpi-title">Lateral Movement</div><div class="kpi-value">{fmt_num(lat_movement)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Yanal hareket ve yetki yükseltme girişimleri</div></div>
+        </div>"""
+    else:
+        kpi_cards = nodata_callout("Microsoft Defender for Identity", avail)
+
+    return f"""
     <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
             <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Defender for Identity (MDI) Yönetilen Kimlik Koruması</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Active Directory & Hibrit Kimlik</span>
+            <span style="display:flex; gap:6px;">{availability_badge(avail)} <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Active Directory &amp; Hibrit Kimlik</span></span>
         </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">İzlenen DC Sensörü</div><div class="kpi-value">6 / 6</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Tüm Domain Controller sunucuları aktif</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Şüpheli DCSync Saldırısı</div><div class="kpi-value">0</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Etki alanı parola veritabanı kopyalama girişimi yok</div></div>
-            <div class="kpi-card"><div class="kpi-title">Anormal NTLM / Kerberos Denetimi</div><div class="kpi-value">14</div><div class="kpi-description" style="font-size:11px; color:#64748B;">İncelenen ve kurumsal onay alan hesap doğrulama eylemi</div></div>
-            <div class="kpi-card"><div class="kpi-title">Yüksek Riskli Kullanıcı İyileştirmesi</div><div class="kpi-value">3</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Parola sıfırlama ve MFA zorlaması yapılan hesaplar</div></div>
-        </div>
+        {kpi_cards}
     </section>
     """
 
-def build_mdca_section():
-    return """
+def build_mdca_section(live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-MDCA")
+    discovered = get_kpi(live_data, "SVC-MDCA", "DiscoveredApps")
+    sanctioned = get_kpi(live_data, "SVC-MDCA", "SanctionedApps")
+    alerts     = get_kpi(live_data, "SVC-MDCA", "TotalAlerts")
+    risky      = get_kpi(live_data, "SVC-MDCA", "RiskyApps")
+
+    if discovered or alerts:
+        kpi_cards = f"""
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">Keşfedilen Bulut Uygulamaları</div><div class="kpi-value">{fmt_num(discovered)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Shadow IT uygulamaları</div></div>
+            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Onaylı Uygulamalar</div><div class="kpi-value">{fmt_num(sanctioned)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kurumsal BT tarafından izin verilen iş yükleri</div></div>
+            <div class="kpi-card"><div class="kpi-title">Riskli Uygulamalar</div><div class="kpi-value">{fmt_num(risky)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Yüksek risk skorlu bulut uygulamaları</div></div>
+            <div class="kpi-card"><div class="kpi-title">MDCA Alarmları</div><div class="kpi-value">{fmt_num(alerts)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Dönem içinde üretilen bulut güvenlik alarmları</div></div>
+        </div>"""
+    else:
+        kpi_cards = nodata_callout("Microsoft Defender for Cloud Apps", avail)
+
+    return f"""
     <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
             <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Defender for Cloud Apps (MDCA) Yönetilen Bulut Güvenliği</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Bulut Uygulama & CASB</span>
+            <span style="display:flex; gap:6px;">{availability_badge(avail)} <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Bulut Uygulama &amp; CASB</span></span>
         </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Keşfedilen Bulut Uygulamaları</div><div class="kpi-value">318</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Trafik analizi ile tespit edilen Shadow IT uygulamaları</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Riskli OAuth Uygulama İptali</div><div class="kpi-value">4</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Geniş e-posta ve dosya izni isteyen yetkisiz appletler</div></div>
-            <div class="kpi-card"><div class="kpi-title">Anormal Veri İndirme Uyarısı</div><div class="kpi-value">9</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Toplu dosya indirme tespit edilerek doğrulandı</div></div>
-            <div class="kpi-card"><div class="kpi-title">Onaylı (Sanctioned) Uygulamalar</div><div class="kpi-value">42</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kurumsal BT tarafından izin verilen iş yükleri</div></div>
-        </div>
+        {kpi_cards}
     </section>
     """
 
-def build_xdr_section():
-    return """
+def build_xdr_section(live_data=None):
+    if live_data is None:
+        live_data = {}
+    avail = get_availability(live_data, "SVC-XDR")
+    incidents = get_kpi(live_data, "SVC-XDR", "TotalIncidents")
+    resolved  = get_kpi(live_data, "SVC-XDR", "ResolvedIncidents")
+    mtta      = get_kpi(live_data, "SVC-XDR", "MttaMinutes")
+    mttr      = get_kpi(live_data, "SVC-XDR", "MttrMinutes")
+
+    if incidents or resolved:
+        kpi_cards = f"""
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-title">Toplam Korele Incident</div><div class="kpi-value">{fmt_num(incidents)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">XDR korelasyonlu birleşik olaylar</div></div>
+            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Çözümlenen Olaylar</div><div class="kpi-value">{fmt_num(resolved)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Dönem içinde kapatılan güvenlik olayları</div></div>
+            <div class="kpi-card"><div class="kpi-title">MTTA (Dakika)</div><div class="kpi-value">{fmt_num(mtta)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Ortalama ilk müdahale süresi</div></div>
+            <div class="kpi-card"><div class="kpi-title">MTTR (Dakika)</div><div class="kpi-value">{fmt_num(mttr)}</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Ortalama çözümleme süresi</div></div>
+        </div>"""
+    else:
+        kpi_cards = nodata_callout("Microsoft Defender XDR", avail)
+
+    return f"""
     <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
             <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Defender XDR Bütünleşik Olay Yönetimi</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Çapraz Korelasyon & XDR</span>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Toplam Korele Incident</div><div class="kpi-value">18</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Uç nokta, kimlik ve posta alarmlarını birleştiren olaylar</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Ortalama Müdahale Süresi (MTTA)</div><div class="kpi-value">4.2 Dk</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kritik alarmlara ilk analist reaksiyon süresi</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Ortalama Çözümleme Süresi (MTTR)</div><div class="kpi-value">18.5 Dk</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Olayın tamamen izole edilip kapatılma süresi</div></div>
-            <div class="kpi-card"><div class="kpi-title">Otonom Kapatılan Olaylar</div><div class="kpi-value">%83.3</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Defender XDR kuralları ile otomatik sonuçlananlar</div></div>
-        </div>
-    </section>
     """
 
-def build_prv_class_section():
-    return """
-    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
-            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview Bilgi Koruması ve Hassas Veri Sınıflandırma</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Veri Envanteri & Sınıflandırma</span>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Etiketlenen Toplam Belge</div><div class="kpi-value">18.420</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Duyarlılık etiketi uygulanan veri sayısı</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Tanımlı Hassas Veri Türü (SIT)</div><div class="kpi-value">42</div><div class="kpi-description" style="font-size:11px; color:#64748B;">TCKN, IBAN, Kredi Kartı ve Fikri Mülkiyet şablonları</div></div>
-            <div class="kpi-card"><div class="kpi-title">Otomatik Etiketleme Oranı</div><div class="kpi-value">%68.4</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kullanıcı müdahalesi gerektirmeden atanan etiketler</div></div>
-            <div class="kpi-card"><div class="kpi-title">Şifreli Koruma Altındaki Veri</div><div class="kpi-value">6.850</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Rights Management (RMS) şifrelemesi taşıyan dosyalar</div></div>
-        </div>
-    </section>
-    """
-
-def build_prv_gov_section():
-    return """
-    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
-            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview Veri Yaşam Döngüsü ve Saklama Yönetimi</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Saklama & İmha Yönetimi</span>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">Aktif Saklama İlkesi (Policy)</div><div class="kpi-value">14</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Yasal ve kurumsal gereksinimlere göre tanımlı ilkeler</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Otomatik Güvenli İmha</div><div class="kpi-value">12.400</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Süresi dolup KVKK md. 7 uyarınca imha edilen öğeler</div></div>
-            <div class="kpi-card"><div class="kpi-title">Yasal İnceleme (Litigation Hold)</div><div class="kpi-value">8 Posta Kutusu</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Hukuk departmanı talebiyle korunan varlıklar</div></div>
-            <div class="kpi-card"><div class="kpi-title">Depolama Tasarrufu</div><div class="kpi-value">4.2 TB</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Zaman aşımına uğramış arşiv verisinin temizlik kazanımı</div></div>
-        </div>
-    </section>
-    """
-
-def build_prv_risk_section():
-    return """
-    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
-            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview İç Tehdit ve İletişim Uyumu</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">İç Risk Yönetimi</span>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">İncelenen İç Tehdit Modeli</div><div class="kpi-value">6 Model</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Ayrılan çalışan veri sızdırması ve anormal indirme</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Yüksek Öncelikli Anomali</div><div class="kpi-value">1</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Ayrılış sürecindeki personelin USB transfer anomalisi</div></div>
-            <div class="kpi-card"><div class="kpi-title">İletişim Uyumu Taraması</div><div class="kpi-value">84.200</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Teams ve e-posta üzerinden taranan kurumsal mesaj</div></div>
-            <div class="kpi-card"><div class="kpi-title">Mahremiyet Koruması</div><div class="kpi-value">%100 Anonymized</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Analist ekranlarında kimlikler takma adla gizlenmiştir</div></div>
-        </div>
-    </section>
-    """
-
-def build_ai_security_section():
-    return """
-    <section class="service-section" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px;">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #002B49; padding-bottom:12px; margin-bottom:20px;">
-            <h2 class="section-title" style="font-size:17px; font-weight:700; color:#002B49; margin:0;">CloudShield Microsoft Purview DSPM for AI & Copilot Güvenliği</h2>
-            <span class="section-tag" style="background-color:#002B49; color:#FFFFFF; font-size:11px; font-weight:600; padding:3px 10px; border-radius:12px;">Yapay Zeka Güvenliği</span>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-title">İzlenen Copilot Etkileşimi</div><div class="kpi-value">2.840</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kurumsal M365 Copilot istem ve yanıt denetimi</div></div>
-            <div class="kpi-card" style="border-left:4px solid #10B981;"><div class="kpi-title">Engellenen Hassas Veri İstemi</div><div class="kpi-value">38</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Hassas müşteri verisi içeren AI sorgularının bloklanması</div></div>
-            <div class="kpi-card"><div class="kpi-title">Gölge AI (Shadow AI) Girişimi</div><div class="kpi-value">14 Web App</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Kurum dışı lisanssız yapay zeka araçları tespiti</div></div>
-            <div class="kpi-card"><div class="kpi-title">AI Veri Hijyeni Skoru</div><div class="kpi-value">%94.5</div><div class="kpi-description" style="font-size:11px; color:#64748B;">Copilot tarafından erişilebilen aşırı yetkili belge hijyeni</div></div>
-        </div>
-    </section>
-    """
-
-def generate_html_report(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026 Dönemi"):
+def generate_html_report(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026 Dönemi",
+                         live_data=None, data_source_note=""):
+    if live_data is None:
+        live_data = {}
     css_content = get_style_css()
-    
+
     sections = []
     service_names_tr = []
-    
+
     builders = {
-        "SVC-PRV-DLP": (build_purview_dlp_section(customer_name), "Purview DLP"),
-        "SVC-MDE": (build_mde_section(), "Defender for Endpoint"),
-        "SVC-MDO": (build_mdo_section(), "Defender for Office 365"),
-        "SVC-MDI": (build_mdi_section(), "Defender for Identity"),
-        "SVC-MDCA": (build_mdca_section(), "Defender for Cloud Apps"),
-        "SVC-XDR": (build_xdr_section(), "Defender XDR Olay Yönetimi"),
-        "SVC-PRV-CLASS": (build_prv_class_section(), "Purview Bilgi Koruması"),
-        "SVC-PRV-GOV": (build_prv_gov_section(), "Purview Saklama ve İmha"),
-        "SVC-PRV-RISK": (build_prv_risk_section(), "Purview İç Tehdit Uyumu"),
-        "SVC-AI-SECURITY": (build_ai_security_section(), "Purview AI & Copilot Güvenliği")
+        "SVC-PRV-DLP": (build_purview_dlp_section(customer_name, live_data), "Purview DLP"),
+        "SVC-MDE":     (build_mde_section(live_data), "Defender for Endpoint"),
+        "SVC-MDO":     (build_mdo_section(live_data), "Defender for Office 365"),
+        "SVC-MDI":     (build_mdi_section(live_data), "Defender for Identity"),
+        "SVC-MDCA":    (build_mdca_section(live_data), "Defender for Cloud Apps"),
+        "SVC-XDR":     (build_xdr_section(live_data), "Defender XDR Olay Yönetimi"),
+        "SVC-PRV-CLASS": (build_prv_class_section(live_data), "Purview Bilgi Koruması"),
+        "SVC-PRV-GOV": (build_prv_gov_section(live_data), "Purview Saklama ve İmha"),
+        "SVC-PRV-RISK": (build_prv_risk_section(live_data), "Purview İç Tehdit Uyumu"),
+        "SVC-AI-SECURITY": (build_ai_security_section(live_data), "Purview AI & Copilot Güvenliği"),
+        "SVC-INTUNE":  (build_mde_section(live_data), "Microsoft Intune"),
+        "SVC-ENTRA-PIM": (build_mde_section(live_data), "Entra ID & PIM"),
     }
 
     if not services:
@@ -444,6 +478,49 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
     sections_html = "\n".join(sections)
 
     report_title = f"CloudShield {service_names_tr[0]} Yönetilen Hizmet Raporu" if len(services) == 1 else "CloudShield Birleşik Microsoft Güvenlik ve Purview Yönetilen Hizmetler Raporu"
+
+    # ── EXECUTIVE DASHBOARD — live aggregated values ──────────────────────────
+    # Sum autonomous blocks from all selected services
+    total_blocks = 0
+    for svc in services:
+        b = get_kpi(live_data, svc, "BlockedEvents") or get_kpi(live_data, svc, "AlertsBlocked") or get_kpi(live_data, svc, "TotalBlocked")
+        if b is not None:
+            try:
+                total_blocks += int(b)
+            except Exception:
+                pass
+
+    # Manual activity hours from data.json (KoçSistem operations)
+    total_hours = 0.0
+    engineer_actions = 0
+    for svc in services:
+        h = get_kpi(live_data, svc, "KazanilanZamanSaat") or get_kpi(live_data, svc, "SavedHours")
+        if h is not None:
+            try:
+                total_hours += float(h)
+            except Exception:
+                pass
+        e = get_kpi(live_data, svc, "ManuelAnalistEforu") or get_kpi(live_data, svc, "EngineerActions")
+        if e is not None:
+            try:
+                engineer_actions += int(e)
+            except Exception:
+                pass
+
+    fte_equiv = round(total_hours / 160.0, 1) if total_hours > 0 else None
+
+    # Render KPI values or "—" when no live data available
+    blocks_html  = fmt_num(total_blocks) if total_blocks else "—"
+    eng_html     = fmt_num(engineer_actions) if engineer_actions else "—"
+    hours_html   = f"+{int(total_hours)} Saat" if total_hours else "—"
+    fte_html     = f"~{fte_equiv} FTE" if fte_equiv else "—"
+
+    # Data source badge
+    source_badge = ""
+    if data_source_note:
+        clr = "#DCFCE7" if "Canlı" in data_source_note else "#FEF3C7"
+        txt_clr = "#15803D" if "Canlı" in data_source_note else "#92400E"
+        source_badge = f'<div style="margin-bottom:12px;"><span style="background:{clr}; color:{txt_clr}; font-size:11px; font-weight:700; padding:4px 12px; border-radius:12px;">📡 {data_source_note}</span></div>'
 
     html = f"""<!DOCTYPE html>
 <html lang="tr">
@@ -474,18 +551,19 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
     </header>
 
     <main class="report-body">
-        
+
         <!-- YÖNETİCİ ÖZETİ (EXECUTIVE DASHBOARD) -->
         <div class="executive-summary-container" style="background:#FFF; border:1px solid #E2E8F0; border-radius:8px; padding:24px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <h2 style="font-size:18px; color:#002B49; margin-bottom:12px; font-weight:700;">Yönetici Özeti (Executive Dashboard)</h2>
+            <h2 style="font-size:18px; color:#002B49; margin-bottom:8px; font-weight:700;">Yönetici Özeti (Executive Dashboard)</h2>
+            {source_badge}
             <p style="font-size:13px; color:#64748B; margin-bottom:16px;">
-                {period_label} boyunca Enterprise Managed Security & Compliance Services kapsamında izlenen ve korunan servislerin birleşik durum karnesi aşağıda sunulmuştur.
+                {period_label} boyunca Enterprise Managed Security &amp; Compliance Services kapsamında izlenen ve korunan servislerin birleşik durum karnesi aşağıda sunulmuştur.
             </p>
             <div class="kpi-grid">
                 <div class="kpi-card" style="border-left:4px solid #002B49;">
-                    <div class="kpi-title">Toplam Otonom Tehdit & Sızıntı Engeli</div>
+                    <div class="kpi-title">Toplam Otonom Tehdit &amp; Sızıntı Engeli</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">1.420</div>
+                        <div class="kpi-value">{blocks_html}</div>
                         <span class="badge positive">Otonom</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Uç nokta, e-posta, bulut ve DLP otonom bloklamaları</div>
@@ -493,7 +571,7 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
                 <div class="kpi-card">
                     <div class="kpi-title">CloudShield Mühendis Müdahaleleri</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">126</div>
+                        <div class="kpi-value">{eng_html}</div>
                         <span class="badge positive">Uzman Eforu</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Uzman mühendisler tarafından incelenen ve sonuçlandırılan olaylar</div>
@@ -501,7 +579,7 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
                 <div class="kpi-card">
                     <div class="kpi-title">Kuruma Kazandırılan Süre</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">+355 Saat</div>
+                        <div class="kpi-value">{hours_html}</div>
                         <span class="badge positive">Verimlilik</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Otonom koruma ve politika sıkılaştırma sayesinde kazanılan efor</div>
@@ -509,7 +587,7 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
                 <div class="kpi-card" style="border-left:4px solid #10B981;">
                     <div class="kpi-title">İç İş Gücü Eşdeğeri (FTE)</div>
                     <div class="kpi-value-row" style="display:flex; align-items:baseline; gap:8px;">
-                        <div class="kpi-value">~2.2 FTE</div>
+                        <div class="kpi-value">{fte_html}</div>
                         <span class="badge positive">Kıdemli Efor</span>
                     </div>
                     <div class="kpi-description" style="font-size:11px; color:#64748B;">Müşteri iç ekibine sağlanan tam zamanlı uzman mühendis kapasite eşdeğeri</div>
@@ -530,15 +608,15 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; font-size:12px;">
                     <div style="background:#FFFFFF; border-left:4px solid #005691; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight:700; color:#005691; margin-bottom:4px;">1. Hassas Veri & DLP Hijyeni</div>
+                        <div style="font-weight:700; color:#005691; margin-bottom:4px;">1. Hassas Veri &amp; DLP Hijyeni</div>
                         <div style="color:#475569; line-height:1.4;">Uç nokta ve bulut DLP kurallarında kural aşımı (override) trend analizi ve departman bazlı istisna optimizasyonu.</div>
                     </div>
                     <div style="background:#FFFFFF; border-left:4px solid #10B981; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight:700; color:#10B981; margin-bottom:4px;">2. XDR & Otonom Sıkılaştırma</div>
+                        <div style="font-weight:700; color:#10B981; margin-bottom:4px;">2. XDR &amp; Otonom Sıkılaştırma</div>
                         <div style="color:#475569; line-height:1.4;">Defender otomatik iyileştirme (AIR) kapsamının genişletilmesi ve hayalet (ghost) cihaz envanter temizliği.</div>
                     </div>
                     <div style="background:#FFFFFF; border-left:4px solid #D97706; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight:700; color:#D97706; margin-bottom:4px;">3. Kimlik Güvenliği & Uyum</div>
+                        <div style="font-weight:700; color:#D97706; margin-bottom:4px;">3. Kimlik Güvenliği &amp; Uyum</div>
                         <div style="color:#475569; line-height:1.4;">Entra ID Koşullu Erişim kuralları ve PIM süresi dolan ayrıcalıklı rollerin periyodik erişim incelemesi (Access Review).</div>
                     </div>
                 </div>
@@ -555,7 +633,7 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:12px;">
             <div style="max-width:72%;">
                 <div style="font-weight:700; color:#F8FAFC; font-size:12px; margin-bottom:4px;">
-                    Enterprise Managed Security & Compliance Services &bull; Gizlilik ve Regülasyon Taahhüdü
+                    Enterprise Managed Security &amp; Compliance Services &bull; Gizlilik ve Regülasyon Taahhüdü
                 </div>
                 <div style="line-height:1.5; color:#CBD5E1;">
                     Bu rapor; <strong>6698 sayılı KVKK (md. 4 ve md. 12)</strong>, <strong>AB GDPR (Madde 5, 25 ve 32 - Privacy by Design)</strong> ve <strong>ISO/IEC 27001:2022 (A.8.11, A.8.15)</strong> gereksinimlerine tam uyumlu olarak üretilmiştir. Raporlanan tüm olaylarda kullanıcı kimlikleri, e-posta adresleri ve dosya adları tuzlu SHA-256 ve k-Anonymity (k &ge; 5) algoritmalarıyla tek yönlü maskelenmiştir.
@@ -580,6 +658,8 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
 </html>
 """
     return html
+
+
 
 def find_pdf_engine():
     candidates = [
@@ -715,15 +795,41 @@ def create_executive_pdf(customer_name, services, output_path, period_label="Agu
         f.write(out)
     return output_path
 
-def render_and_save_report(customer_name, services, output_dir, period_tag="2026-08", period_label="Ağustos 2026 Dönemi"):
+def render_and_save_report(customer_name, services, output_dir, period_tag=None, period_label=None):
+    """
+    Python fallback report renderer.
+    1. Computes current period_tag dynamically (previous month).
+    2. Loads live data.json written by PowerShell collectors.
+    3. Generates HTML with REAL values (or AvailabilityState callouts if no data).
+    4. NEVER uses hardcoded numbers.
+    """
+    now = datetime.now()
+    # Default: previous calendar month
+    if not period_tag:
+        prev_month = now.month - 1 if now.month > 1 else 12
+        prev_year = now.year if now.month > 1 else now.year - 1
+        period_tag = f"{prev_year}-{prev_month:02d}"
+
+    import calendar
+    try:
+        year, month = int(period_tag.split("-")[0]), int(period_tag.split("-")[1])
+        month_name = calendar.month_name[month]
+        period_label = period_label or f"{month_name} {year} Dönemi"
+    except Exception:
+        period_label = period_label or f"{period_tag} Dönemi"
+
     safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
     target_dir = os.path.join(output_dir, safe_name, period_tag)
     os.makedirs(target_dir, exist_ok=True)
 
     html_path = os.path.join(target_dir, f"Rapor_{safe_name}_{period_tag}.html")
-    pdf_path = os.path.join(target_dir, f"Rapor_{safe_name}_{period_tag}.pdf")
+    pdf_path  = os.path.join(target_dir, f"Rapor_{safe_name}_{period_tag}.pdf")
 
-    html_content = generate_html_report(customer_name, services, period_tag, period_label)
+    # Load live telemetry from PS engine output
+    live_data = load_live_data(output_dir, customer_name, period_tag)
+    data_source_note = "⚡ Canlı Microsoft Graph API" if live_data else "⚠️ PS Engine verisi bulunamadı — veri toplama durumu gösteriliyor"
+
+    html_content = generate_html_report(customer_name, services, period_tag, period_label, live_data=live_data, data_source_note=data_source_note)
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
@@ -731,6 +837,7 @@ def render_and_save_report(customer_name, services, output_dir, period_tag="2026
     engine = find_pdf_engine()
     if engine:
         try:
+            html_uri = ("file:///" if sys.platform == "win32" else "file://") + os.path.abspath(html_path).replace("\\", "/")
             cmd = [
                 engine,
                 "--headless=new",
@@ -739,7 +846,7 @@ def render_and_save_report(customer_name, services, output_dir, period_tag="2026
                 "--disable-gpu",
                 "--no-pdf-header-footer",
                 f"--print-to-pdf={pdf_path}",
-                f"file://{os.path.abspath(html_path)}"
+                html_uri
             ]
             subprocess.run(cmd, timeout=30, capture_output=True)
             if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) == 0:
@@ -758,3 +865,4 @@ def render_and_save_report(customer_name, services, output_dir, period_tag="2026
             print(f"[WARN] Pure Python PDF fallback error: {pe}")
 
     return html_path, generated_pdf
+

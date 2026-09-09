@@ -146,6 +146,60 @@ Save-KpiSnapshot -CustomerName $customer -PeriodTag $periodTag -KpiMap $kpiMap
 $outDir = Join-Path $root "Output\$($customer -replace '[^A-Za-z0-9_-]', '_')\$periodTag"
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir -Force | Out-Null }
 
+# 8b. Live Data JSON — Python fallback renderer reads this to display REAL values
+# Compose a data.json with per-service KPIs + availability state
+$liveDataForJson = @{}
+foreach ($svcCode in $activeServices) {
+    $rawData   = if ($rawDataMap -and $rawDataMap.Contains($svcCode)) { $rawDataMap[$svcCode] } else { $null }
+    $kpiData   = if ($kpiMap -and $kpiMap.Contains($svcCode)) { $kpiMap[$svcCode] } else { $null }
+    $avail     = if ($rawData -and $rawData.PSObject.Properties['AvailabilityState']) { $rawData.AvailabilityState }
+                 elseif ($rawData -and $rawData.PSObject.Properties['IsMock'] -and $rawData.IsMock) { 'DryRunMock' }
+                 elseif ($rawData) { 'SupportedAppOnly' }
+                 else { 'CollectionFailed' }
+
+    # Flatten KPI data into a simple dict for Python
+    $kpiFlat = @{}
+    if ($kpiData) {
+        foreach ($prop in ($kpiData.PSObject.Properties + $kpiData.Keys)) {
+            try {
+                $pName = if ($prop -is [string]) { $prop } else { $prop.Name }
+                $pVal  = if ($prop -is [string]) { $kpiData[$prop] } else { $prop.Value }
+                if ($pVal -ne $null -and ($pVal -is [int] -or $pVal -is [double] -or $pVal -is [string] -or $pVal -is [bool])) {
+                    $kpiFlat[$pName] = $pVal
+                }
+            } catch {}
+        }
+    }
+    # Also include raw data top-level scalars (e.g. TotalMatches, BlockedEvents)
+    if ($rawData) {
+        foreach ($prop in $rawData.PSObject.Properties) {
+            try {
+                if ($prop.Value -ne $null -and ($prop.Value -is [int] -or $prop.Value -is [double] -or $prop.Value -is [string]) -and -not $kpiFlat.ContainsKey($prop.Name)) {
+                    $kpiFlat[$prop.Name] = $prop.Value
+                }
+            } catch {}
+        }
+    }
+
+    $liveDataForJson[$svcCode] = @{
+        availabilityState = $avail
+        collectedAtUtc    = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        periodStart       = $StartDate.ToString('yyyy-MM-ddTHH:mm:ssZ')
+        periodEnd         = $EndDate.ToString('yyyy-MM-ddTHH:mm:ssZ')
+        kpis              = $kpiFlat
+    }
+}
+
+try {
+    $dataJsonPath = Join-Path $outDir 'data.json'
+    $liveDataForJson | ConvertTo-Json -Depth 8 -Compress:$false | Set-Content -Path $dataJsonPath -Encoding UTF8
+    Write-PlatformLog -Level 'OK' -Message "Canlı veri JSON kaydedildi (Python renderer için): $dataJsonPath" -Component 'Orchestrator'
+} catch {
+    Write-PlatformLog -Level 'WARN' -Message "data.json yazılamadı: $($_.Exception.Message)" -Component 'Orchestrator'
+}
+
+
+
 # 9. CSV Dışa Aktarımı (İsteğe Bağlı)
 if ($ExportCsv) {
     $csvPath = Join-Path $outDir "KPI_${customer}_${periodTag}.csv"

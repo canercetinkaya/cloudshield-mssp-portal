@@ -19,16 +19,14 @@ $ErrorActionPreference = "SilentlyContinue"
 $portalDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $baseDir   = Split-Path -Parent $portalDir    # ..\Microsoft Purview Reports
 
-# Ana repo + Projede tanımlı tüm yan klasörler
-$candidatePaths = @(
-    $portalDir,
-    (Join-Path $baseDir "KocSistemSecurityReporting"),
-    (Join-Path $baseDir "PurviewManagedReporting"),
-    (Join-Path $baseDir "DefenderforEndpointManagedReporting"),
-    (Join-Path $baseDir "Microsoft Purview Project"),
-    (Join-Path $baseDir "Documentation"),
-    (Join-Path $baseDir "Microsoft Purview Reports")
-) + $ExtraWatchPaths
+# Ana repo + Eğer varsa yan klasörler
+$candidatePaths = @($portalDir) + $ExtraWatchPaths
+if (Test-Path $baseDir -PathType Container) {
+    Get-ChildItem -Path $baseDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        $candidatePaths += $_.FullName
+    }
+}
+
 
 Set-Location $portalDir
 

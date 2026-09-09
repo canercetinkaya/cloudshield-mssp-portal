@@ -62,8 +62,16 @@ def load_json_file(path, default=None):
 
 def save_json_file(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    to_save = data
+    if os.path.basename(path) == "tenants.json" and isinstance(data, list):
+        import copy
+        to_save = copy.deepcopy(data)
+        for t in to_save:
+            if isinstance(t, dict) and "Auth" in t and isinstance(t["Auth"], dict):
+                t["Auth"]["ClientSecret"] = ""
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        json.dump(to_save, f, indent=2, ensure_ascii=False)
+
 
 class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
     def end_headers(self):
@@ -572,9 +580,20 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             latest_html_path = None
             proc_log = ""
 
+            # Build PS environment: pass client secret via env var (never via args/config file)
+            ps_env = dict(os.environ)
+            if client_secret:
+                ps_env["MSSP_CLIENT_SECRET"] = client_secret
+            # Also pass tenant and client id for convenience
+            if target_tenant.get("TenantId"):
+                ps_env["MSSP_TENANT_ID"] = target_tenant.get("TenantId")
+            if client_id:
+                ps_env["MSSP_CLIENT_ID"] = client_id
+
             try:
                 try:
-                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=90)
+                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=180, env=ps_env)
+
                     proc_log = (proc.stdout or "") + (proc.stderr or "")
 
                     # Dynamically locate the newest generated PDF and HTML reports specifically for this customer
