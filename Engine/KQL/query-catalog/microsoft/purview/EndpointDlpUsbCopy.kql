@@ -1,0 +1,6 @@
+// Endpoint DLP USB Copy Prevention
+DeviceEvents
+| where Timestamp >= ago(30d)
+| where ActionType in~ ("DlpFileCopiedToRemovableMedia", "DlpFileCopiedToRemovableMediaBlocked")
+| project Timestamp, DeviceName, ActionType, FileName, FolderPath, InitiatingProcessAccountName
+| top 50 by Timestamp desc

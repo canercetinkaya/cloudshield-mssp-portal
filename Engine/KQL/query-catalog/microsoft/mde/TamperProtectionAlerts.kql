@@ -1,0 +1,6 @@
+// Tamper Protection & Security Service Degradation
+DeviceEvents
+| where Timestamp >= ago(30d)
+| where ActionType in~ ("TamperingAttempt", "AntivirusTroubleshootModeEvent", "SecurityLogCleared")
+| project Timestamp, DeviceName, ActionType, InitiatingProcessAccountName, InitiatingProcessCommandLine
+| top 50 by Timestamp desc

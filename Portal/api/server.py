@@ -395,6 +395,55 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.send_json_response(history)
             return
 
+        elif path == "/api/kql/catalog":
+            kql_index_file = os.path.join(ROOT_DIR, "Engine", "KQL", "query-metadata", "catalog-index.json")
+            catalog = load_json_file(kql_index_file, [])
+            # Read query contents for each item
+            svc_filter = query.get("service", [""])[0].upper()
+            pkg_filter = query.get("package", [""])[0]
+
+            filtered = []
+            for item in catalog:
+                if svc_filter and item.get("service") != svc_filter:
+                    continue
+                if pkg_filter and item.get("package") != pkg_filter:
+                    continue
+                # Attach KQL query text
+                q_rel = item.get("queryFile", "")
+                if q_rel:
+                    q_full = os.path.join(ROOT_DIR, q_rel.replace("/", os.sep))
+                    if os.path.exists(q_full):
+                        try:
+                            with open(q_full, "r", encoding="utf-8") as qf:
+                                item["kqlContent"] = qf.read()
+                        except Exception:
+                            item["kqlContent"] = ""
+                filtered.append(item)
+
+            self.send_json_response({
+                "success": True,
+                "total": len(filtered),
+                "queries": filtered
+            })
+            return
+
+        elif path == "/api/kql/packages":
+            pkg_base = os.path.join(ROOT_DIR, "Engine", "KQL", "query-packages")
+            packages = []
+            if os.path.exists(pkg_base):
+                for p_dir in os.listdir(pkg_base):
+                    p_path = os.path.join(pkg_base, p_dir, "package.json")
+                    if os.path.exists(p_path):
+                        pkg_data = load_json_file(p_path, None)
+                        if pkg_data:
+                            packages.append(pkg_data)
+            self.send_json_response({
+                "success": True,
+                "total": len(packages),
+                "packages": packages
+            })
+            return
+
         elif path == "/api/reports/download":
             file_param = query.get("file", [""])[0]
             if not file_param or ".." in file_param:

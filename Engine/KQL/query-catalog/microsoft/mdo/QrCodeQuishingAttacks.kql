@@ -1,0 +1,11 @@
+// QR Code / Suspicious Image Phishing
+EmailAttachmentInfo
+| where Timestamp >= ago(30d)
+| where FileType in~ ("png", "jpg", "jpeg", "svg") and FileName matches regex "(?i)(qr|fatura|dekont|hesap|guvenlik|onay)"
+| join kind=inner (
+    EmailEvents
+    | where Timestamp >= ago(30d)
+    | where DeliveryAction == "Delivered"
+) on NetworkMessageId
+| project Timestamp, SenderFromAddress, RecipientEmailAddress, Subject, FileName
+| top 50 by Timestamp desc

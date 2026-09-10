@@ -1,0 +1,9 @@
+{
+  "packageName": "Ransomware",
+  "description": "CloudShield MSSP Ransomware Operasyonel Tehdit Avlama ve Uyum Paketi",
+  "queryCount": 1,
+  "queries": [
+    "MS-MDE-001"
+  ],
+  "updatedAt": "2026-09-10"
+}

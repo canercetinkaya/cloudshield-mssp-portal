@@ -1,0 +1,527 @@
+[
+  {
+    "id": "MS-MDE-001",
+    "title": "Ransomware - Toplu Dosya Yeniden Adlandirma ve VSS Silme",
+    "description": "Kisa surede yuksek sayida dosya uzantisi degistiren veya vssadmin/bcdedit cagiran fidye yazilimi davranislari.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft 365 Defender Team",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "Ransomware",
+    "mitre": {
+      "tactics": [
+        "Impact",
+        "Defense Evasion"
+      ],
+      "techniques": [
+        "T1486",
+        "T1490"
+      ]
+    },
+    "targetTables": [
+      "DeviceFileEvents",
+      "DeviceProcessEvents"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 1,
+    "raci": "SecOps & Sistem Yonetimi",
+    "runbook": "RB-MDE-RANSOM-VSS",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mde/RansomwareRapidRename.kql"
+  },
+  {
+    "id": "MS-MDE-002",
+    "title": "LSASS Bellek Okuma ve Mimikatz Arac Tespiti",
+    "description": "LSASS surec bellegine yetkisiz PROCESS_VM_READ acma veya bilinen arac cagrilari.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft Threat Intelligence",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "IdentitySecurity",
+    "mitre": {
+      "tactics": [
+        "Credential Access"
+      ],
+      "techniques": [
+        "T1003.001"
+      ]
+    },
+    "targetTables": [
+      "DeviceProcessEvents",
+      "DeviceEvents"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 2,
+    "raci": "SecOps Ekibi",
+    "runbook": "RB-MDE-LSASS-DUMP",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mde/LsassMemoryDumpMimikatz.kql"
+  },
+  {
+    "id": "MS-MDE-003",
+    "title": "Attack Surface Reduction (ASR) Kural Engellemeleri",
+    "description": "Office veya scriptlerden executable/kod calistirilmasini engelleyen ASR kural telemetrisi.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft Endpoint Security",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Execution",
+        "Initial Access"
+      ],
+      "techniques": [
+        "T1059",
+        "T1204"
+      ]
+    },
+    "targetTables": [
+      "DeviceEvents"
+    ],
+    "severity": "Medium",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 12,
+    "raci": "Ucnokta Yonetim Ekibi",
+    "runbook": "RB-MDE-ASR-TUNING",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mde/AsrRuleBlocks.kql"
+  },
+  {
+    "id": "MS-MDE-004",
+    "title": "Tamper Protection Kapali veya Supheli Mudahale Olaylari",
+    "description": "Defender bilesenlerini devre disi birakma, guvenlik logunu temizleme veya sorun giderme moduna alma girisimleri.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "CloudShield Security Architecture",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Defense Evasion"
+      ],
+      "techniques": [
+        "T1562.001"
+      ]
+    },
+    "targetTables": [
+      "DeviceEvents",
+      "DeviceInfo"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 1,
+    "raci": "Windows Altyapi Ekibi",
+    "runbook": "RB-MDE-TAMPER-PROTECTION",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mde/TamperProtectionAlerts.kql"
+  },
+  {
+    "id": "MS-MDO-001",
+    "title": "ZAP (Zero-Hour Auto Purge) Sonrasi Silinen Zararli E-Postalar",
+    "description": "Teslimat sonrasinda Microsoft tarafindan zararli/phish olarak etiketlenip kutudan otonom geri cekilen iletiler.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft MDO Threat Research",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDO",
+    "package": "EmailSecurity",
+    "mitre": {
+      "tactics": [
+        "Initial Access"
+      ],
+      "techniques": [
+        "T1566.001",
+        "T1566.002"
+      ]
+    },
+    "targetTables": [
+      "EmailEvents",
+      "EmailPostDeliveryEvents"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 4,
+    "raci": "E-Posta Yonetim Ekibi",
+    "runbook": "RB-MDO-ZAP-TRIAGE",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mdo/ZapPostDeliveryPurge.kql"
+  },
+  {
+    "id": "MS-MDO-002",
+    "title": "QR Kod (Quishing) ve Supheli Goruntu Ekli Oltalamalar",
+    "description": "Metin yerine resim/QR kod ekleyerek e-posta filtrelerini asmaya calisan kimlik avi postalar.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft MDO Research",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDO",
+    "package": "EmailSecurity",
+    "mitre": {
+      "tactics": [
+        "Initial Access"
+      ],
+      "techniques": [
+        "T1566.002"
+      ]
+    },
+    "targetTables": [
+      "EmailAttachmentInfo",
+      "EmailEvents"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 4,
+    "raci": "E-Posta Ekibi & SecOps",
+    "runbook": "RB-MDO-QUISHING-HUNT",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mdo/QrCodeQuishingAttacks.kql"
+  },
+  {
+    "id": "MS-MDI-001",
+    "title": "DCSync Replikasyon ve Kerberoasting Kimlik Saldirilari",
+    "description": "Active Directory uzerinde domain controller olmayan kaynaktan yapilan parola ozet replikasyon denemeleri.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft Identity Research",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDI",
+    "package": "IdentitySecurity",
+    "mitre": {
+      "tactics": [
+        "Credential Access"
+      ],
+      "techniques": [
+        "T1003.006",
+        "T1558.003"
+      ]
+    },
+    "targetTables": [
+      "IdentityDirectoryEvents"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 1,
+    "raci": "Active Directory Ekibi & SecOps",
+    "runbook": "RB-MDI-DCSYNC-CONTAINMENT",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mdi/DcSyncKerberoasting.kql"
+  },
+  {
+    "id": "MS-MDCA-001",
+    "title": "Shadow IT ve Onaysiz Bulut Alanlarina Kitlesel Yukleme",
+    "description": "Kurumsal izin verilmeyen bulut depolama sitelerine (Mega, WeTransfer, Drive) yuksek hacimli dosya gonderimleri.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft Cloud Apps Team",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDCA",
+    "package": "Purview",
+    "mitre": {
+      "tactics": [
+        "Exfiltration"
+      ],
+      "techniques": [
+        "T1567.002"
+      ]
+    },
+    "targetTables": [
+      "CloudAppEvents",
+      "DeviceEvents"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 6,
+    "raci": "Bulut Guvenlik Ekibi",
+    "runbook": "RB-MDCA-SHADOW-IT",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/mdca/ShadowItMassiveUpload.kql"
+  },
+  {
+    "id": "MS-ENTRA-001",
+    "title": "Riskli Oturumlar, Imkansiz Seyahat ve Legacy Auth",
+    "description": "Ayni hesaptan kisa surede farkli ulkelerden oturum acilmasi veya POP3/IMAP gibi eski protokol kullanimi.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Entra ID Identity Protection",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "ENTRA",
+    "package": "IdentitySecurity",
+    "mitre": {
+      "tactics": [
+        "Initial Access",
+        "Credential Access"
+      ],
+      "techniques": [
+        "T1078.004",
+        "T1110"
+      ]
+    },
+    "targetTables": [
+      "AADSignInEventsBeta"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 4,
+    "raci": "Kimlik & Erisim Ekibi",
+    "runbook": "RB-ENTRA-IMPOSSIBLE-TRAVEL",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/entra/RiskySigninsImpossibleTravel.kql"
+  },
+  {
+    "id": "MS-INTUNE-001",
+    "title": "Intune Uyumsuz Cihazlar ve BitLocker Sifreleme Eksigi",
+    "description": "Sirket guvenlik profiline uymayan veya disk sifrelemesi kapali kalan ucnokta cihazlari.",
+    "source": {
+      "origin": "ugurkocde/KQL_Intune",
+      "author": "Ugur Koc / Community Contributor",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "INTUNE",
+    "package": "Intune",
+    "mitre": {
+      "tactics": [
+        "Defense Evasion"
+      ],
+      "techniques": [
+        "T1562.001"
+      ]
+    },
+    "targetTables": [
+      "DeviceInfo",
+      "DeviceEvents"
+    ],
+    "severity": "Medium",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 24,
+    "raci": "Ucnokta Yonetim Ekibi (Intune)",
+    "runbook": "RB-INTUNE-COMPLIANCE-FIX",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/intune/IntuneNonCompliantBitLocker.kql"
+  },
+  {
+    "id": "MS-PURVIEW-001",
+    "title": "Endpoint DLP - USB Harici Bellek Hassas Veri Kopyalama",
+    "description": "TCKN, Kredi Karti veya Mali Tablo iceren dokumanlarin USB harici disklere aktarim denemeleri.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft Purview Engineering",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "PURVIEW",
+    "package": "Purview",
+    "mitre": {
+      "tactics": [
+        "Exfiltration"
+      ],
+      "techniques": [
+        "T1052.001"
+      ]
+    },
+    "targetTables": [
+      "DeviceEvents"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 2,
+    "raci": "Veri Guvenligi Ekibi (Purview)",
+    "runbook": "RB-PURVIEW-USB-EXFILTRATION",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/purview/EndpointDlpUsbCopy.kql"
+  },
+  {
+    "id": "MS-XDR-001",
+    "title": "Cok Asamali Capraz Servis Incident Korelasyonu",
+    "description": "Kimlik, E-Posta ve Ucnokta alarmlarinin birlestigi coklu etki alani guvenlik olaylari.",
+    "source": {
+      "origin": "microsoft/Microsoft-365-Defender-Hunting-Queries",
+      "author": "Microsoft XDR Fusion Team",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "XDR",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Initial Access",
+        "Execution",
+        "Lateral Movement"
+      ],
+      "techniques": [
+        "T1566",
+        "T1059",
+        "T1021"
+      ]
+    },
+    "targetTables": [
+      "AlertInfo",
+      "AlertEvidence"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 1,
+    "raci": "Tier-2/3 XDR Muhendislik Ekibi",
+    "runbook": "RB-XDR-MULTI-STAGE-CONTAINMENT",
+    "queryFile": "Engine/KQL/query-catalog/microsoft/defender-xdr/CrossDomainIncidentCorrelation.kql"
+  },
+  {
+    "id": "COMM-BJ-001",
+    "title": "PowerShell Obfuscation ve encodedCommand Analizi",
+    "description": "Saldirganlarin tespit engellemek amaciyla base64 veya ters cevrilmis komut calistirma davranislari.",
+    "source": {
+      "origin": "Bert-JanP/Hunting-Queries-Detection-Rules",
+      "author": "Bert-JanP",
+      "license": "MIT",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Execution",
+        "Defense Evasion"
+      ],
+      "techniques": [
+        "T1059.001",
+        "T1027"
+      ]
+    },
+    "targetTables": [
+      "DeviceProcessEvents"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 3,
+    "raci": "SecOps Analist Ekibi",
+    "runbook": "RB-MDE-ENCODED-POWERSHELL",
+    "queryFile": "Engine/KQL/query-catalog/community/bertjanp/PowerShellObfuscationEncoded.kql"
+  },
+  {
+    "id": "COMM-BJ-002",
+    "title": "Gorev Zamanlayici (Scheduled Task) ile Kalicilik Saglama",
+    "description": "Kullanici oturumundan bagimsiz calismak uzere olusturulan supheli Schtasks kayitlari.",
+    "source": {
+      "origin": "Bert-JanP/Hunting-Queries-Detection-Rules",
+      "author": "Bert-JanP",
+      "license": "MIT",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Persistence"
+      ],
+      "techniques": [
+        "T1053.005"
+      ]
+    },
+    "targetTables": [
+      "DeviceProcessEvents"
+    ],
+    "severity": "Medium",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 6,
+    "raci": "Sistem Yonetimi",
+    "runbook": "RB-MDE-PERSISTENCE-SCHTASK",
+    "queryFile": "Engine/KQL/query-catalog/community/bertjanp/ScheduledTaskPersistence.kql"
+  },
+  {
+    "id": "COMM-FF-001",
+    "title": "DLL Search Order Hijacking ve Yan Yukleme (Sideloading)",
+    "description": "Guvenilir Microsoft ikililerinin sahte dizinlerden malicious DLL yuklemesine yonelik avlama.",
+    "source": {
+      "origin": "FalconFriday / FalconForce",
+      "author": "FalconForce Security",
+      "license": "Apache-2.0",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Persistence",
+        "Defense Evasion",
+        "Privilege Escalation"
+      ],
+      "techniques": [
+        "T1574.002"
+      ]
+    },
+    "targetTables": [
+      "DeviceImageLoadEvents"
+    ],
+    "severity": "High",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 4,
+    "raci": "Tehdit Avciligi (Threat Hunting) Ekibi",
+    "runbook": "RB-MDE-DLL-SIDELOADING",
+    "queryFile": "Engine/KQL/query-catalog/community/falconfriday/DllSideLoadingHijack.kql"
+  },
+  {
+    "id": "COMM-SKQL-001",
+    "title": "Anormal Surec Bellek Enjeksiyonu (Process Injection)",
+    "description": "Mesru Windows servislerine kod enjekte edilerek iz gizleme denemeleri.",
+    "source": {
+      "origin": "Sentinel_KQL / ep3p",
+      "author": "ep3p",
+      "license": "MIT",
+      "updatedAt": "2026-09-10"
+    },
+    "service": "MDE",
+    "package": "MITRE",
+    "mitre": {
+      "tactics": [
+        "Defense Evasion",
+        "Privilege Escalation"
+      ],
+      "techniques": [
+        "T1055"
+      ]
+    },
+    "targetTables": [
+      "DeviceEvents"
+    ],
+    "severity": "Critical",
+    "requiredPermissions": [
+      "ThreatHunting.Read.All"
+    ],
+    "slaResponseHours": 2,
+    "raci": "SecOps & Adli Bilisim Ekibi",
+    "runbook": "RB-MDE-PROCESS-INJECTION",
+    "queryFile": "Engine/KQL/query-catalog/community/sentinelkql/ProcessInjectionHollow.kql"
+  }
+]

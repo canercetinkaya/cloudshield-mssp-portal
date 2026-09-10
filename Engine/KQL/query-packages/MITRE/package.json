@@ -1,0 +1,15 @@
+{
+  "packageName": "MITRE",
+  "description": "CloudShield MSSP MITRE Operasyonel Tehdit Avlama ve Uyum Paketi",
+  "queryCount": 7,
+  "queries": [
+    "MS-MDE-003",
+    "MS-MDE-004",
+    "MS-XDR-001",
+    "COMM-BJ-001",
+    "COMM-BJ-002",
+    "COMM-FF-001",
+    "COMM-SKQL-001"
+  ],
+  "updatedAt": "2026-09-10"
+}

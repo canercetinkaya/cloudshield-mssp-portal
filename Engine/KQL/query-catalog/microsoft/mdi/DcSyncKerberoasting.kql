@@ -1,0 +1,6 @@
+// DCSync & Kerberoasting Directory Anomalies
+IdentityDirectoryEvents
+| where Timestamp >= ago(30d)
+| where ActionType in~ ("DCSync", "Kerberoasting", "MassRecon", "SensitiveGroupMemberAddition")
+| project Timestamp, ActionType, Application, AccountDisplayName, TargetDeviceName, AdditionalFields
+| top 50 by Timestamp desc

@@ -1,0 +1,6 @@
+// Bert-JanP - Scheduled Task Persistence Mechanisms
+DeviceProcessEvents
+| where Timestamp >= ago(30d)
+| where FileName =~ "schtasks.exe" and ProcessCommandLine has "/create"
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessFileName
+| top 50 by Timestamp desc

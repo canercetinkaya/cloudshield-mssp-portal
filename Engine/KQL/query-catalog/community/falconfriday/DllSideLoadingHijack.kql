@@ -1,0 +1,8 @@
+// FalconFriday - DLL Search Order Hijacking / Sideloading
+DeviceImageLoadEvents
+| where Timestamp >= ago(30d)
+| where FolderPath has_any (@":\Users\", @":\ProgramData\", @":\Windows\Temp\")
+    and FileName endswith ".dll"
+    and InitiatingProcessFolderPath startswith @"C:\Windows\"
+| project Timestamp, DeviceName, FileName, FolderPath, InitiatingProcessFileName
+| top 50 by Timestamp desc

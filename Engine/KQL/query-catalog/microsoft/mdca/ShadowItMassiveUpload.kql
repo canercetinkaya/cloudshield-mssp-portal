@@ -1,0 +1,7 @@
+// Shadow IT & Unsanctioned Cloud Storage Uploads
+CloudAppEvents
+| where Timestamp >= ago(30d)
+| where ActionType in~ ("Upload", "FileUploaded", "FileShared")
+| summarize UploadCount = count(), TotalUsers = dcount(AccountDisplayName) by AppName
+| order by UploadCount desc
+| top 25 by UploadCount desc

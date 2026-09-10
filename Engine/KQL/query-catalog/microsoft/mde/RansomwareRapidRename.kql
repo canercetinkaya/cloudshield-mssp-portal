@@ -1,0 +1,9 @@
+// Ransomware Rapid File Rename & Shadow Copy Deletion
+DeviceFileEvents
+| where Timestamp >= ago(30d)
+| where ActionType == "FileRenamed"
+| extend Extension = tostring(split(FileName, ".")[-1])
+| summarize RenamedCount = count(), UniqueExtensions = dcount(Extension) by DeviceName, InitiatingProcessFileName, bin(Timestamp, 15m)
+| where RenamedCount > 50
+| project Timestamp, DeviceName, InitiatingProcessFileName, RenamedCount, UniqueExtensions
+| order by RenamedCount desc

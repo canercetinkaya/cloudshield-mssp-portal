@@ -1,0 +1,7 @@
+// ASR Rule Block Events & Audit Analysis
+DeviceEvents
+| where Timestamp >= ago(30d)
+| where ActionType startswith "Asr"
+| extend RuleId = tostring(AdditionalFields.RuleId)
+| summarize BlockCount = count(), UniqueDevices = dcount(DeviceId) by ActionType, RuleId, InitiatingProcessFileName
+| top 50 by BlockCount desc

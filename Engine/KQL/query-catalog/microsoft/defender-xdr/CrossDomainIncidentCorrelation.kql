@@ -1,0 +1,8 @@
+// Multi-Stage Cross-Domain Security Incidents
+AlertInfo
+| where Timestamp >= ago(30d)
+| where Severity in~ ("High", "Medium")
+| summarize AlertCount = count(), UniqueServices = dcount(ServiceSource) by AlertId, Title, Category
+| where UniqueServices > 1
+| order by AlertCount desc
+| top 25 by AlertCount desc

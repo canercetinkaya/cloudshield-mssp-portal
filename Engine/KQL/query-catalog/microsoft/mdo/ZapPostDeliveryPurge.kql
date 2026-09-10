@@ -1,0 +1,6 @@
+// ZAP Post-Delivery Purge Events
+EmailPostDeliveryEvents
+| where Timestamp >= ago(30d)
+| where ActionType has "ZAP"
+| project Timestamp, NetworkMessageId, RecipientEmailAddress, ActionType, ActionTrigger
+| top 50 by Timestamp desc

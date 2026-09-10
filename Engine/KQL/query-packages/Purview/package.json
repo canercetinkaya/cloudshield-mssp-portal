@@ -1,0 +1,10 @@
+{
+  "packageName": "Purview",
+  "description": "CloudShield MSSP Purview Operasyonel Tehdit Avlama ve Uyum Paketi",
+  "queryCount": 2,
+  "queries": [
+    "MS-MDCA-001",
+    "MS-PURVIEW-001"
+  ],
+  "updatedAt": "2026-09-10"
+}

@@ -1,0 +1,7 @@
+// Bert-JanP - Suspicious Encoded PowerShell Execution
+DeviceProcessEvents
+| where Timestamp >= ago(30d)
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| where ProcessCommandLine has_any ("-enc", "-encodedcommand", "FromBase64String", "[Convert]::", "IEX", "Invoke-Expression")
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessCommandLine
+| top 50 by Timestamp desc

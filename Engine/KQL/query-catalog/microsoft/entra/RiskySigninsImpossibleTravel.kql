@@ -1,0 +1,6 @@
+// Entra ID Risky Sign-ins & Impossible Travel
+AADSignInEventsBeta
+| where Timestamp >= ago(30d)
+| where RiskLevelDuringSignIn in ("high", "medium") or ClientAppUsed in ("Pop", "Imap", "Mapi", "Authenticated SMTP")
+| project Timestamp, AccountUpn, IPAddress, Country, RiskLevelDuringSignIn, ClientAppUsed, ErrorCode
+| top 50 by Timestamp desc

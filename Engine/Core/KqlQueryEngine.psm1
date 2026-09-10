@@ -210,4 +210,75 @@ DeviceInfo
     return $queries
 }
 
-Export-ModuleMember -Function Invoke-GraphHuntingQuery, Get-StandardHuntQueries
+function Get-KqlCatalogQueries {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string] $Service = '',
+
+        [Parameter(Mandatory = $false)]
+        [string] $Package = ''
+    )
+
+    $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $indexPath = Join-Path $root 'Engine\KQL\query-metadata\catalog-index.json'
+
+    if (-not (Test-Path $indexPath)) {
+        return @()
+    }
+
+    try {
+        $raw = Get-Content $indexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $items = @($raw)
+
+        if (-not [string]::IsNullOrWhiteSpace($Service)) {
+            $items = @($items | Where-Object { $_.service -eq $Service })
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Package)) {
+            $items = @($items | Where-Object { $_.package -eq $Package })
+        }
+
+        # QueryFile içeriklerini de yükle
+        foreach ($item in $items) {
+            if ($item.queryFile) {
+                $fullQueryPath = Join-Path $root $item.queryFile
+                if (Test-Path $fullQueryPath) {
+                    $item | Add-Member -NotePropertyName 'kqlContent' -NotePropertyValue (Get-Content $fullQueryPath -Raw -Encoding UTF8) -Force
+                }
+            }
+        }
+
+        return $items
+    }
+    catch {
+        Write-Warning "KQL Kataloğu okunamadı: $($_.Exception.Message)"
+        return @()
+    }
+}
+
+function Get-KqlQueryPackages {
+    [CmdletBinding()]
+    param()
+
+    $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $pkgDir = Join-Path $root 'Engine\KQL\query-packages'
+
+    if (-not (Test-Path $pkgDir)) {
+        return @()
+    }
+
+    $pkgFiles = Get-ChildItem -Path $pkgDir -Filter 'package.json' -Recurse
+    $packages = @()
+
+    foreach ($pf in $pkgFiles) {
+        try {
+            $p = Get-Content $pf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            $packages += $p
+        }
+        catch { }
+    }
+
+    return $packages
+}
+
+Export-ModuleMember -Function Invoke-GraphHuntingQuery, Get-StandardHuntQueries, Get-KqlCatalogQueries, Get-KqlQueryPackages

@@ -1,0 +1,6 @@
+// Sentinel_KQL - Process Injection / Hollow Discovery
+DeviceEvents
+| where Timestamp >= ago(30d)
+| where ActionType in~ ("CreateRemoteThreadKernel", "QueueUserApcRemoteKernel", "SetThreadContextRemoteKernel")
+| project Timestamp, DeviceName, ActionType, InitiatingProcessFileName, FileName
+| top 50 by Timestamp desc

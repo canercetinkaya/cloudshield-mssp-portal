@@ -1,0 +1,11 @@
+{
+  "packageName": "IdentitySecurity",
+  "description": "CloudShield MSSP IdentitySecurity Operasyonel Tehdit Avlama ve Uyum Paketi",
+  "queryCount": 3,
+  "queries": [
+    "MS-MDE-002",
+    "MS-MDI-001",
+    "MS-ENTRA-001"
+  ],
+  "updatedAt": "2026-09-10"
+}

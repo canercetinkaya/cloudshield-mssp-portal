@@ -1,0 +1,10 @@
+{
+  "packageName": "EmailSecurity",
+  "description": "CloudShield MSSP EmailSecurity Operasyonel Tehdit Avlama ve Uyum Paketi",
+  "queryCount": 2,
+  "queries": [
+    "MS-MDO-001",
+    "MS-MDO-002"
+  ],
+  "updatedAt": "2026-09-10"
+}

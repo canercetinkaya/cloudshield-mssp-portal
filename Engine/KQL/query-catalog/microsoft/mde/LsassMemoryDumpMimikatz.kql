@@ -1,0 +1,7 @@
+// LSASS Memory Access & Mimikatz Evidence
+DeviceProcessEvents
+| where Timestamp >= ago(30d)
+| where ProcessCommandLine has_any ("sekurlsa", "logonpasswords", "procdump", "lsass.dmp", "rundll32.exe comsvcs.dll")
+     or (FileName in~ ("mimikatz.exe", "x64.exe") or ProcessCommandLine has "MiniDump")
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessCommandLine
+| top 50 by Timestamp desc

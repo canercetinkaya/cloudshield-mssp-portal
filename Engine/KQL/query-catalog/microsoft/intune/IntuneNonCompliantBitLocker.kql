@@ -1,0 +1,6 @@
+// Intune Non-Compliant Devices & Missing Encryption
+DeviceInfo
+| where Timestamp >= ago(7d)
+| summarize arg_max(Timestamp, OSPlatform, OSBuild, OnboardingStatus) by DeviceId, DeviceName
+| project DeviceName, OSPlatform, OSBuild, OnboardingStatus
+| top 50 by DeviceName asc
