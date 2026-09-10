@@ -60,7 +60,7 @@
                 <h2 class="text-base font-bold">MSSP SaaS Portal Girişi</h2>
                 <p class="text-xs text-slate-300 mt-1">Microsoft Security & Purview Yönetilen Hizmetler</p>
                 <div id="loginVersionBadge" class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                    v2.5.10-PILOT
+                    v2.5.13-PILOT
                 </div>
             </div>
 
@@ -138,8 +138,8 @@
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
                 <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v2.5.10-PILOT</span>
-                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.09.10</span>
+                    <span id="headerVersionBadge">v2.5.13-PILOT</span>
+                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.09.11</span>
                 </div>
             </div>
 
@@ -207,6 +207,10 @@
                 <button onclick="switchTab('settings')" id="tabBtn-settings" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-sliders text-xs"></i>
                     <span>Ayarlar & Yönetim</span>
+                </button>
+                <button onclick="switchTab('rbac')" id="tabBtn-rbac" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-shield-halved text-xs text-ks-red"></i>
+                    <span class="font-bold">Yetkilendirme & RBAC</span>
                 </button>
             </div>
         </div>
@@ -1209,6 +1213,378 @@
         <!-- ========================================================================= -->
 
 
+
+        <!-- ========================================================================= -->
+        <!-- 7. YETKİLENDİRME & RBAC YÖNETİM MERKEZİ (PHASE 4 - PHASE 10) -->
+        <!-- ========================================================================= -->
+        <div id="view-rbac" class="hidden space-y-6">
+            
+            <!-- RBAC Başlık Bannerı -->
+            <div class="bg-gradient-to-r from-ks-navydark via-ks-navy to-ks-navylight rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="bg-ks-red text-[10px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">Zero Trust RBAC</span>
+                        <span class="text-xs text-emerald-400 font-mono"><i class="fa-solid fa-lock mr-1"></i>Server-Side Deny-by-Default</span>
+                    </div>
+                    <h1 class="text-xl font-extrabold tracking-tight">Yetkilendirme & RBAC Yönetim Merkezi</h1>
+                    <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                        İki boyutlu erişim denetimi (Müşteri Kapsamı &bull; Servis Kapsamı), Görevler Ayrılığı (SoD), PIM süreli onay mekanizması ve bağımsız denetim izi mimarisi.
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0 flex space-x-2">
+                    <button onclick="switchRbacSubTab('simulator')" class="bg-ks-red hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Erişim Simülatörü</span>
+                    </button>
+                    <button onclick="openNewAssignmentModal()" class="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/20 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Yeni Erişim Ata</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RBAC Alt Navigasyon (11 View Tabs) -->
+            <div class="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm text-xs font-medium">
+                <button onclick="switchRbacSubTab('dash')" id="rbacBtn-dash" class="px-3 py-1.5 rounded-lg bg-ks-navy text-white shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span>Yetki Panosu</span>
+                </button>
+                <button onclick="switchRbacSubTab('customers')" id="rbacBtn-customers" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Müşteriler</span>
+                </button>
+                <button onclick="switchRbacSubTab('services')" id="rbacBtn-services" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>Servisler</span>
+                </button>
+                <button onclick="switchRbacSubTab('matrix')" id="rbacBtn-matrix" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5 font-bold text-ks-red">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Servis Matrisi</span>
+                </button>
+                <button onclick="switchRbacSubTab('teams')" id="rbacBtn-teams" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Ekipler</span>
+                </button>
+                <button onclick="switchRbacSubTab('roles')" id="rbacBtn-roles" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Rol Kataloğu</span>
+                </button>
+                <button onclick="switchRbacSubTab('perms')" id="rbacBtn-perms" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-key"></i>
+                    <span>İzin Kataloğu</span>
+                </button>
+                <button onclick="switchRbacSubTab('assignments')" id="rbacBtn-assignments" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span>Erişim Atamaları</span>
+                </button>
+                <button onclick="switchRbacSubTab('approvals')" id="rbacBtn-approvals" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-clock"></i>
+                    <span>PIM Onayları</span>
+                </button>
+                <button onclick="switchRbacSubTab('audit')" id="rbacBtn-audit" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Denetim Kütüğü</span>
+                </button>
+                <button onclick="switchRbacSubTab('simulator')" id="rbacBtn-simulator" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5 font-bold">
+                    <i class="fa-solid fa-vial"></i>
+                    <span>Simülatör</span>
+                </button>
+            </div>
+
+            <!-- SUBVIEW 1: YETKİ PANOSU (DASHBOARD) -->
+            <div id="rbacView-dash" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-500">Kullanıcılar (Aktif / Toplam)</div>
+                            <div id="rbacStatUsers" class="text-xl font-extrabold text-slate-800">--</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-id-card"></i></div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-500">Aktif Erişim Atamaları</div>
+                            <div id="rbacStatAssignments" class="text-xl font-extrabold text-purple-700">--</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-user-clock"></i></div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-500">Bekleyen PIM Talepleri</div>
+                            <div id="rbacStatPending" class="text-xl font-extrabold text-amber-600">--</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-shield-check"></i></div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-500">24s İzin Verildi / Reddedildi</div>
+                            <div class="text-xl font-extrabold text-slate-800">
+                                <span id="rbacStatAuditAllow" class="text-emerald-600">0</span> / <span id="rbacStatAuditDeny" class="text-ks-red">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 2: MÜŞTERİLER (CUSTOMERS) -->
+            <div id="rbacView-customers" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri Tenant Envanteri</h3>
+                    <button onclick="openAddTenantModal()" class="text-xs bg-ks-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-ks-navylight transition">
+                        <i class="fa-solid fa-plus mr-1"></i>Müşteri Ekle
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Müşteri Adı</th>
+                                <th class="py-3 px-4">Microsoft Entra Tenant GUID</th>
+                                <th class="py-3 px-4">İletişim E-posta</th>
+                                <th class="py-3 px-4 text-center">Aktif Servisler</th>
+                                <th class="py-3 px-4 text-center">Secure Score</th>
+                                <th class="py-3 px-4 text-center">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacCustomersTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 3: SERVİSLER (SERVICES) -->
+            <div id="rbacView-services" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">12 Çekirdek MSSP & Purview Servis Kataloğu</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Kod</th>
+                                <th class="py-3 px-4">Türkçe Tanım</th>
+                                <th class="py-3 px-4">İngilizce Tanım</th>
+                                <th class="py-3 px-4">Kategori</th>
+                                <th class="py-3 px-4">Ürün Ailesi</th>
+                                <th class="py-3 px-4">Eklenti Klasörü</th>
+                                <th class="py-3 px-4 text-center">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacServicesTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 4: MÜŞTERİ-SERVİS MATRİSİ (MATRIX) -->
+            <div id="rbacView-matrix" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri-Servis Abonelik Matrisi</h3>
+                        <p class="text-[11px] text-slate-500">Müşteri bazlı servis onboarding, askıya alma ve seviye yönetimi.</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Müşteri</th>
+                                <th class="py-3 px-4">Servis Modülü</th>
+                                <th class="py-3 px-4">Hizmet Seviyesi</th>
+                                <th class="py-3 px-4 text-center">Abonelik Durumu</th>
+                                <th class="py-3 px-4 text-right">Eylemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacMatrixTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 5: EKİPLER (TEAMS) -->
+            <div id="rbacView-teams" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Operasyonel Mühendislik Ekipleri</h3>
+                </div>
+                <div id="rbacTeamsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- SUBVIEW 6: ROL KATALOĞU (ROLES) -->
+            <div id="rbacView-roles" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Tanımlı Rol Kataloğu</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Rol Kodu</th>
+                                <th class="py-3 px-4">Görünen Ad</th>
+                                <th class="py-3 px-4">Açıklama</th>
+                                <th class="py-3 px-4 text-center">Tür</th>
+                                <th class="py-3 px-4 text-center">İzin Sayısı</th>
+                                <th class="py-3 px-4 text-center">Atanan Kullanıcı</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacRolesTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 7: İZİN KATALOĞU (PERMISSIONS) -->
+            <div id="rbacView-perms" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Granüler İzin Kataloğu (21 Ayrık Yetki)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">İzin Kodu</th>
+                                <th class="py-3 px-4">İzin Adı</th>
+                                <th class="py-3 px-4">Domain</th>
+                                <th class="py-3 px-4">Açıklama</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacPermsTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 8: ERİŞİM ATAMALARI (ASSIGNMENTS) -->
+            <div id="rbacView-assignments" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Aktif Erişim Atamaları (User & Team)</h3>
+                    <button onclick="openNewAssignmentModal()" class="text-xs bg-ks-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-ks-navylight transition">
+                        <i class="fa-solid fa-plus mr-1"></i>Yeni Atama Yap
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Özne (Kullanıcı / Ekip)</th>
+                                <th class="py-3 px-4">Rol</th>
+                                <th class="py-3 px-4">Müşteri Kapsamı</th>
+                                <th class="py-3 px-4">Servis Kapsamı</th>
+                                <th class="py-3 px-4">Süre</th>
+                                <th class="py-3 px-4 text-center">Durum</th>
+                                <th class="py-3 px-4 text-right">Eylem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacAssignmentsTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 9: PIM ONAYLARI (APPROVALS) -->
+            <div id="rbacView-approvals" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Süreli PIM Erişim Talepleri & Onay Kuyruğu</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Talep Eden</th>
+                                <th class="py-3 px-4">İstenen Rol</th>
+                                <th class="py-3 px-4">Kapsam</th>
+                                <th class="py-3 px-4">Süre</th>
+                                <th class="py-3 px-4">Gerekçe</th>
+                                <th class="py-3 px-4 text-center">Durum</th>
+                                <th class="py-3 px-4 text-right">Eylem / Onaylayan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacApprovalsTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 10: DENETİM KÜTÜĞÜ (AUDIT) -->
+            <div id="rbacView-audit" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Yetkilendirme Denetim Kütüğü (Audit Log)</h3>
+                    <div class="flex items-center space-x-2">
+                        <select id="rbacAuditDecisionFilter" onchange="loadRbacAudit()" class="text-xs border border-slate-300 rounded px-2 py-1">
+                            <option value="">Tüm Kararlar (ALLOW + DENY)</option>
+                            <option value="ALLOW">Sadece ALLOW</option>
+                            <option value="DENY">Sadece DENY</option>
+                        </select>
+                        <button onclick="loadRbacAudit()" class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded font-bold hover:bg-slate-300">
+                            <i class="fa-solid fa-rotate mr-1"></i>Yenile
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold sticky top-0">
+                            <tr>
+                                <th class="py-2.5 px-4">Zaman</th>
+                                <th class="py-2.5 px-4">Kullanıcı</th>
+                                <th class="py-2.5 px-4">Olay Türü</th>
+                                <th class="py-2.5 px-4">Kaynak / Endpoint</th>
+                                <th class="py-2.5 px-4 text-center">Karar</th>
+                                <th class="py-2.5 px-4">Gerekçe</th>
+                                <th class="py-2.5 px-4">IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rbacAuditTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 11: ERİŞİM SİMÜLATÖRÜ (SIMULATOR) -->
+            <div id="rbacView-simulator" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 pb-3">
+                        <h3 class="font-extrabold text-sm text-ks-navy">Etkin Erişim Karar Simülatörü</h3>
+                        <p class="text-xs text-slate-500">Herhangi bir kullanıcı kimliği için sunucu taraflı 8 adımlı karar zincirini test ediniz.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">1. Kullanıcı</label>
+                            <select id="simUserSelect" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-ks-red"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">2. Hedef Müşteri Kapsamı</label>
+                            <select id="simCustomerSelect" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-ks-red"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">3. Talep Edilen İzin</label>
+                            <select id="simPermissionSelect" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-ks-red">
+                                <option value="reports:view">reports:view (Raporları Gör)</option>
+                                <option value="reports:generate">reports:generate (Rapor Üret)</option>
+                                <option value="reports:download">reports:download (Rapor İndir)</option>
+                                <option value="reports:approve">reports:approve (Rapor Onayla)</option>
+                                <option value="matrix:manage">matrix:manage (Servis Matrisini Yönet)</option>
+                                <option value="assignments:manage">assignments:manage (Erişim Ata/İptal Et)</option>
+                                <option value="audit:view">audit:view (Denetim Kütüğünü Gör)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="runAccessSimulation()" class="w-full bg-ks-red hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition shadow flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-play"></i>
+                                <span>Karar Zincirini Çalıştır</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">4. Hedef Servisler (İsteğe Bağlı Kapsam Doğrulaması)</label>
+                        <div id="simServicesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+                    </div>
+                </div>
+
+                <!-- Simülasyon Çıktı Paneli -->
+                <div id="simResultCard" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div id="simDecisionBanner"></div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider mb-2">Karar Zinciri Adımları (Decision Trace)</h4>
+                        <div id="simTraceList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
     </main>
 
     <!-- ========================================================================= -->
@@ -1629,7 +2005,7 @@
         // ==========================================
         function switchTab(tabId) {
             currentTab = tabId;
-            const tabs = ['dashboard', 'tenants', 'studio', 'dispatch', 'kql', 'teams', 'settings'];
+            const tabs = ['dashboard', 'tenants', 'studio', 'dispatch', 'kql', 'teams', 'settings', 'rbac'];
             tabs.forEach(t => {
                 const elView = document.getElementById(`view-${t}`);
                 const elBtn = document.getElementById(`tabBtn-${t}`);
@@ -1654,6 +2030,8 @@
                 checkServerVersion();
             } else if (tabId === 'kql') {
                 loadKqlCatalogUI();
+            } else if (tabId === 'rbac') {
+                initRbacPortal();
             }
         }
 
@@ -2688,5 +3066,6 @@
             alert(`[AV BAŞLATILDI] ${tenantId} müşterisi üzerinde "${currentSelectedKql.title}" sorgusu Graph Hunting API ile çalıştırıldı. Sonuçlar denetim kütüğüne kaydediliyor.`);
         }
     </script>
+    <script src="rbac_portal.js"></script>
 </body>
 </html>

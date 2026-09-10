@@ -1,15 +1,32 @@
 {
-  "version": "2.5.12",
-  "release": "v2.5.12-PILOT",
-  "build": "2026.09.10.12",
+  "version": "2.5.13",
+  "release": "v2.5.13-PILOT",
+  "build": "2026.09.11.1",
   "channel": "pilot",
-  "build_number": 12,
-  "last_updated": "2026-09-10T23:30:42+03:00",
+  "build_number": 13,
+  "last_updated": "2026-09-11T00:01:26+03:00",
   "environment": "pilot",
   "productionReady": false,
   "commit": "2121704",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.13",
+      "release": "v2.5.13-PILOT",
+      "build": "2026.09.11.1",
+      "timestamp": "2026-09-11T00:01:26+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(rbac): enterprise rbac, customer-service matrix, authorization decision chain, and 11 admin portal views",
+      "details": [
+        "Güncellenen dosya: .github/workflows/ci-cd.yml",
+        "Güncellenen dosya: Data/report_registry.json",
+        "Güncellenen dosya: Docker/Dockerfile",
+        "Güncellenen dosya: Docker/entrypoint.sh",
+        "Güncellenen dosya: Portal/api/server.py",
+        "Güncellenen dosya: Portal/web/index.html"
+      ]
+    },
     {
       "version": "2.5.12",
       "release": "v2.5.12-PILOT",

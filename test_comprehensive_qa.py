@@ -36,6 +36,48 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 ENGINE_DIR = os.path.join(ROOT_DIR, "Engine")
 TEMP_DATA_DIR = os.path.join(ENGINE_DIR, "Data", "temp")
 
+_server_proc = None
+
+def ensure_server():
+    global BASE_URL, _server_proc
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/health")
+        with urllib.request.urlopen(req, timeout=1):
+            return
+    except Exception:
+        pass
+
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('127.0.0.1', 0))
+    port = s.getsockname()[1]
+    s.close()
+
+    BASE_URL = f"http://127.0.0.1:{port}"
+    cmd = [sys.executable, os.path.join(ROOT_DIR, "Portal", "api", "server.py"), str(port)]
+    _server_proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(40):
+        time.sleep(0.15)
+        try:
+            req = urllib.request.Request(f"{BASE_URL}/api/health")
+            with urllib.request.urlopen(req, timeout=1):
+                break
+        except Exception:
+            pass
+
+def stop_server():
+    global _server_proc
+    if _server_proc:
+        try:
+            _server_proc.terminate()
+            _server_proc.wait(timeout=2)
+        except Exception:
+            try:
+                _server_proc.kill()
+            except Exception:
+                pass
+        _server_proc = None
+
 results = {
     "engine_tests": [],
     "api_tests": [],
@@ -92,7 +134,7 @@ def http_get(path, token=None):
         return e.code, parsed, dur, data
     except Exception as e:
         dur = (time.time() - start) * 1000
-        return 0, str(e), dur, b""
+        return 0, {"error": str(e)}, dur, b""
 
 def http_post(path, payload, token=None):
     url = f"{BASE_URL}{path}"
@@ -523,10 +565,14 @@ def run_quality_gates():
 
 def main():
     start_all = time.time()
-    run_engine_tests()
-    run_api_tests()
-    run_concurrency_tests()
-    run_quality_gates()
+    try:
+        ensure_server()
+        run_engine_tests()
+        run_api_tests()
+        run_concurrency_tests()
+        run_quality_gates()
+    finally:
+        stop_server()
     total_time = time.time() - start_all
     results["summary"]["execution_time_sec"] = round(total_time, 2)
     

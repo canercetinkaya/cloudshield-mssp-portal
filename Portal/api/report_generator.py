@@ -836,7 +836,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 {decision_html}
 
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
-<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; tek başına hukuki inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
@@ -970,7 +970,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 {decision_html}
 
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
-<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; tek başına hukuki inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
@@ -1087,7 +1087,7 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 {decision_html}
 
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
-<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; tek başına hukuki inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 <div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>

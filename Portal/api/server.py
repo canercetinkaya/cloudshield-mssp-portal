@@ -34,6 +34,19 @@ import secrets
 
 from datetime import datetime, timedelta, timezone
 
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+from database.db import init_db, get_db
+try:
+    from rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
+    from rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
+except ImportError:
+    from Portal.api.rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
+    from Portal.api.rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
+
+
 try:
 
     from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
@@ -465,12 +478,14 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(svg)
 
     def do_GET(self):
-
         parsed = urllib.parse.urlparse(self.path)
-
         path = parsed.path
-
         query = urllib.parse.parse_qs(parsed.query)
+
+        if path.startswith("/api/rbac/"):
+            handle_rbac_get(self, path, query)
+            return
+
 
         # API ROUTES
 
@@ -978,17 +993,38 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 except Exception:
                     pass
 
-            # RBAC Tenant Authorization Check
+            # RBAC Server-Side Authorization Evaluation (Customer + Service Scopes)
             user = self.get_current_user()
-            if user:
-                assigned = user.get("AssignedTenants", ["ALL"])
-                rep_tid = record.get("tenantId", "")
-                if "ALL" not in assigned and rep_tid not in assigned:
-                    self.send_json_response({
-                        "success": False,
-                        "error": "Yetkisiz Eri?im (403 Forbidden): Bu rapora eri?im yetkiniz bulunmamaktad?r."
-                    }, status=403)
-                    return
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            rep_tid = record.get("tenantId", "")
+            rep_services = record.get("serviceCodes", [])
+            allowed, reason = evaluate_access(
+                user,
+                "reports:download",
+                customer_id=rep_tid,
+                service_ids=rep_services,
+                resource=path,
+                ip_address=client_ip
+            )
+            if not allowed:
+                self.send_json_response({
+                    "success": False,
+                    "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"
+                }, status=403)
+                return
+
+            record_audit_event(
+                "REPORT_DOWNLOAD",
+                user_id=user.get("id") if user else None,
+                user_upn=user.get("upn") if user else None,
+                customer_id=rep_tid,
+                service_id=",".join(rep_services) if rep_services else None,
+                resource=path,
+                decision="ALLOW",
+                reason="AuthorizedReportDownload",
+                ip_address=client_ip,
+                details={"reportId": report_id, "services": rep_services}
+            )
 
             storage_key = record.get("storageKey", "")
             if ".." in storage_key or storage_key.startswith("/") or storage_key.startswith("\\"):
@@ -1181,147 +1217,64 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_error(404, "Not Found")
 
     def do_POST(self):
-
         parsed = urllib.parse.urlparse(self.path)
-
         path = parsed.path
-
         length = int(self.headers.get("Content-Length", 0))
-
         body_bytes = self.rfile.read(length) if length > 0 else b"{}"
-
         try:
-
             body = json.loads(body_bytes.decode("utf-8")) if body_bytes else {}
-
         except Exception:
-
             body = {}
 
+        if path.startswith("/api/rbac/"):
+            handle_rbac_post(self, path, body)
+            return
+
+
         if path == "/api/auth/login":
-
             username = str(body.get("username", "")).strip()
-
             password = str(body.get("password", ""))
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
 
-            admin_user, admin_pass = get_admin_credentials()
-
-            valid = False
-
-            user_info = None
-
-            if (hmac.compare_digest(username.lower(), admin_user.lower()) and
-
-                hmac.compare_digest(password, admin_pass)):
-
-                valid = True
-
-                user_info = {
-
-                    "username": admin_user,
-
-                    "displayName": "Platform Administrator",
-
-                    "role": "PlatformAdmin",
-
-                    "initials": "PA",
-
-                    "email": "mssp-admin@cloudshield-mssp.com",
-
-                    "tenantScope": "Global",
-
-                    "AssignedTenants": ["ALL"],
-
-                    "permissions": {
-
-                        "CanViewDashboard": True,
-
-                        "CanGenerateReports": True,
-
-                        "CanAccessGdap": True,
-
-                        "CanManageTenants": True,
-
-                        "CanManageSettings": True
-
-                    }
-
-                }
-
-            else:
-
-                users = load_json_file(USERS_FILE, [])
-
-                matched_u = next((u for u in users if u.get("Upn", "").lower() == username.lower() or u.get("Id", "").lower() == username.lower()), None)
-
-                if matched_u:
-
-                    if password and (hmac.compare_digest(password, admin_pass) or password in ("CloudShield2026!*", "SecurePass2026!*")):
-
-                        valid = True
-
-                        assigned = matched_u.get("AssignedTenants", [])
-
-                        user_info = {
-
-                            "id": matched_u.get("Id"),
-
-                            "username": matched_u.get("Upn"),
-
-                            "displayName": matched_u.get("DisplayName"),
-
-                            "role": matched_u.get("Role", "CustomerViewer"),
-
-                            "department": matched_u.get("Department", ""),
-
-                            "initials": "".join([w[0].upper() for w in matched_u.get("DisplayName", "US").split()[:2]]),
-
-                            "email": matched_u.get("Upn"),
-
-                            "tenantScope": "Restricted" if "ALL" not in assigned else "Global",
-
-                            "AssignedTenants": assigned,
-
-                            "permissions": matched_u.get("Permissions", {})
-
-                        }
-
-            if valid:
-
+            user_info, err = authenticate_user(username, password, client_ip)
+            if user_info:
                 tok = uuid.uuid4().hex + uuid.uuid4().hex
+                # Extract assigned tenants from assignments
+                assigned_tenants = [a.get("customer_id") or "ALL" for a in user_info.get("assignments", []) if a.get("customer_scope") == "ALL" or a.get("customer_id")]
+                if not assigned_tenants or user_info.get("isPlatformAdmin"):
+                    assigned_tenants = ["ALL"]
+                user_info["AssignedTenants"] = assigned_tenants
+                user_info["tenantScope"] = "Global" if "ALL" in assigned_tenants else "Restricted"
+                user_info["initials"] = "".join([w[0].upper() for w in user_info.get("displayName", "US").split()[:2]])
 
                 SESSIONS[tok] = {
-
                     "user": user_info,
-
                     "createdAt": time.time(),
-
                     "expiresAt": time.time() + 86400
-
                 }
-
                 self.send_json_response({
-
                     "success": True,
-
                     "token": tok,
-
                     "user": user_info,
-
                     "expiresIn": 86400
-
                 })
-
             else:
-
                 self.send_json_response({
-
                     "success": False,
-
-                    "error": "Geçersiz kullanıcı adı veya parola."
-
+                    "error": err or "Geçersiz kullanıcı adı veya parola."
                 }, status=401)
+            return
 
+        elif path == "/api/auth/logout":
+            tok = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            u = self.get_current_user()
+            if tok in SESSIONS:
+                del SESSIONS[tok]
+            if u:
+                record_audit_event("AUTH_LOGOUT", user_id=u.get("id"), user_upn=u.get("upn"),
+                                   resource="/api/auth/logout", decision="ALLOW", reason="UserLoggedOut", ip_address=client_ip)
+            self.send_json_response({"success": True, "message": "Oturum başarıyla kapatıldı."})
             return
 
         elif path == "/api/auth/sso":
@@ -1714,6 +1667,51 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             return
 
+        elif path.startswith("/api/reports/") and path.endswith("/approve"):
+            parts = [p for p in path.split("/") if p]
+            report_id = parts[2]
+            registry = load_report_registry()
+            record = registry.get(report_id)
+            if not record:
+                self.send_json_response({"success": False, "error": "Rapor bulunamadı."}, status=404)
+                return
+
+            user = self.get_current_user()
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            allowed, reason = evaluate_access(
+                user,
+                "reports:approve",
+                customer_id=record.get("tenantId"),
+                service_ids=record.get("serviceCodes"),
+                resource=path,
+                ip_address=client_ip,
+                sod_context={"report_creator": record.get("createdBy")}
+            )
+            if not allowed:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"}, status=403)
+                return
+
+            record["approvedBy"] = user.get("upn") if user else "approver"
+            record["approvedAtUtc"] = datetime.now(timezone.utc).isoformat()
+            record["reportStatus"] = "Approved"
+            registry[report_id] = record
+            save_report_registry(registry)
+
+            record_audit_event(
+                "REPORT_APPROVE",
+                user_id=user.get("id") if user else None,
+                user_upn=user.get("upn") if user else None,
+                customer_id=record.get("tenantId"),
+                service_id=",".join(record.get("serviceCodes", [])),
+                resource=path,
+                decision="ALLOW",
+                reason="ReportApprovedByAuthorizedExecutive",
+                ip_address=client_ip,
+                details={"reportId": report_id, "creator": record.get("createdBy"), "approver": user.get("upn") if user else None}
+            )
+            self.send_json_response({"success": True, "message": "Rapor başarıyla onaylandı.", "record": record})
+            return
+
         elif path == "/api/reports/generate":
 
             tenant_id = body.get("tenantId")
@@ -1733,38 +1731,35 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Multi-Tenant RBAC Authorization Enforcement
-
             user = self.get_current_user()
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            allowed, reason = evaluate_access(
+                user,
+                "reports:generate",
+                customer_id=tenant_id,
+                service_ids=services,
+                resource=path,
+                ip_address=client_ip
+            )
+            if not allowed:
+                self.send_json_response({
+                    "success": False,
+                    "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"
+                }, status=403)
+                return
 
-            if user:
-
-                assigned = user.get("AssignedTenants", ["ALL"])
-
-                if "ALL" not in assigned and tenant_id not in assigned and target_tenant.get("TenantId") not in assigned:
-
-                    self.send_json_response({
-
-                        "success": False,
-
-                        "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' kimlikli kiracı için rapor üretme izniniz bulunmamaktadır. Bu kiracı organizasyonunuza atanmamıştır."
-
-                    }, status=403)
-
-                    return
-
-                user_perms = user.get("permissions", {})
-
-                if not user_perms.get("CanGenerateReports", True):
-
-                    self.send_json_response({
-
-                        "success": False,
-
-                        "error": "Yetkisiz Erişim (403 Forbidden): Rolünüz rapor üretme yetkisine sahip değildir."
-
-                    }, status=403)
-
-                    return
+            record_audit_event(
+                "REPORT_ACCESS",
+                user_id=user.get("id") if user else None,
+                user_upn=user.get("upn") if user else None,
+                customer_id=tenant_id,
+                service_id=",".join(services) if services else None,
+                resource=path,
+                decision="ALLOW",
+                reason="AuthorizedReportGenerationTrigger",
+                ip_address=client_ip,
+                details={"services": services, "mode": mode}
+            )
 
             customer_name = target_tenant.get("Name", "Customer")
 
@@ -2511,10 +2506,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_error(404, "Endpoint Not Found")
 
     def do_DELETE(self):
-
         parsed = urllib.parse.urlparse(self.path)
-
         path = parsed.path
+
+        if path.startswith("/api/rbac/"):
+            handle_rbac_delete(self, path)
+            return
 
         if path.startswith("/api/tenants/"):
 
@@ -2564,6 +2561,7 @@ def run(port=None):
 
         port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", PORT))
 
+    init_db()
     server_address = ("", port)
 
     httpd = http.server.ThreadingHTTPServer(server_address, MSSPPortalHandler)

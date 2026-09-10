@@ -198,7 +198,7 @@ function Build-CompleteReportHtml {
                 <span style="font-size:10px; color:#A7F3D0; background:#064E3B; padding:2px 8px; border-radius:3px; font-weight:600;">SHA-256 Mühürlü</span>
             </div>
             <div style="font-size:10px; color:#94A3B8; line-height:1.5;">
-                Bu raporun HTML ve vektörel PDF çıktıları üretildiği anda <strong>SHA-256 kriptografik kontrol özeti</strong> hesaplanarak <code>Logs/Audit_PurviewReporting_*.jsonl</code> dosyasında teknik değişiklik kontrolü amacıyla mühürlenmiştir. Bu kontrol özeti tek başına hukuki inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez. Raporlama motorunu tetikleyen operatör kimliği, makine adı, süreç kimliği ve korelasyon anahtarı (Correlation ID) değiştirilemez JSONL denetim kütüğünde ISO 8601 zaman damgasıyla saklanmaktadır.
+                Bu raporun HTML ve vektörel PDF çıktıları üretildiği anda <strong>SHA-256 kriptografik kontrol özeti</strong> hesaplanarak <code>Logs/Audit_PurviewReporting_*.jsonl</code> dosyasında teknik değişiklik kontrolü amacıyla mühürlenmiştir. Bu kontrol özeti salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez. Raporlama motorunu tetikleyen operatör kimliği, makine adı, süreç kimliği ve korelasyon anahtarı (Correlation ID) değiştirilemez JSONL denetim kütüğünde ISO 8601 zaman damgasıyla saklanmaktadır.
             </div>
         </div>
 

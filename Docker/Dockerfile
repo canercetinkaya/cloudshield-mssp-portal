@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
 
 LABEL maintainer="CloudShield MSSP Security Engineering Team <security@cloudshield-mssp.com>"
 LABEL description="CloudShield Microsoft Security & Purview Monthly Reporting Engine and MSSP SaaS Portal"
-LABEL version="2.5.11"
+LABEL version="2.5.13"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080
@@ -42,6 +42,9 @@ RUN sed -i 's/\r$//' /app/Docker/entrypoint.sh && chmod +x /app/Docker/entrypoin
 RUN python3 --version && \
     python3 -m py_compile /app/Portal/api/report_generator.py && \
     python3 -m py_compile /app/Portal/api/server.py && \
+    python3 -m py_compile /app/Portal/api/rbac_engine.py && \
+    python3 -m py_compile /app/Portal/api/rbac_handlers.py && \
+    python3 -m py_compile /app/database/db.py && \
     echo "[BUILD] Python syntax check passed on $(python3 --version)"
 
 # Expose web portal & API port (8080 primary, 80 backup)
