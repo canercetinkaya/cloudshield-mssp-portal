@@ -69,7 +69,7 @@ python test_comprehensive_qa.py
 
 We follow a structured Git flow:
 
-- `main`: Production-ready, live-deployed branch (`v2.5.7-LIVE`).
+- `main`: Production-ready, live-deployed branch (`v2.5.8-LIVE`).
 - `feature/<name>`: New reporting capabilities or dashboard enhancements.
 - `fix/<issue>`: Bug fixes or rendering adjustments.
 - `security/<cve>`: Security hardening, secret remediation, or dependency patches.

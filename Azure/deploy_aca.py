@@ -27,7 +27,7 @@ def main():
     github_token = os.environ.get("GITHUB_TOKEN", "")
     
     app_name = "cs-mssp-poc-app"
-    resource_group = "cloudshield"
+    resource_group = "cs-mssp-poc-rg"
     image_tag = f"ghcr.io/canercetinkaya/cloudshield-mssp-portal:{github_sha}"
     
     print(f"=== Deploying {app_name} with Image: {image_tag} ===")
