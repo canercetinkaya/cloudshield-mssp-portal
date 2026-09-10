@@ -36,31 +36,8 @@ CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json"
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 DISPATCH_LOGS_FILE = os.path.join(DATA_DIR, "dispatch_logs.json")
 ACTIVITIES_FILE = os.path.join(DATA_DIR, "manual-service-activities.json")
-PORTAL_VERSION = "2.5.0"
-PORTAL_RELEASE = "v2.5.0-LIVE"
-PORTAL_BUILD = "2026.09.09.live-pipeline"
+VERSION_FILE = os.path.join(DATA_DIR, "version.json")
 SESSIONS = {}  # in-memory token -> session data
-
-
-def get_admin_credentials():
-    """Retrieve portal admin credentials from environment or git-ignored local auth config."""
-    admin_user = os.environ.get("PORTAL_ADMIN_USER", "admin")
-    admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD")
-    if not admin_pass:
-        local_auth = load_json_file(AUTH_LOCAL_FILE, {})
-        if isinstance(local_auth, dict) and local_auth.get("admin_password"):
-            admin_pass = local_auth.get("admin_password")
-            admin_user = local_auth.get("admin_user", admin_user)
-        else:
-            admin_pass = secrets.token_urlsafe(16)
-            save_json_file(AUTH_LOCAL_FILE, {
-                "admin_user": admin_user,
-                "admin_password": admin_pass,
-                "note": "Local-only credential. Never committed to git.",
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
-            print(f"[SECURITY] Generated initial administrator credentials in {AUTH_LOCAL_FILE}")
-    return admin_user, admin_pass
 
 
 def load_json_file(path, default=None):
@@ -88,6 +65,49 @@ def load_json_file(path, default=None):
         except Exception as e:
             print(f"[WARN] Error loading {path}: {e}")
     return default if default is not None else []
+
+
+def get_version_info():
+    """Load latest version and release metadata dynamically from Data/version.json."""
+    default_info = {
+        "version": "2.5.2",
+        "release": "v2.5.2-LIVE",
+        "build": "2026.09.10.2",
+        "build_number": 2,
+        "last_updated": "2026-09-10T10:58:00+03:00",
+        "environment": "production",
+        "agent_name": "CloudShield DevSecOps Autonomous Agent",
+        "changelog": []
+    }
+    return load_json_file(VERSION_FILE, default_info)
+
+
+PORTAL_VERSION = get_version_info().get("version", "2.5.2")
+PORTAL_RELEASE = get_version_info().get("release", "v2.5.2-LIVE")
+PORTAL_BUILD = get_version_info().get("build", "2026.09.10.2")
+
+
+
+def get_admin_credentials():
+    """Retrieve portal admin credentials from environment or git-ignored local auth config."""
+    admin_user = os.environ.get("PORTAL_ADMIN_USER", "admin")
+    admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD")
+    if not admin_pass:
+        local_auth = load_json_file(AUTH_LOCAL_FILE, {})
+        if isinstance(local_auth, dict) and local_auth.get("admin_password"):
+            admin_pass = local_auth.get("admin_password")
+            admin_user = local_auth.get("admin_user", admin_user)
+        else:
+            admin_pass = secrets.token_urlsafe(16)
+            save_json_file(AUTH_LOCAL_FILE, {
+                "admin_user": admin_user,
+                "admin_password": admin_pass,
+                "note": "Local-only credential. Never committed to git.",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            print(f"[SECURITY] Generated initial administrator credentials in {AUTH_LOCAL_FILE}")
+    return admin_user, admin_pass
+
 
 def save_json_file(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -210,12 +230,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/version":
+            vinfo = get_version_info()
             self.send_json_response({
-                "version": PORTAL_VERSION,
-                "release": PORTAL_RELEASE,
-                "build": PORTAL_BUILD,
+                "version": vinfo.get("version", "2.5.1"),
+                "release": vinfo.get("release", "v2.5.1-LIVE"),
+                "build": vinfo.get("build", "2026.09.10.1"),
+                "build_number": vinfo.get("build_number", 1),
+                "last_updated": vinfo.get("last_updated", datetime.now(timezone.utc).isoformat()),
+                "agent_name": vinfo.get("agent_name", "CloudShield DevSecOps Autonomous Agent"),
+                "changelog": vinfo.get("changelog", []),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "environment": "production",
+                "environment": vinfo.get("environment", "production"),
                 "features": [
                     "LiveDataPipeline",
                     "LiveGraphApiCollector",
@@ -226,7 +251,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "MultiTenantConcurrencyIsolation",
                     "MultiTenantRbacIsolation",
                     "EntraIdDynamicBranding",
-                    "GdprKvkkPrivacyEngine"
+                    "GdprKvkkPrivacyEngine",
+                    "AutonomousAgentVersioning",
+                    "GitAutoSyncContinuousRelease"
                 ]
             })
             return

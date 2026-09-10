@@ -114,15 +114,44 @@ try {
 
             Set-Location $portalDir   # git komutları her zaman repo kökünden
 
-            & $gitExe add .
             $status = & $gitExe status --porcelain
             if ($status) {
                 $nowStr = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                Write-Host "`n[>] Değişiklikler otomatik commit ediliyor ($nowStr)..." -ForegroundColor Cyan
-                & $gitExe commit -m "auto: Değişiklikler otomatik eşitlendi ($nowStr)"
-                Write-Host "[>] GitHub'a aktarılıyor (git push origin $Branch)..." -ForegroundColor Yellow
-                & $gitExe push origin $Branch
-                Write-Host "[OK] Başarıyla GitHub ile eşitlendi!`n" -ForegroundColor Green
+                Write-Host "`n[>] Değişiklik algılandı. Agent versiyonu ve değişiklik günlüğü güncelleniyor ($nowStr)..." -ForegroundColor Cyan
+                
+                # 1. Otomatik Versiyon & Changelog Yükseltme
+                $verScript = Join-Path $portalDir "Engine\Core\Update-Version.py"
+                $newRelease = "v2.5.2-LIVE"
+                $commitMsg = "auto: $newRelease - Değişiklikler otomatik eşitlendi ($nowStr)"
+                
+                if (Test-Path $verScript) {
+                    try {
+                        $verOut = python $verScript "feat(agent): autonomous update and synchronization"
+                        if ($verOut -and $verOut -match "^(v[0-9\.]+-LIVE)\|([^\|]+)\|(.*)$") {
+                            $newRelease = $Matches[1]
+                            $newBuild = $Matches[2]
+                            $commitMsg = "release($newRelease): $($Matches[3]) [build: $newBuild]"
+                            Write-Host "[+] Yeni Sürüm Belirlendi: $newRelease (Build: $newBuild)" -ForegroundColor Green
+                        }
+                    } catch {
+                        Write-Host "[!] Versiyon güncelleme sırasında hata oluştu, varsayılan commit mesajı kullanılacak." -ForegroundColor DarkYellow
+                    }
+                }
+
+                # 2. Git Add & Commit
+                & $gitExe add .
+                Write-Host "[>] Değişiklikler commit ediliyor: $commitMsg" -ForegroundColor Cyan
+                & $gitExe commit -m $commitMsg
+                
+                # 3. Git Tag Oluşturma (Her versiyon için)
+                try {
+                    & $gitExe tag -f $newRelease
+                } catch {}
+
+                # 4. GitHub Push
+                Write-Host "[>] GitHub'a aktarılıyor (git push origin $Branch --tags)..." -ForegroundColor Yellow
+                & $gitExe push origin $Branch --tags
+                Write-Host "[OK] $newRelease sürümü başarıyla GitHub ve canlı ortama aktarıldı!`n" -ForegroundColor Green
             }
             else {
                 Write-Host "[i] Değişiklik algılandı fakat git'e eklenecek yeni içerik yok." -ForegroundColor DarkGray

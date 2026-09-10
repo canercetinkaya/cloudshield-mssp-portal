@@ -1,0 +1,54 @@
+{
+  "version": "2.5.2",
+  "release": "v2.5.2-LIVE",
+  "build": "2026.09.10.2",
+  "build_number": 2,
+  "last_updated": "2026-09-10T10:58:46+03:00",
+  "environment": "production",
+  "agent_name": "CloudShield DevSecOps Autonomous Agent",
+  "changelog": [
+    {
+      "version": "2.5.2",
+      "release": "v2.5.2-LIVE",
+      "build": "2026.09.10.2",
+      "timestamp": "2026-09-10T10:58:46+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(versioning): enable dynamic agent semver, live changelog UI and continuous release tagging",
+      "details": [
+        "Güncellenen dosya: Portal/api/server.py",
+        "Güncellenen dosya: Portal/web/index.html",
+        "Güncellenen dosya: Watch-AndSyncToGitHub.ps1",
+        "Güncellenen dosya: Engine/Core/Update-Version.py"
+      ]
+    },
+    {
+      "version": "2.5.1",
+      "release": "v2.5.1-LIVE",
+      "build": "2026.09.10.1",
+      "timestamp": "2026-09-10T10:55:00+03:00",
+      "commit": "a6443ab",
+      "author": "CloudShield Agent",
+      "summary": "feat(reporting): enrich monthly reports with community KQL threat barometer and hygiene matrix",
+      "details": [
+        "Modern Threat Barometer added to Page 1: QR Phishing, AiTM resilience, OAuth abuse, CISA KEV latency",
+        "Page 2 enriched with FalconFriday LOLBins hunting campaigns & Ugur Koc Intune hardware hygiene matrix",
+        "Page 3 upgraded with SLA-governed remediation runbook backlog (ACT-INT-001 through ACT-PUR-005)",
+        "Standardized customer CSS borders and link colors"
+      ]
+    },
+    {
+      "version": "2.5.0",
+      "release": "v2.5.0-LIVE",
+      "build": "2026.09.09.live-pipeline",
+      "timestamp": "2026-09-09T23:59:00+03:00",
+      "commit": "c8564fe",
+      "author": "CloudShield Agent",
+      "summary": "feat(kql-hub): implement enterprise query catalog, validation, metadata, packages and portal UI",
+      "details": [
+        "Integrated Microsoft, Bert-JanP, FalconFriday, ugurkocde, Sentinel_KQL community repositories",
+        "Interactive Tehdit Avi KQL Hub with 6 specialized security packages and filterable matrix"
+      ]
+    }
+  ]
+}

@@ -136,10 +136,10 @@
                     <span class="text-[10px] text-slate-400">Microsoft Security & Purview Center</span>
                 </div>
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
-                <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner">
+                <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v2.5.0-LIVE</span>
-                    <span class="text-slate-400 text-[9px]">| 2026.09.09</span>
+                    <span id="headerVersionBadge">v2.5.1-LIVE</span>
+                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.09.10</span>
                 </div>
             </div>
 
@@ -1014,6 +1014,9 @@
                     <button onclick="switchSettingsSubTab('sync')" id="subtabBtn-sync" class="bg-white text-slate-700 text-xs px-3.5 py-1.5 rounded-lg transition hover:bg-slate-200">
                         <i class="fa-solid fa-clock-rotate-left mr-1"></i> Canlı Pano & Eşitleme Ayarları
                     </button>
+                    <button onclick="switchSettingsSubTab('version')" id="subtabBtn-version" class="bg-white text-slate-700 text-xs px-3.5 py-1.5 rounded-lg transition hover:bg-slate-200">
+                        <i class="fa-solid fa-code-branch mr-1"></i> Agent Sürüm & Değişiklik Günlüğü
+                    </button>
                 </div>
 
                 <!-- 5.A: KULLANICI HESAPLARI VE YETKİ MATRİSİ -->
@@ -1148,6 +1151,56 @@
                                     <i class="fa-solid fa-rotate"></i>
                                     <span>Şimdi Manuel Eşitle</span>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5.D: AGENT SÜRÜM & DEĞİŞİKLİK GÜNLÜĞÜ (VERSION & CHANGELOG) -->
+                <div id="subview-version" class="hidden p-6 space-y-6">
+                    <div class="max-w-4xl space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-800">MSSP Agent Sürümleme & Otomatik Değişiklik Günlüğü</h2>
+                                <p class="text-xs text-slate-500">
+                                    Her güncellemede otonom agent tarafından artırılan sürüm, build bilgisi ve GitHub senkronizasyon kayıtları
+                                </p>
+                            </div>
+                            <button onclick="checkServerVersion(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                                <span>Sürüm Bilgisini Yenile</span>
+                            </button>
+                        </div>
+
+                        <!-- Canlı Sürüm Özet Kartları -->
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-[11px] text-slate-500 font-semibold block">Aktif Portal Sürümü</span>
+                                <span id="verCardRelease" class="text-lg font-bold text-ks-navy font-mono">v2.5.1-LIVE</span>
+                                <span class="text-[10px] text-emerald-600 font-semibold block mt-0.5">● Üretim Ortamı</span>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-[11px] text-slate-500 font-semibold block">Build / Yapı Numarası</span>
+                                <span id="verCardBuild" class="text-lg font-bold text-slate-700 font-mono">2026.09.10.1</span>
+                                <span id="verCardBuildNum" class="text-[10px] text-slate-400 block mt-0.5">Derleme #1</span>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-[11px] text-slate-500 font-semibold block">Son Güncelleme Zamanı</span>
+                                <span id="verCardLastUpdated" class="text-xs font-bold text-slate-800 font-mono block mt-1">10.09.2026 10:55</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">Otomatik Eşitlendi</span>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-[11px] text-slate-500 font-semibold block">Yetkili Agent</span>
+                                <span id="verCardAgent" class="text-xs font-bold text-slate-800 truncate block mt-1" title="CloudShield DevSecOps Autonomous Agent">CloudShield DevSecOps</span>
+                                <span class="text-[10px] text-ks-red font-semibold block mt-0.5">Zero Human Touch</span>
+                            </div>
+                        </div>
+
+                        <!-- Değişiklik Günlüğü (Changelog) Zaman Çizelgesi -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Sürüm ve Değişiklik Geçmişi (Changelog)</h3>
+                            <div id="versionChangelogContainer" class="space-y-3">
+                                <!-- JS will populate changelog entries -->
                             </div>
                         </div>
                     </div>
@@ -1616,15 +1669,76 @@
             }
         }
 
-        async function checkServerVersion() {
+        async function checkServerVersion(showNotice = false) {
             try {
                 const res = await fetch('/api/version');
                 if (res.ok) {
                     const data = await res.json();
                     const badge = document.getElementById('headerVersionBadge');
-                    if (badge) badge.textContent = data.release || 'v2.5.0-LIVE';
+                    if (badge) badge.textContent = data.release || 'v2.5.1-LIVE';
+                    
+                    const buildSpan = document.getElementById('headerVersionBuild');
+                    if (buildSpan && data.last_updated) {
+                        const d = new Date(data.last_updated);
+                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.09.10';
+                        buildSpan.textContent = `| ${dateStr}`;
+                    }
+
+                    // Update settings version cards
+                    const cRel = document.getElementById('verCardRelease');
+                    if (cRel) cRel.textContent = data.release || 'v2.5.1-LIVE';
+                    const cBuild = document.getElementById('verCardBuild');
+                    if (cBuild) cBuild.textContent = data.build || '2026.09.10.1';
+                    const cNum = document.getElementById('verCardBuildNum');
+                    if (cNum) cNum.textContent = `Derleme #${data.build_number || 1}`;
+                    const cLast = document.getElementById('verCardLastUpdated');
+                    if (cLast && data.last_updated) {
+                        const d = new Date(data.last_updated);
+                        cLast.textContent = !isNaN(d.getTime()) ? d.toLocaleString('tr-TR') : data.last_updated;
+                    }
+                    const cAgent = document.getElementById('verCardAgent');
+                    if (cAgent) cAgent.textContent = data.agent_name || 'CloudShield DevSecOps';
+
+                    // Render Changelog
+                    renderChangelog(data.changelog || []);
+                    if (showNotice) {
+                        alert(`✅ Sürüm bilgisi başarıyla güncellendi: ${data.release} (Derleme: ${data.build})`);
+                    }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn('checkServerVersion error:', e);
+            }
+        }
+
+        function renderChangelog(changelog) {
+            const container = document.getElementById('versionChangelogContainer');
+            if (!container) return;
+            if (!changelog.length) {
+                container.innerHTML = '<p class="text-xs text-slate-400">Henüz kayıtlı değişiklik bulunmuyor.</p>';
+                return;
+            }
+
+            container.innerHTML = changelog.map(item => {
+                const detailsHtml = (item.details || []).map(d => `<li class="flex items-start space-x-1.5"><span class="text-emerald-500 font-bold">•</span><span>${d}</span></li>`).join('');
+                return `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-ks-navy text-white text-xs font-bold font-mono px-2 py-0.5 rounded">${item.release || item.version}</span>
+                                <span class="text-xs font-semibold text-slate-800">${item.summary || ''}</span>
+                            </div>
+                            <div class="flex items-center space-x-3 text-[11px] text-slate-500 font-mono">
+                                <span>Commit: <strong class="text-slate-700">${item.commit || 'auto'}</strong></span>
+                                <span>Tarih: ${item.timestamp ? new Date(item.timestamp).toLocaleString('tr-TR') : ''}</span>
+                                <span class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-sans font-semibold">${item.author || 'Agent'}</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-600 space-y-1 pt-1">
+                            ${detailsHtml}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
         }
 
         // ==========================================
@@ -1654,6 +1768,7 @@
                 loadDispatchView();
             } else if (tabId === 'settings') {
                 renderUsersTable();
+                checkServerVersion();
             } else if (tabId === 'kql') {
                 loadKqlCatalogUI();
             }
@@ -1661,7 +1776,7 @@
 
 
         function switchSettingsSubTab(subTabId) {
-            const subs = ['users', 'sso', 'sync'];
+            const subs = ['users', 'sso', 'sync', 'version'];
             subs.forEach(s => {
                 const el = document.getElementById(`subview-${s}`);
                 const btn = document.getElementById(`subtabBtn-${s}`);
@@ -1678,6 +1793,9 @@
             if (targetBtn) {
                 targetBtn.classList.add('subtab-active');
                 targetBtn.classList.remove('bg-white', 'text-slate-700');
+            }
+            if (subTabId === 'version') {
+                checkServerVersion();
             }
         }
 
