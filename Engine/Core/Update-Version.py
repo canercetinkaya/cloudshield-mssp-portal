@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-import sys, json, os, subprocess, re
-from datetime import datetime
+# -*- coding: utf-8 -*-
+import sys
+import json
+import os
+import subprocess
+import re
+from datetime import datetime, timezone
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 root_version_file = os.path.join(ROOT_DIR, 'version.json')
@@ -9,6 +14,11 @@ version_file = root_version_file if os.path.exists(root_version_file) else data_
 readme_file = os.path.join(ROOT_DIR, 'README.md')
 contributing_file = os.path.join(ROOT_DIR, 'CONTRIBUTING.md')
 security_file = os.path.join(ROOT_DIR, '.github', 'SECURITY.md')
+
+ALLOWED_CHANNELS = ['DEV', 'INTERNAL', 'PILOT', 'PRODUCTION']
+
+is_check = '--check' in sys.argv
+is_dry_run = '--dry-run' in sys.argv
 
 if not os.path.exists(version_file):
     vdata = {
@@ -27,14 +37,31 @@ else:
     with open(version_file, 'r', encoding='utf-8') as f:
         vdata = json.load(f)
 
-current_ver = vdata.get('version', '2.5.3')
+current_ver = vdata.get('version', '2.5.10')
+channel_in = os.environ.get('CLOUDSHIELD_RELEASE_CHANNEL', vdata.get('channel', 'pilot')).upper()
+if channel_in not in ALLOWED_CHANNELS:
+    channel_in = 'PILOT'
+channel_normalized = channel_in.lower()
+
+if is_check:
+    payload = {
+        'version': current_ver,
+        'release': vdata.get('release', f'v{current_ver}-{channel_in}'),
+        'build': vdata.get('build', '2026.09.10.10'),
+        'channel': channel_normalized,
+        'summary': 'version manifest check',
+        'success': True
+    }
+    print(json.dumps(payload, ensure_ascii=False))
+    sys.exit(0)
+
 parts = current_ver.split('.')
 try:
     major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
     patch += 1
     new_ver = f'{major}.{minor}.{patch}'
 except Exception:
-    new_ver = '2.5.4'
+    new_ver = '2.5.11'
 
 today_str = datetime.now().strftime('%Y.%m.%d')
 current_build = vdata.get('build', '')
@@ -47,109 +74,93 @@ else:
     build_seq = 1
 
 new_build = f'{today_str}.{build_seq}'
-new_release = f'v{new_ver}-LIVE'
+new_release = f'v{new_ver}-{channel_in}'
 now_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S+03:00')
 
-# Check git status for changed files
 p = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, cwd=ROOT_DIR)
 changed_lines = [l.strip() for l in p.stdout.splitlines() if l.strip() and not l.endswith('version.json') and 'README.md' not in l]
 changed_files = [l.split()[-1] for l in changed_lines]
 
-summary = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1].strip() else 'feat(agent): autonomous update and synchronization'
+summary_args = [a for a in sys.argv[1:] if not a.startswith('--')]
+summary = summary_args[0] if summary_args else 'feat(agent): autonomous update and synchronization'
 
-vdata['version'] = new_ver
-vdata['release'] = new_release
-vdata['build'] = new_build
-vdata['build_number'] = vdata.get('build_number', 1) + 1
-vdata['last_updated'] = now_iso
+if not is_dry_run:
+    vdata['version'] = new_ver
+    vdata['release'] = new_release
+    vdata['build'] = new_build
+    vdata['channel'] = channel_normalized
+    vdata['build_number'] = vdata.get('build_number', 1) + 1
+    vdata['last_updated'] = now_iso
+    if channel_normalized == 'production':
+        vdata['productionReady'] = True
+        vdata['environment'] = 'production'
+    else:
+        vdata['productionReady'] = False
+        vdata['environment'] = channel_normalized
 
-changelog_entry = {
+    changelog_entry = {
+        'version': new_ver,
+        'release': new_release,
+        'build': new_build,
+        'timestamp': now_iso,
+        'commit': 'auto',
+        'author': 'CloudShield Autonomous Agent',
+        'summary': summary,
+        'details': [f'Güncellenen dosya: {f}' for f in changed_files[:6]] if changed_files else ['Raporlama ve güvenlik motoru otonom senkronizasyonu']
+    }
+
+    vdata.setdefault('changelog', []).insert(0, changelog_entry)
+    vdata['changelog'] = vdata['changelog'][:30]
+
+    for vf in [root_version_file, data_version_file]:
+        try:
+            os.makedirs(os.path.dirname(vf), exist_ok=True)
+            with open(vf, 'w', encoding='utf-8') as f:
+                json.dump(vdata, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f'[WARN] Error saving {vf}: {e}', file=sys.stderr)
+
+    if os.path.exists(readme_file):
+        with open(readme_file, 'r', encoding='utf-8') as f:
+            readme_content = f.read()
+
+        readme_content = re.sub(r'badge/Release-v[0-9\.]+(-{1,2})[A-Z]+-[a-zA-Z]+\.svg', f'badge/Release-{new_release}-brightgreen.svg', readme_content)
+        readme_content = re.sub(r'releases/tag/v[0-9\.]+(-[A-Z]+)?', f'releases/tag/{new_release}', readme_content)
+        readme_content = re.sub(r'\*\*Active Release:\*\* [0-9\.]+(-[A-Z]+)?', f'**Active Release:** {new_release}', readme_content)
+        readme_content = re.sub(r'Live Release Badge: v[0-9\.]+(-[A-Z]+)?', 'Dynamic Release Badge', readme_content)
+
+        recent_rows = []
+        for item in vdata.get('changelog', [])[:5]:
+            rel = item.get('release', '')
+            bld = item.get('build', '')
+            ts = item.get('timestamp', '')[:10]
+            sm = item.get('summary', '').replace('|', '-')
+            recent_rows.append(f'| **{rel}** | {bld} | {ts} | {sm} |')
+
+        changelog_table = '\n'.join([
+            '## 🚀 Recent Releases & Autonomous Changelog',
+            '',
+            '| Release Tag | Build | Date | Autonomous Agent Summary |',
+            '| :--- | :--- | :--- | :--- |',
+            *recent_rows,
+            ''
+        ])
+
+        if '## 🚀 Recent Releases & Autonomous Changelog' in readme_content:
+            readme_content = re.sub(
+                r'## 🚀 Recent Releases & Autonomous Changelog[\s\S]*?(?=\n## |\n---|$)',
+                changelog_table.strip(),
+                readme_content
+            )
+        with open(readme_file, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+
+output_payload = {
     'version': new_ver,
     'release': new_release,
     'build': new_build,
-    'timestamp': now_iso,
-    'commit': 'auto',
-    'author': 'CloudShield Autonomous Agent',
+    'channel': channel_normalized,
     'summary': summary,
-    'details': [f'Güncellenen dosya: {f}' for f in changed_files[:6]] if changed_files else ['Raporlama ve güvenlik motoru otonom senkronizasyonu']
+    'success': True
 }
-
-vdata.setdefault('changelog', []).insert(0, changelog_entry)
-vdata['changelog'] = vdata['changelog'][:30]
-
-# 1. Save root version.json and Data/version.json
-for vf in [root_version_file, data_version_file]:
-    try:
-        os.makedirs(os.path.dirname(vf), exist_ok=True)
-        with open(vf, 'w', encoding='utf-8') as f:
-            json.dump(vdata, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"[WARN] Error saving {vf}: {e}", file=sys.stderr)
-
-# 2. Update README.md (Badges, Live Production, Architecture Diagram, Changelog table)
-if os.path.exists(readme_file):
-    with open(readme_file, 'r', encoding='utf-8') as f:
-        readme_content = f.read()
-
-    readme_content = re.sub(r'badge/Release-v[0-9\.]+(-{1,2})LIVE-[a-zA-Z]+\.svg', f'badge/Release-{new_release}--LIVE-brightgreen.svg' if '-' in new_release else f'badge/Release-{new_release}-brightgreen.svg', readme_content)
-    readme_content = re.sub(r'releases/tag/v[0-9\.]+(-LIVE)?', f'releases/tag/{new_release}', readme_content)
-    readme_content = re.sub(r'\*\*Active Release:\*\* `v[0-9\.]+(-LIVE)?`', f'**Active Release:** `{new_release}`', readme_content)
-    readme_content = re.sub(r'Live Release Badge: v[0-9\.]+(-LIVE)?', f'Live Release Badge: {new_release}', readme_content)
-
-    # Build Recent Releases Markdown Table
-    recent_rows = []
-    for item in vdata.get('changelog', [])[:5]:
-        rel = item.get('release', '')
-        bld = item.get('build', '')
-        ts = item.get('timestamp', '')[:10]
-        sm = item.get('summary', '').replace('|', '-')
-        recent_rows.append(f'| **{rel}** | `{bld}` | {ts} | {sm} |')
-
-    changelog_table = '\n'.join([
-        '## 🚀 Recent Releases & Autonomous Changelog',
-        '',
-        '| Release Tag | Build | Date | Autonomous Agent Summary |',
-        '| :--- | :--- | :--- | :--- |',
-        *recent_rows,
-        ''
-    ])
-
-    if '## 🚀 Recent Releases & Autonomous Changelog' in readme_content:
-        readme_content = re.sub(
-            r'## 🚀 Recent Releases & Autonomous Changelog[\s\S]*?(?=\n## |\n---|$)',
-            changelog_table.strip(),
-            readme_content
-        )
-    else:
-        if '## 📄 License & Governance' in readme_content:
-            readme_content = readme_content.replace(
-                '## 📄 License & Governance',
-                changelog_table + '\n---\n\n## 📄 License & Governance'
-            )
-        else:
-            readme_content += '\n\n' + changelog_table
-
-    with open(readme_file, 'w', encoding='utf-8') as f:
-        f.write(readme_content)
-
-# 3. Update CONTRIBUTING.md (Production Branch Version)
-if os.path.exists(contributing_file):
-    with open(contributing_file, 'r', encoding='utf-8') as f:
-        contrib_content = f.read()
-    contrib_content = re.sub(r'`v[0-9\.]+(-LIVE)?`', f'`{new_release}`', contrib_content)
-    with open(contributing_file, 'w', encoding='utf-8') as f:
-        f.write(contrib_content)
-
-# 4. Update .github/SECURITY.md (Supported Versions Table)
-if os.path.exists(security_file):
-    with open(security_file, 'r', encoding='utf-8') as f:
-        sec_content = f.read()
-    sec_content = re.sub(
-        r'\| \*\*v[0-9\.]+x\*\* \| `v[0-9\.]+(-LIVE)?` \| \*\*Active Production\*\*',
-        f'| **v{major}.{minor}.x** | `{new_release}` | **Active Production**',
-        sec_content
-    )
-    with open(security_file, 'w', encoding='utf-8') as f:
-        f.write(sec_content)
-
-print(f'{new_release}|{new_build}|{summary}')
+print(json.dumps(output_payload, ensure_ascii=False))

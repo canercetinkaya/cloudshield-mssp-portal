@@ -1,15 +1,32 @@
 {
-  "version": "2.5.10",
-  "release": "v2.5.10-PILOT",
-  "build": "2026.09.10.10",
+  "version": "2.5.11",
+  "release": "v2.5.11-PILOT",
+  "build": "2026.09.10.11",
   "channel": "pilot",
-  "build_number": 10,
-  "last_updated": "2026-09-10T12:54:45+03:00",
+  "build_number": 11,
+  "last_updated": "2026-09-10T16:53:01+03:00",
   "environment": "pilot",
   "productionReady": false,
   "commit": "2121704",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.11",
+      "release": "v2.5.11-PILOT",
+      "build": "2026.09.10.11",
+      "timestamp": "2026-09-10T16:53:01+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "fix: pilot hardening, encoding, and report registry",
+      "details": [
+        "Güncellenen dosya: Engine/Core/Update-Version.py",
+        "Güncellenen dosya: Engine/Tests/Test-Platform.ps1",
+        "Güncellenen dosya: Portal/api/report_generator.py",
+        "Güncellenen dosya: Portal/api/server.py",
+        "Güncellenen dosya: Portal/web/index.html",
+        "Güncellenen dosya: Watch-AndSyncToGitHub.ps1"
+      ]
+    },
     {
       "version": "2.5.10",
       "release": "v2.5.10-PILOT",

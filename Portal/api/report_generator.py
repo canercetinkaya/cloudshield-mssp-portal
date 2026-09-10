@@ -1,3 +1,4 @@
+import unicodedata
 """
 CloudShield MSSP Portal - Enterprise Report Generator (Live Data Engine)
 Reads live telemetry from data.json produced by PowerShell collectors.
@@ -621,7 +622,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     <td>MDE TVM &amp; CISA KEV Feed</td>
     <td class="num"><b>Sıfır Gecikme</b></td>
     <td>Global Hedef &lt; 14 Gün</td>
-    <td><span class="pill p-ok">Tam Uyumlu</span></td>
+    <td><span class="pill p-ok">Hedef Karşılandı</span></td>
   </tr>"""
 
     # Format Falcon Friday / LOLBins Rows
@@ -877,9 +878,9 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
   <p><b>GDAP Denetimi:</b> MSSP uzmanlarinin yetkili erisimleri Microsoft GDAP (Granular Delegated Admin Privileges) uzerinden Security Reader seviyesinde kayit altindadir.</p>
 </div>
 
-<p class="note">Bu rapor {PROVIDER_NAME} Yonetilen EDR hizmeti kapsaminda uretilmistir.
-6698 sayili KVKK, AB GDPR (Privacy-by-Design) ve ISO 27001 gereksinimlerine tam uyumludur. Rapor SHA-256 kriptografik ozet kaydi ile muhurlenmistir.
-Gizlilik: TLP:AMBER &bull; Musteriye Ozel ve Ticari Sir.</p>
+<p class="note"><b>Uyar? &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
+<b>Rapor B?t?nl?k Do?rulamas?:</b> Bu raporun veri b?t?nl??? SHA-256 kriptografik ?zet kayd? ile m?h?rlenmi? olup yerel denetim k?t???nde kay?tl?d?r; bu kay?t tek ba??na inkar edilemezlik veya yasal uygunluk garantisi te?kil etmez.<br>
+Gizlilik: TLP:AMBER &bull; M??teriye ?zel ve Ticari S?r.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
 
@@ -993,7 +994,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <!-- CISO 30 SANİYELİK VERİ GÜVENLİĞİ DURUŞ KARTI -->
 <div class="ciso-badge">
   <div class="ciso-badge-item">Veri Sizinti Riski: <span class="pill p-ok">DUSUK</span></div>
-  <div class="ciso-badge-item">Uyum Seviyesi: <span style="color:#0f4c81; font-weight:800;">KVKK &amp; GDPR TAM UYUMLU</span></div>
+  <div class="ciso-badge-item">Uyum Seviyesi: <span style="color:#0f4c81; font-weight:800;">KVKK &amp; GDPR DENETLENDİ</span></div>
   <div class="ciso-badge-item">DLP Koruma Orani: <b style="color:#10b981;">%{prot_rate:.1f}</b></div>
   <div class="ciso-badge-item">GenAI / Copilot Durumu: <span class="pill p-ok">SIFIR VERI KACAGI</span></div>
 </div>
@@ -1135,12 +1136,12 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
   <h3>Kurumsal Veri Mahremiyeti ve Sifir Kalici Yetki</h3>
   <p><b>DLP Izin Seffafligi:</b> Bu rapor yalnizca salt-okunur <code>InformationProtectionPolicy.Read.All</code> ve <code>SecurityAlert.Read.All</code> izinleri kullanilarak hazirlanmistir.</p>
   <p><b>Icerik Gizliligi:</b> Purview DLP loglarinda dosya icerikleri asla okunmaz veya saklanmaz. Yalnizca eslesen metaveriler (SIT tipleri) analiz edilir.</p>
-  <p><b>Non-Repudiation:</b> Uretilen bu rapor SHA-256 ozet degeri ile sirket denetim kutugune kaydedilmistir.</p>
+  <p><b>B?t?nl?k Do?rulama Kayd? (Integrity Record):</b> ?retilen bu rapor SHA-256 kriptografik ?zet de?eri ile teknik b?t?nl?k do?rulamas? amac?yla sistem denetim k?t???ne kaydedilmi?tir.</p>
 </div>
 
-<p class="note">Bu rapor {PROVIDER_NAME} Yonetilen Microsoft Purview Veri Guvenligi ve Uyum Hizmeti kapsaminda uretilmistir.
-6698 sayili KVKK (md. 4 ve md. 12) ve AB GDPR (Privacy-by-Design md. 25, 32) ilkelerine tam uyumlu denetim iziyle korunur.
-Gizlilik: TLP:AMBER &bull; Musteriye Ozel ve Ticari Sir.</p>
+<p class="note"><b>Uyar? &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
+<b>Rapor B?t?nl?k Do?rulamas?:</b> Rapor verileri tuzlu SHA-256 ?zet kayd? ve k-Anonymity (k=5) filtrelemesi ile i?lenmi?tir.<br>
+Gizlilik: TLP:AMBER &bull; M??teriye ?zel ve Ticari S?r.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
 
@@ -1287,7 +1288,7 @@ kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir
 </table>
 
 <p class="note">Bu rapor {PROVIDER_NAME} Microsoft Yonetilen Guvenlik ve Purview Uyum Hizmetleri kapsaminda uretilmistir.
-Gizlilik: Musteriye Ozel &bull; 6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 regülasyonlarina tam uyumludur.</p>
+Gizlilik: Musteriye Ozel &bull; 6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 regülasyonlarina uyumluluk kontrolleri teknik olarak doğrulanmıştır.</p>
 <div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
 
@@ -1412,7 +1413,7 @@ def create_executive_pdf(customer_name, services, output_path, period_label="Agu
         "0.06 0.09 0.16 rg",
         "0 0 612 50 re f",
         "0.7 0.75 0.8 rg",
-        "BT /F1 8 Tf 40 30 Td (6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 Uyumlu) Tj ET",
+        "BT /F1 8 Tf 40 30 Td (Teknik Guvenlik Raporu - Veri Minimizasyonu ve Erisim Denetimi Ilkelerine Uygun Olarak Uretilmistir) Tj ET",
         "BT /F1 8 Tf 40 18 Td (Kullanici verileri tuzlu SHA-256 ve k-Anonymity ile maskelenmistir.) Tj ET",
         "Q"
     ])

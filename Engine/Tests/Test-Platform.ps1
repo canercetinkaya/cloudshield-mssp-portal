@@ -11,6 +11,9 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $root) { $root = (Get-Location).Path }
 
@@ -20,26 +23,48 @@ Write-Host "====================================================================
 Write-Host ""
 
 $testResults = @()
+$suiteSw = [System.Diagnostics.Stopwatch]::StartNew()
+$startedAtUtc = [DateTime]::UtcNow.ToString("o")
 
 function Assert-Test {
     param(
         [string] $TestName,
-        [scriptblock] $Assertion
+        [scriptblock] $Assertion,
+        [string] $Category = "Core"
     )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $status = "FAIL"
+    $errMsg = ""
 
     try {
         $res = & $Assertion
         if ($res -eq $true -or $null -eq $res) {
-            Write-Host "   [PASS] $TestName" -ForegroundColor Green
-            $script:testResults += [PSCustomObject]@{ Test = $TestName; Status = 'PASS'; Error = '' }
+            $status = "PASS"
+            $sw.Stop()
+            Write-Host "   [PASS] $TestName ($([Math]::Round($sw.Elapsed.TotalMilliseconds, 1))ms)" -ForegroundColor Green
         } else {
+            $sw.Stop()
+            $errMsg = "Assertion returned false"
             Write-Host "   [FAIL] $TestName (Assertion returned false)" -ForegroundColor Red
-            $script:testResults += [PSCustomObject]@{ Test = $TestName; Status = 'FAIL'; Error = 'Returned False' }
         }
     }
     catch {
-        Write-Host "   [FAIL] $TestName - $($_.Exception.Message)" -ForegroundColor Red
-        $script:testResults += [PSCustomObject]@{ Test = $TestName; Status = 'FAIL'; Error = $_.Exception.Message }
+        $sw.Stop()
+        $errMsg = $_.Exception.Message
+        Write-Host "   [FAIL] $TestName - $errMsg" -ForegroundColor Red
+    }
+
+    # Generate a stable test ID from test name
+    $cleanId = ($TestName.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
+
+    $script:testResults += [PSCustomObject]@{
+        id = $cleanId
+        name = $TestName
+        category = $Category
+        status = $status
+        durationMs = [Math]::Round($sw.Elapsed.TotalMilliseconds, 2)
+        details = if ($status -eq "PASS") { "Passed successfully" } else { $errMsg }
     }
 }
 

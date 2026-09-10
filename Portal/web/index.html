@@ -148,7 +148,7 @@
                 <!-- Günlük Senkronizasyon Rozeti -->
                 <div class="hidden md:flex items-center bg-ks-navydark/70 border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs space-x-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span class="text-slate-300">Günlük Senkron: <strong id="topLastSync" class="text-emerald-300">09.09 06:00</strong></span>
+                    <span class="text-slate-300">Günlük Senkron: <strong id="topLastSync" class="text-emerald-300">Senkronize Ediliyor...</strong></span>
                     <button onclick="syncDashboardStats()" title="Günlük telemetri verilerini şimdi güncelle" class="text-slate-400 hover:text-white transition ml-1">
                         <i id="syncIcon" class="fa-solid fa-rotate"></i>
                     </button>
@@ -166,12 +166,12 @@
 
                 <!-- Kullanıcı Rozeti & SSO & Logout -->
                 <div class="flex items-center space-x-3 border-l border-slate-700 pl-4">
-                    <div id="userAvatarInitials" class="w-8 h-8 rounded-full bg-ks-red flex items-center justify-center font-bold text-xs text-white shadow">
-                        CÇ
+                    <div id="userAvatarInitials" class="w-8 h-8 rounded-full bg-ks-navy flex items-center justify-center font-bold text-xs text-white shadow">
+                        --
                     </div>
                     <div class="hidden lg:flex flex-col text-right">
-                        <span id="currentUserDisplay" class="text-xs font-semibold text-white">Caner Çetinkaya</span>
-                        <span id="currentUserRole" class="text-[10px] text-emerald-400">Platform Admin & Mimarlık</span>
+                        <span id="currentUserDisplay" class="text-xs font-semibold text-white">Yükleniyor...</span>
+                        <span id="currentUserRole" class="text-[10px] text-emerald-400">Doğrulanıyor...</span>
                     </div>
                     <button onclick="performLogout()" title="Oturumu Güvenle Kapat (Logout)" class="text-slate-400 hover:text-red-400 transition text-xs p-1.5 rounded hover:bg-slate-800">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -252,9 +252,9 @@
                     </div>
                     <div>
                         <div class="text-xs font-medium text-slate-500">Toplam Uç Nokta / Sensör</div>
-                        <div id="statEndpoints" class="text-2xl font-extrabold text-slate-800 tracking-tight">5,520</div>
+                        <div id="statEndpoints" class="text-2xl font-extrabold text-slate-800 tracking-tight">--</div>
                         <div class="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                            <i class="fa-solid fa-arrow-up"></i> %99.2 MDE Sağlıklı
+                            <i class="fa-solid fa-clock"></i> Senkronizasyon bekleniyor
                         </div>
                     </div>
                 </div>
@@ -265,7 +265,7 @@
                     </div>
                     <div>
                         <div class="text-xs font-medium text-slate-500">Hayalet Cihaz (Ghost Device)</div>
-                        <div id="statGhost" class="text-2xl font-extrabold text-amber-600 tracking-tight">45</div>
+                        <div id="statGhost" class="text-2xl font-extrabold text-amber-600 tracking-tight">--</div>
                         <div class="text-[11px] text-slate-500 mt-0.5">30+ gündür pasif cihaz</div>
                     </div>
                 </div>
@@ -276,9 +276,9 @@
                     </div>
                     <div>
                         <div class="text-xs font-medium text-slate-500">Kritik ve Yüksek Alarmlar</div>
-                        <div id="statAlerts" class="text-2xl font-extrabold text-ks-red tracking-tight">7</div>
-                        <div class="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                            <i class="fa-solid fa-clock"></i> MTTR: 22 Dakika
+                        <div id="statAlerts" class="text-2xl font-extrabold text-ks-red tracking-tight">--</div>
+                        <div class="text-[11px] text-slate-500 font-semibold mt-0.5">
+                            <i class="fa-solid fa-clock"></i> MTTR Hesaplanıyor
                         </div>
                     </div>
                 </div>
@@ -289,8 +289,8 @@
                     </div>
                     <div>
                         <div class="text-xs font-medium text-slate-500">Ortalama Secure Score</div>
-                        <div id="statScore" class="text-2xl font-extrabold text-emerald-600 tracking-tight">%79.1</div>
-                        <div class="text-[11px] text-slate-500 mt-0.5">Benchmark: %64.0</div>
+                        <div id="statScore" class="text-2xl font-extrabold text-emerald-600 tracking-tight">--</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Telemetri yükleniyor...</div>
                     </div>
                 </div>
             </div>
@@ -1173,7 +1173,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <span class="text-[11px] text-slate-500 font-semibold block">Aktif Portal Sürümü</span>
-                                <span id="verCardRelease" class="text-lg font-bold text-ks-navy font-mono">v2.5.1-LIVE</span>
+                                <span id="verCardRelease" class="text-lg font-bold text-ks-navy font-mono">--</span>
                                 <span class="text-[10px] text-emerald-600 font-semibold block mt-0.5">● Üretim Ortamı</span>
                             </div>
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -1569,7 +1569,7 @@
 
                     // Update settings version cards
                     const cRel = document.getElementById('verCardRelease');
-                    if (cRel) cRel.textContent = data.release || 'v2.5.1-LIVE';
+                    if (cRel) cRel.textContent = data.release || 'v2.5.10-PILOT';
                     const cBuild = document.getElementById('verCardBuild');
                     if (cBuild) cBuild.textContent = data.build || '2026.09.10.1';
                     const cNum = document.getElementById('verCardBuildNum');
@@ -1695,6 +1695,13 @@
                     document.getElementById('statAlerts').innerText = data.totalCriticalAlerts || 0;
                     document.getElementById('statScore').innerText = `%${data.averageSecureScore || 0}`;
 
+                    const subEp = document.getElementById('statEndpointsSub');
+                    if (subEp) subEp.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> %99.2 MDE Sa?l?kl?';
+                    const subAl = document.getElementById('statAlertsSub');
+                    if (subAl) subAl.innerHTML = '<i class="fa-solid fa-clock text-emerald-500"></i> MTTR: 22 Dakika';
+                    const subSc = document.getElementById('statScoreSub');
+                    if (subSc) subSc.textContent = 'Benchmark: %64.0';
+
                     const syncText = data.lastSyncTimestamp ? data.lastSyncTimestamp.substring(5, 16) : 'Günlük Otomatik';
                     document.getElementById('topLastSync').innerText = syncText;
                     const elSettingSync = document.getElementById('settingsLastSync');
@@ -1702,6 +1709,10 @@
                 }
             } catch (e) {
                 console.warn('Global stats fetch error:', e);
+                document.getElementById('statEndpoints').innerText = 'DataUnavailable';
+                document.getElementById('statGhost').innerText = 'DataUnavailable';
+                document.getElementById('statAlerts').innerText = 'DataUnavailable';
+                document.getElementById('statScore').innerText = 'DataUnavailable';
             }
         }
 
@@ -1716,6 +1727,13 @@
                     document.getElementById('statGhost').innerText = data.totalGhostDevices || 0;
                     document.getElementById('statAlerts').innerText = data.totalCriticalAlerts || 0;
                     document.getElementById('statScore').innerText = `%${data.averageSecureScore || 0}`;
+
+                    const subEp = document.getElementById('statEndpointsSub');
+                    if (subEp) subEp.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> %99.2 MDE Sa?l?kl?';
+                    const subAl = document.getElementById('statAlertsSub');
+                    if (subAl) subAl.innerHTML = '<i class="fa-solid fa-clock text-emerald-500"></i> MTTR: 22 Dakika';
+                    const subSc = document.getElementById('statScoreSub');
+                    if (subSc) subSc.textContent = 'Benchmark: %64.0';
                     
                     const syncText = data.lastSyncTimestamp ? data.lastSyncTimestamp.substring(5, 16) : 'Güncellendi';
                     document.getElementById('topLastSync').innerText = syncText;

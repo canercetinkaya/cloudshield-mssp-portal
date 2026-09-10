@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Release](https://img.shields.io/badge/Release-v2.5.10--PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.10-PILOT)
+[![Release](https://img.shields.io/badge/Release-v2.5.11-PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.11-PILOT)
 [![Channel](https://img.shields.io/badge/Channel-Pilot%20Validation-yellow.svg)](#release-channels)
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 [![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
@@ -39,7 +39,7 @@ flowchart TD
 
     subgraph PortalLayer ["Azure Container Apps (Serverless Host)"]
         WebServer["Python REST API Gateway (port 8080)"]
-        VersionBadge["Live Release Badge: v2.5.10-LIVE"]
+        VersionBadge["Dynamic Release Badge"]
         ReportDispatcher["Scheduled Dispatch & SendMail Engine"]
     end
 
@@ -168,11 +168,8 @@ az containerapp up \
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
-| **v2.5.10-PILOT** | `2026.09.10.10` | 2026-09-10 | refactor(release): single-source version manifest and dynamic azure deployment discovery |
-| **v2.5.9-LIVE** | `2026.09.10.9` | 2026-09-10 | fix(deploy): minimal-diff image update and extended probe window |
-| **v2.5.8-LIVE** | `2026.09.10.8` | 2026-09-10 | fix(deploy): correct resource group to cs-mssp-poc-rg and python Zero SOC check |
-| **v2.5.7-LIVE** | `2026.09.10.7` | 2026-09-10 | feat(reporting): remove static prescriptive roadmap and make SIT distribution & action backlog 100% dynamic |
-| **v2.5.6-LIVE** | `2026.09.10.6` | 2026-09-10 | feat(docs): create docs/agents modular knowledge base and subagent task matrix |
+| **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |
+| **v2.5.10-PILOT** | 2026.09.10.10 | 2026-09-10 | refactor(release): establish single-source version manifest and dynamic azure deployment discovery |
 ---
 
 ## 📄 License & Governance

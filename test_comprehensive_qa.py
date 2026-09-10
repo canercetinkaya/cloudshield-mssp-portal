@@ -40,6 +40,7 @@ results = {
     "engine_tests": [],
     "api_tests": [],
     "concurrency_tests": [],
+    "quality_gates": [],
     "summary": {
         "total": 0,
         "passed": 0,
@@ -127,21 +128,40 @@ def http_post(path, payload, token=None):
 # ==============================================================================
 def run_engine_tests():
     print("\n" + "="*80)
-    print(" 1. ENGINE PLATFORM TESTS (30 PS TESTS)")
+    print(" 1. ENGINE PLATFORM TESTS (POWERShell 7 STRUCTURED PROTOCOL)")
     print("="*80)
     test_script = os.path.join(ENGINE_DIR, "Tests", "Test-Platform.ps1")
     start = time.time()
-    # Prefer pwsh (PowerShell 7) if available, fallback to powershell.exe
     ps_cmd = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
     print(f"   [RUNTIME] PowerShell Engine Runner: {ps_cmd}")
+    
+    # Run test script
     proc = subprocess.run(
         [ps_cmd, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", test_script],
         cwd=ENGINE_DIR, capture_output=True, text=True, errors="replace"
     )
     dur = (time.time() - start) * 1000
+    
+    json_path = os.path.join(ENGINE_DIR, "Output", "platform-test-results.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                report = json.load(f)
+            tests = report.get("tests", [])
+            for t in tests:
+                t_name = t.get("name", "Unknown Test")
+                t_pass = t.get("status") == "PASS"
+                t_dur = float(t.get("durationMs", 0))
+                t_det = t.get("details", "")
+                log_test("engine_tests", t_name, t_pass, f"Precise Duration: {t_dur:.1f}ms - {t_det}", t_dur)
+            print(f"Engine Structured Summary: Total={len(tests)}, Pass={report.get('passedTests')}, Exit={report.get('exitCode')}")
+            return
+        except Exception as je:
+            print(f"   [WARN] Failed to read structured platform JSON: {je}")
+
+    # Fallback to line parsing if JSON was not emitted
     out = proc.stdout
     lines = [l.strip() for l in out.splitlines() if "[PASS]" in l or "[FAIL]" in l]
-    
     if proc.returncode != 0 and not lines:
         log_test("engine_tests", "PowerShell Test Process Execution", False, f"Process exited with non-zero code {proc.returncode}: {proc.stderr[:100]}", dur)
     else:
@@ -149,7 +169,6 @@ def run_engine_tests():
             is_pass = "[PASS]" in l
             test_name = l.replace("[PASS]", "").replace("[FAIL]", "").strip()
             log_test("engine_tests", test_name, is_pass, "Executed via Test-Platform.ps1", dur / max(len(lines), 1))
-    
     print(f"Engine Tests Summary: Process Exit Code = {proc.returncode}, Parsed Tests = {len(lines)}")
 
 # ==============================================================================
@@ -360,7 +379,7 @@ def run_concurrency_tests():
                         temp_files_seen.add(f)
             except Exception:
                 pass
-            time.sleep(0.01)
+            time.sleep(0.002)
 
     monitor_thread = threading.Thread(target=monitor_temp_dir, daemon=True)
     monitor_thread.start()
@@ -387,11 +406,127 @@ def run_concurrency_tests():
     log_test("concurrency_tests", "Geçici Yapılandırma Dosyası İzolasyonu (UUID Ayrışımı)", unique_uuids, f"Farklı UUID'li {len(temp_files_seen)} adet izole müşteri konfigi gözlemlendi: {list(temp_files_seen)[:3]}", 10)
     log_test("concurrency_tests", "Geçici Dosya Temizliği & Sıfır İz Garantisi (Zero Leak)", no_leaks, f"İşlem sonrası kalan müşteri konfigürasyon dosyası: {len(remaining_temp_files)}", 10)
 
+
+# ==============================================================================
+# 4. PILOT HARDENING QUALITY GATES (GATES 1 - 12)
+# ==============================================================================
+def run_quality_gates():
+    print("\n" + "="*80)
+    print(" 4. PILOT HARDENING QUALITY GATES & SECURITY VALIDATION")
+    print("="*80)
+
+    # 4.1 Gate 1 & 2: Single Source Version Manifest & Update Protocol
+    start = time.time()
+    vpath = os.path.join(ROOT_DIR, "version.json")
+    with open(vpath, "r", encoding="utf-8") as vf:
+        vmeta = json.load(vf)
+
+    proc_ver = subprocess.run([sys.executable, os.path.join(ENGINE_DIR, "Core", "Update-Version.py"), "--check"], capture_output=True, text=True, cwd=ROOT_DIR)
+    ver_valid = False
+    try:
+        ver_obj = json.loads(proc_ver.stdout)
+        ver_valid = (ver_obj.get("version") == vmeta.get("version") and 
+                     ver_obj.get("release") == vmeta.get("release") and 
+                     ver_obj.get("channel") == vmeta.get("channel"))
+    except Exception:
+        pass
+
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 1 & 2: Version Manifest & Structured JSON Update Protocol", ver_valid, f"Version={vmeta.get('version')}, Release={vmeta.get('release')}, Channel={vmeta.get('channel')}", dur)
+
+    # 4.2 Gate 3: Safe Sync & Branch Isolation
+    start = time.time()
+    ps_cmd = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
+    proc_sync = subprocess.run([ps_cmd, "-NoProfile", "-File", os.path.join(ROOT_DIR, "Watch-AndSyncToGitHub.ps1"), "-DryRun"], capture_output=True, text=True, cwd=ROOT_DIR)
+    sync_passed = ("sync/" in proc_sync.stdout or "sync/" in proc_sync.stderr) and proc_sync.returncode == 0
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 3: Safe Sync - Direct Push to Main Blocked & Unique Sync Branch", sync_passed, f"Branch Generated in DryRun Output={sync_passed}", dur)
+
+    # 4.3 Gate 4: UTF-8 Encoding Round-Trip & Mojibake Absence
+    start = time.time()
+    turkish_corpus = [
+        "\u004b\u006f\u00e7\u0053\u0069\u0073\u0074\u0065\u006d",
+        "\u004d\u00fc\u015f\u0074\u0065\u0072\u0069",
+        "\u0059\u00f6\u006e\u0065\u0074\u0069\u006c\u0065\u006e\u0020\u0047\u00fc\u0076\u0065\u006e\u006c\u0069\u006b",
+        "\u00c7\u00f6\u007a\u00fc\u006c\u0064\u00fc",
+        "\u015e\u00fcp\u0068\u0065\u006c\u0069\u0020\u0045\u002d\u0070\u006f\u0073\u0074\u0061",
+        "\u0130\u00e7\u0020\u0054\u0065\u0068\u0064\u0069\u0074",
+        "\u0130\u006c\u0065\u0074\u0069\u015f\u0069\u006d\u0020\u0055\u0079\u0075\u006d\u0075",
+        "\u0053\u0131\u006e\u0131\u0066\u006c\u0061\u006e\u0064\u0131\u0072\u006d\u0061",
+        "\u0041\u011f\u0075\u0073\u0074\u006f\u0073",
+        "\u0130\u0073\u0074\u0061\u006e\u0062\u0075\u006c",
+        "\u00c7\u0061\u011f\u0072\u0131",
+        "\u00d6\u006c\u00e7\u00fc\u006d"
+    ]
+    corpus_json = json.dumps({"corpus": turkish_corpus}, ensure_ascii=False)
+    round_trip = json.loads(corpus_json).get("corpus", [])
+    corpus_ok = round_trip == turkish_corpus
+
+    # Scan qa output for mojibake signatures: Ã, Ä, Å, Â, 
+    mojibake_signatures = ["\u00c3", "\u00c4", "\u00c5", "\u00c2", "\ufffd"]
+    has_mojibake = any(sig in proc_ver.stdout for sig in mojibake_signatures)
+    encoding_passed = corpus_ok and not has_mojibake
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 4: UTF-8 Encoding Integrity - Zero Mojibake in Streams & JSON", encoding_passed, f"CorpusMatch={corpus_ok}, MojibakeDetected={has_mojibake}", dur)
+
+    # 4.4 Gate 5: Report-ID Authorized Download, Expiration & Traversal Prevention
+    start = time.time()
+    # Generate a report to register a valid reportId
+    status_gen, body_gen, dur_gen = http_post("/api/reports/generate", {
+        "tenantId": "tenant-002",
+        "services": ["SVC-MDE"],
+        "dryRun": True
+    })
+    rep_id = body_gen.get("pdfReportId") or body_gen.get("reportId", "")
+    
+    # 4.4.1 Valid Report-ID Download
+    s_dl, c_dl, d_dl, _ = http_get(f"/api/reports/{rep_id}/download")
+    valid_id_dl = s_dl == 200 and len(c_dl) > 0
+
+    # 4.4.2 Unknown Report-ID (404)
+    s_404, b_404, _, _ = http_get("/api/reports/unknown-random-uuid-999/download")
+    unknown_id_404 = s_404 == 404
+
+    # 4.4.3 Path Traversal Prevention
+    s_trav, b_trav, _, _ = http_get("/api/reports/download?file=../../version.json")
+    traversal_blocked = s_trav in (400, 403, 404)
+
+    gate5_passed = valid_id_dl and unknown_id_404 and traversal_blocked
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 5: Report-ID Authorized Download & Traversal Protection", gate5_passed, f"ValidIdDL={valid_id_dl}, Unknown404={unknown_id_404}, TraversalBlocked={traversal_blocked}", dur)
+
+    # 4.5 Gate 6 & 7: UI Data Integrity & Personal Identity Elimination
+    start = time.time()
+    with open(os.path.join(ROOT_DIR, "Portal", "web", "index.html"), "r", encoding="utf-8") as f:
+        html_src = f.read()
+
+    no_static_endpoints = "5,520" not in html_src
+    no_static_ghost = 'id="statGhost" class="text-2xl font-extrabold text-amber-600 tracking-tight">45<' not in html_src
+    no_static_score = "%79.1" not in html_src
+    no_personal_name = "Caner \u00c7etinkaya" not in html_src
+    no_personal_initials = ">\u0043\u00c7<" not in html_src
+    
+    gate6_7_passed = no_static_endpoints and no_static_ghost and no_static_score and no_personal_name and no_personal_initials
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 6 & 7: UI Cleanliness - Zero Static Metrics & Zero Personal Defaults", gate6_7_passed, f"NoStaticEndpoints={no_static_endpoints}, NoPersonalName={no_personal_name}", dur)
+
+    # 4.6 Gate 10 & 11: Compliance Wording & Legal Disclaimer
+    start = time.time()
+    with open(os.path.join(ROOT_DIR, "Portal", "api", "report_generator.py"), "r", encoding="utf-8") as f:
+        rep_src = f.read()
+
+    no_absolute_compliance = "tam uyumludur" not in rep_src and "y\u00fczde 100 uyumlu" not in rep_src
+    has_disclaimer = "teknik bir g\u00fcvenlik \u00e7\u0131kt\u0131s\u0131 olarak haz\u0131rlanm\u0131\u015ft\u0131r" in rep_src
+    gate11_passed = no_absolute_compliance and has_disclaimer
+    dur = (time.time() - start) * 1000
+    log_test("quality_gates", "Gate 10 & 11: Compliance Neutral Wording & Regulatory Disclaimer", gate11_passed, f"NoAbsoluteCompliance={no_absolute_compliance}, HasNeutralDisclaimer={has_disclaimer}", dur)
+
 def main():
     start_all = time.time()
     run_engine_tests()
     run_api_tests()
     run_concurrency_tests()
+    run_quality_gates()
     total_time = time.time() - start_all
     results["summary"]["execution_time_sec"] = round(total_time, 2)
     

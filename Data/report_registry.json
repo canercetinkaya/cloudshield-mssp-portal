@@ -1,0 +1,848 @@
+{
+  "04e0389f-b2da-4aea-a056-106d5d90d13c": {
+    "reportId": "04e0389f-b2da-4aea-a056-106d5d90d13c",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:40:46.516020+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:fe20262863157bb56e1d56b684b76c7ffcf4be123d656da423fd50734920523c",
+    "sizeBytes": 228332,
+    "expiresAtUtc": "2026-12-09T13:40:46.516029+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "5b9016b1-e755-480f-a469-51a380feb57e": {
+    "reportId": "5b9016b1-e755-480f-a469-51a380feb57e",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:40:46.520943+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d3fccf1960e9c705db24b9d805632fd350bcfd29820cfd9439f021f702dff374",
+    "sizeBytes": 29510,
+    "expiresAtUtc": "2026-12-09T13:40:46.520951+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "55066fb6-1b7d-453c-a6d9-0dfdb9ac9255": {
+    "reportId": "55066fb6-1b7d-453c-a6d9-0dfdb9ac9255",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:41:13.611382+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:953e0d9eb7c25018c5ab2375fd07092ceb55fd0fe4d5e3c8a52dd4cd1dc5e1b0",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:41:13.611391+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "17bd0dbe-47a5-4911-8cb3-77ae4f53c135": {
+    "reportId": "17bd0dbe-47a5-4911-8cb3-77ae4f53c135",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:41:13.616925+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:150f95aaa8f11ef17a10444e9699aae21748197317ef08de0cadf31ae46bf57b",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:41:13.616931+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "f8a12782-6cb7-4f30-9e69-ad7a694cbccb": {
+    "reportId": "f8a12782-6cb7-4f30-9e69-ad7a694cbccb",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:41:13.689434+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:953e0d9eb7c25018c5ab2375fd07092ceb55fd0fe4d5e3c8a52dd4cd1dc5e1b0",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:41:13.689443+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "eee14e81-7611-425a-aa5e-97d85d990be0": {
+    "reportId": "eee14e81-7611-425a-aa5e-97d85d990be0",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:41:13.694363+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:150f95aaa8f11ef17a10444e9699aae21748197317ef08de0cadf31ae46bf57b",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:41:13.694370+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "4b8c0b67-f56f-4877-ad6c-efcb760840d9": {
+    "reportId": "4b8c0b67-f56f-4877-ad6c-efcb760840d9",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:41:19.350049+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:3c4c969aa7e8d19c3294990efc15b18470a8a130f1d9fd74dbfa1dd3a8a46a4c",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:41:19.350059+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "72f7486e-5e17-48d6-8717-3fff600b6585": {
+    "reportId": "72f7486e-5e17-48d6-8717-3fff600b6585",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:41:19.355401+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:150f95aaa8f11ef17a10444e9699aae21748197317ef08de0cadf31ae46bf57b",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:41:19.355407+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "c28670f2-819c-4351-bcb2-2498ba0b2dc1": {
+    "reportId": "c28670f2-819c-4351-bcb2-2498ba0b2dc1",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:42:41.878092+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:2132a429137ef110f7fd8572414bddfc4cf4f73078ecfbd15d643ba2021b1c8d",
+    "sizeBytes": 228332,
+    "expiresAtUtc": "2026-12-09T13:42:41.878101+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "6c81bfa6-59c4-42b3-b442-48f529461553": {
+    "reportId": "6c81bfa6-59c4-42b3-b442-48f529461553",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:42:41.883380+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d210aaada389f8d643a018401c41c36a3205496f1b54cc04f25739ffeebbe447",
+    "sizeBytes": 29510,
+    "expiresAtUtc": "2026-12-09T13:42:41.883387+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "70f43f7f-245a-4e48-9b41-3d65e15fe59b": {
+    "reportId": "70f43f7f-245a-4e48-9b41-3d65e15fe59b",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:43:00.876197+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d47e53d3e978a3422bf19a4dd48f5e911eb342a60cf5c4f3f66c6fda6036dde2",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:43:00.876207+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "1d03dc79-039a-4af7-9c12-6560fe98e2c8": {
+    "reportId": "1d03dc79-039a-4af7-9c12-6560fe98e2c8",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:43:00.881371+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:3fbc0a77257b1b13dc0641c39efe5442528960d9f65e6c238376a72d5bdbd859",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:43:00.881378+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "bd1d5ff6-9354-468e-8ccc-6a215615634a": {
+    "reportId": "bd1d5ff6-9354-468e-8ccc-6a215615634a",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:43:12.275758+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:1d7489b3811e22353a701ef9d61ac6ed46e61f7255a1e3cacb2d4bbbb928192f",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:43:12.275767+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "607792d5-3744-4cfd-9f3d-7737254fdb96": {
+    "reportId": "607792d5-3744-4cfd-9f3d-7737254fdb96",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:43:12.281293+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:7cdc3df57be0a7ad0d3c9036e44554ed3433f62960b3eb66ead51984f71e84a9",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:43:12.281300+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "1aedcac6-db8f-4f7f-9e04-de471b14596c": {
+    "reportId": "1aedcac6-db8f-4f7f-9e04-de471b14596c",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:43:12.607024+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:1d7489b3811e22353a701ef9d61ac6ed46e61f7255a1e3cacb2d4bbbb928192f",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:43:12.607033+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "b9740672-f624-4d73-8cd5-81bb683e8442": {
+    "reportId": "b9740672-f624-4d73-8cd5-81bb683e8442",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:43:12.612174+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:7cdc3df57be0a7ad0d3c9036e44554ed3433f62960b3eb66ead51984f71e84a9",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:43:12.612180+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "248f7c7a-3866-4791-af0f-e4a3ca6214c0": {
+    "reportId": "248f7c7a-3866-4791-af0f-e4a3ca6214c0",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:46:56.225474+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:304bef5f1f4299b83990437beac8844411299539d6ca6b1a3b11048934522194",
+    "sizeBytes": 121802,
+    "expiresAtUtc": "2026-12-09T13:46:56.225483+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "0a3d2596-a284-440b-a702-2102df6883e9": {
+    "reportId": "0a3d2596-a284-440b-a702-2102df6883e9",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:46:56.230663+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:f7e9ecf6a872895296b9af1cb33cf2424d2482f3b63c0f5dcdafb13105d71ce5",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:46:56.230671+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "9f561f9a-e44b-4ef0-ac7a-0abc41879078": {
+    "reportId": "9f561f9a-e44b-4ef0-ac7a-0abc41879078",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:48:54.995513+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d66a98034cc9978b45baf345c08c1e00a2540358951e04aaea131b24d424a677",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:48:54.995521+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "7c844735-1941-4b67-a93d-a9433933349a": {
+    "reportId": "7c844735-1941-4b67-a93d-a9433933349a",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:48:55.001000+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:25d3d0a7002d4e4dddd18c2d2774bd50629900df651d8c35e8fca737f1305eff",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:48:55.001006+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "b0cb25a8-3ec2-492e-8b1d-e9f300c1a27b": {
+    "reportId": "b0cb25a8-3ec2-492e-8b1d-e9f300c1a27b",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:49:38.073406+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:e1d7a9395e0b975148061fed5ad715207bca86f6d9061a317e53b395b0ac70fb",
+    "sizeBytes": 228331,
+    "expiresAtUtc": "2026-12-09T13:49:38.073416+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "8503797a-1fb3-4d4d-89ba-640f7c1343dd": {
+    "reportId": "8503797a-1fb3-4d4d-89ba-640f7c1343dd",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:49:38.079511+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:90650caae74f50966f0d8f3a605a4736b99f6f1db4dc99e1d8e6c20d9f44b68c",
+    "sizeBytes": 29510,
+    "expiresAtUtc": "2026-12-09T13:49:38.079517+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "6103dbc4-dff6-47d3-907c-d9e5da40b373": {
+    "reportId": "6103dbc4-dff6-47d3-907c-d9e5da40b373",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:50:05.236473+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:f97d0ff95a257b2d3e29be8d2c074ece01f8d2ef4988b0aca9acbf2cec910146",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:50:05.236481+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "2b91ea0e-cad0-4cd0-a0a0-fe904b8bba43": {
+    "reportId": "2b91ea0e-cad0-4cd0-a0a0-fe904b8bba43",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:50:05.242772+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:ff9b436282201da9527c2eb68c46342186873397c3140e2051f11b2bf2f5eac6",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:50:05.242779+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "7dc6e625-3723-4ade-ae08-49b1c4958f6f": {
+    "reportId": "7dc6e625-3723-4ade-ae08-49b1c4958f6f",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:50:05.431614+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:f97d0ff95a257b2d3e29be8d2c074ece01f8d2ef4988b0aca9acbf2cec910146",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:50:05.431622+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "480788dc-e32c-4f5f-a76b-91eaeeed5cc4": {
+    "reportId": "480788dc-e32c-4f5f-a76b-91eaeeed5cc4",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:50:05.437775+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:ff9b436282201da9527c2eb68c46342186873397c3140e2051f11b2bf2f5eac6",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:50:05.437782+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "dd3373c2-5536-4804-9986-6dd2bde91e50": {
+    "reportId": "dd3373c2-5536-4804-9986-6dd2bde91e50",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:50:11.188996+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:475e2d45ab6fad57563a64529a33fa783f667e6cec02080360b0325916590305",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:50:11.189006+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "ca1a3bca-a0ff-4f23-937c-23547861c445": {
+    "reportId": "ca1a3bca-a0ff-4f23-937c-23547861c445",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:50:11.195059+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:ff9b436282201da9527c2eb68c46342186873397c3140e2051f11b2bf2f5eac6",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:50:11.195066+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "10d76d1e-3edb-4ae9-ad3b-4ce1edbd8646": {
+    "reportId": "10d76d1e-3edb-4ae9-ad3b-4ce1edbd8646",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:52:15.264297+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:bb69df0be01d556195ebf416f7201eea6bd3d5c00cada412f02608ee43b67754",
+    "sizeBytes": 228332,
+    "expiresAtUtc": "2026-12-09T13:52:15.264305+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "eae84f0a-6aa8-43bf-a2a1-392d14f84a91": {
+    "reportId": "eae84f0a-6aa8-43bf-a2a1-392d14f84a91",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:52:15.270738+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:2774ed678a55b2c29de07b39ec1f324ba7dedf0b5730fa7f4956e9c09ad37c4e",
+    "sizeBytes": 29510,
+    "expiresAtUtc": "2026-12-09T13:52:15.270746+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "c82f8226-339e-4d7c-985a-c5d38a0ff5b6": {
+    "reportId": "c82f8226-339e-4d7c-985a-c5d38a0ff5b6",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:52:43.337846+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:cce497c7eb1fae22075b18dc5e60102aaa9d2d5a6b23865eaf70e23e65f959d1",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:52:43.337854+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "d34f2864-ccf6-406d-845a-be4fbd54de39": {
+    "reportId": "d34f2864-ccf6-406d-845a-be4fbd54de39",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:52:43.343533+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:55a91b1f97f0866742c3ec36c2ddf60ad8c502abda9a2832b448108dfa8408b4",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:52:43.343540+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "cd14a108-da2f-4412-9f43-cbf7bfb7c61f": {
+    "reportId": "cd14a108-da2f-4412-9f43-cbf7bfb7c61f",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:52:43.421858+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:cce497c7eb1fae22075b18dc5e60102aaa9d2d5a6b23865eaf70e23e65f959d1",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:52:43.421868+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "acac6828-017e-4b4f-b85e-090ca3fd6d49": {
+    "reportId": "acac6828-017e-4b4f-b85e-090ca3fd6d49",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:52:43.427418+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:55a91b1f97f0866742c3ec36c2ddf60ad8c502abda9a2832b448108dfa8408b4",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:52:43.427425+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "87d29586-238e-4330-af6c-892b83fad1d6": {
+    "reportId": "87d29586-238e-4330-af6c-892b83fad1d6",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:52:49.134977+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:7c53e55882f4fef0636599c9a6cff792df094eee6fdcd622a74370b3dbf05116",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:52:49.134986+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "2dba125e-eb70-4ec8-847f-3dbe52c472e0": {
+    "reportId": "2dba125e-eb70-4ec8-847f-3dbe52c472e0",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:52:49.140975+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:55a91b1f97f0866742c3ec36c2ddf60ad8c502abda9a2832b448108dfa8408b4",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:52:49.140982+00:00",
+    "version": "2.5.10",
+    "commit": "2121704"
+  },
+  "771c22c2-a04e-4535-8ad4-0b2c51118712": {
+    "reportId": "771c22c2-a04e-4535-8ad4-0b2c51118712",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:53:56.314033+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:02b20a707fee95dbfc21e5b86e4f2564f62f6ce30c9008429773c8656047e1bf",
+    "sizeBytes": 228332,
+    "expiresAtUtc": "2026-12-09T13:53:56.314043+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "df7171aa-6ca0-4ae4-be3f-eccdd580071d": {
+    "reportId": "df7171aa-6ca0-4ae4-be3f-eccdd580071d",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE",
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:53:56.319634+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:bec64368acaa95e185318704010d0f2e8a202524f5cd73fcbaca414a81dcb573",
+    "sizeBytes": 29510,
+    "expiresAtUtc": "2026-12-09T13:53:56.319641+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "28e883c3-3067-4ceb-9214-c07cba58b61c": {
+    "reportId": "28e883c3-3067-4ceb-9214-c07cba58b61c",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:54:24.550457+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d0a1fe077980c59cebdfd189254554c4e9b88e9b13c8c49cedb46a91666fb92c",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:54:24.550467+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "957022b9-0fab-460c-b96b-fda07cf8cf9c": {
+    "reportId": "957022b9-0fab-460c-b96b-fda07cf8cf9c",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDO"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:54:24.556729+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:0131044d43933f0627fdd0a305d4c46fbfa7525aa8428443191bf4aa3703bd6e",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:54:24.556736+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "45f4bae6-333a-45f8-ae6e-964600644bbe": {
+    "reportId": "45f4bae6-333a-45f8-ae6e-964600644bbe",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:54:24.623696+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:d0a1fe077980c59cebdfd189254554c4e9b88e9b13c8c49cedb46a91666fb92c",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:54:24.623704+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "8612804b-8c5d-4d48-890c-d7e18ecb4f8f": {
+    "reportId": "8612804b-8c5d-4d48-890c-d7e18ecb4f8f",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:54:24.629881+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:0131044d43933f0627fdd0a305d4c46fbfa7525aa8428443191bf4aa3703bd6e",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:54:24.629887+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "5896822b-4571-4db6-81e7-db152b881c79": {
+    "reportId": "5896822b-4571-4db6-81e7-db152b881c79",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "PDF",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "createdAtUtc": "2026-09-10T13:54:30.383306+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:09dc535a5e80aaedb5fead6bf4b105b96b3db4208d7a3a4c3a5324a3ae009bce",
+    "sizeBytes": 121803,
+    "expiresAtUtc": "2026-12-09T13:54:30.383315+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  },
+  "defa6cde-10a2-4a13-b01b-ece2242ee9bd": {
+    "reportId": "defa6cde-10a2-4a13-b01b-ece2242ee9bd",
+    "tenantId": "tenant-002",
+    "customerId": "Emre-TestTenant",
+    "period": "Monthly",
+    "serviceCodes": [
+      "SVC-MDE"
+    ],
+    "artifactType": "HTML",
+    "storageKey": "Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "createdAtUtc": "2026-09-10T13:54:30.389770+00:00",
+    "createdBy": "api",
+    "reportStatus": "Ready",
+    "integrityHash": "sha256:0131044d43933f0627fdd0a305d4c46fbfa7525aa8428443191bf4aa3703bd6e",
+    "sizeBytes": 20508,
+    "expiresAtUtc": "2026-12-09T13:54:30.389776+00:00",
+    "version": "2.5.11",
+    "commit": "2121704"
+  }
+}
