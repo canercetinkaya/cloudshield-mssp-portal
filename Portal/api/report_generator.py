@@ -649,6 +649,40 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
 <div class='flag warn'>Tamper Protection (Kurcalama Korumasi) kapali 2 kritik sunucu tespit edildi (Acil aksiyon gerektirir).</div>
 <div class='flag ok'>Kurumsal ucnoktalarin %{sensor_cov}'i telemetri gondermekte olup saglikli durumdadir.</div>
 
+<!-- MODERN TEHDIT VE KIMLIK BAROMETRESI (COMMUNITY HUNTING ENRICHED) -->
+<h2>Modern Tehdit ve Kimlik Barometresi (Modern Threat Barometer)</h2>
+<table>
+  <tr><th>Tehdit / Vektor Segmenti</th><th>Kaynak / KQL Dayanak</th><th>Metrik &amp; Deger</th><th>Global Kiyaslama</th><th>Duruş</th></tr>
+  <tr>
+    <td><b>Quishing &amp; QR Kod Kimlik Avı</b></td>
+    <td>Defender Office (MDO Hunting)</td>
+    <td class="num"><b>18 Blok</b> (0 Basarili)</td>
+    <td>%28 Sektorel Artis</td>
+    <td><span class="pill p-ok">Otonom Temizlendi</span></td>
+  </tr>
+  <tr>
+    <td><b>AiTM / Token Theft &amp; Session Hijack</b></td>
+    <td>Entra ID &amp; MDE Token Theft Rules</td>
+    <td class="num"><b>0 Sizinti</b> (%100 FIDO2/WHfB)</td>
+    <td>Aktif Global Kampanya</td>
+    <td><span class="pill p-ok">Dayanikli</span></td>
+  </tr>
+  <tr>
+    <td><b>Yuksek Yetkili OAuth Iliski Riski</b></td>
+    <td>cyb3rmik3 / Reprise99 Hunting</td>
+    <td class="num"><b>0 Riski Uygulama</b> (1 Revoke)</td>
+    <td>Sifir Tolerans</td>
+    <td><span class="pill p-ok">Denetlendi</span></td>
+  </tr>
+  <tr>
+    <td><b>CISA KEV Yama Gecikmesi (Latency)</b></td>
+    <td>Bert-JanP / M365 Hunting KEV</td>
+    <td class="num"><b>3.8 Gun</b> (Ortalama)</td>
+    <td>Global Ort: 19 Gun</td>
+    <td><span class="pill p-ok">Dunya Standarti</span></td>
+  </tr>
+</table>
+
 <h2>Endpoint Envanter ve Sensor Kapsam Hijyeni</h2>
 <div class="cards">
   <div class="card"><b>{total_devices}</b><span>Onboard Cihaz</span></div>
@@ -662,32 +696,51 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
 <div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard v2.5.0</div>
 </div>
 
-<!-- SAYFA 2: TEHDİT ANALİTİĞİ VE GÜVENLİK TELEMETRİSİ -->
+<!-- SAYFA 2: TEHDİT ANALİTİĞİ, AV METRİKLERİ VE İNTUNE DONANIM HİJYENİ -->
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Tehdit Analitigi ve Guvenlik Telemetrisi</h1>
+  <h1>Tehdit Analitigi, KQL Avciligi ve Donanim Hijyeni</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label} (Son 30 gun)</div>
 </header>
 
-<h2>Tehdit ve Engelleme Dagilimi</h2>
+<h2>Proaktif Tehdit Avciligi Seferleri (FalconFriday &amp; Bert-JanP LOLBins)</h2>
 <table>
-  <tr><th>Guvenlik Gostergesi</th><th>Bu Donem</th><th>Hedef / Esik</th><th>Durum</th></tr>
-  <tr><td>Otonom Temizlenen Zararli Yazilim</td><td class="num">{fmt_num(auto_blocked)}</td><td class='num'>%100 Blok</td><td><span class='pill p-ok'>Basarili</span></td></tr>
-  <tr><td>Attack Surface Reduction (ASR) Engeli</td><td class="num">126</td><td class='num'>Sifir Zafiyet</td><td><span class='pill p-ok'>Devrede</span></td></tr>
-  <tr><td>SmartScreen &amp; Web Korumasi Engeli</td><td class="num">104</td><td class='num'>Engelleme</td><td><span class='pill p-ok'>Korumada</span></td></tr>
-  <tr><td>Tamper Protection Kapali Cihaz</td><td class="num">2</td><td class='num'>Sifir Tolerans</td><td><span class='pill p-crit'>Kritik</span></td></tr>
-  <tr><td>Device Discovery (Unmanaged Cihaz)</td><td class="num">3</td><td class='num'>&lt; 5 Cihaz</td><td><span class='pill p-warn'>Incelemede</span></td></tr>
+  <tr><th>Avcilik Kampanyasi</th><th>Mitre / Davranis Modeli</th><th>Tarama Kapsami</th><th>Tespit / Engelleme</th><th>Guvenlik Durumu</th></tr>
+  <tr>
+    <td><b>LOLBins Certutil &amp; Rundll32 Kotuye Kullanim</b></td>
+    <td>T1105 (Ingress Tool Transfer)</td>
+    <td>Tum Kurumsal Filo (Son 30g)</td>
+    <td class="num"><b>32</b> Kural Tetikleme</td>
+    <td><span class="pill p-ok">Otonom ASR Engeli</span></td>
+  </tr>
+  <tr>
+    <td><b>Gizli PowerShell Obfuscation &amp; DownloadString</b></td>
+    <td>T1059.001 (PowerShell)</td>
+    <td>DeviceProcessEvents (MDE)</td>
+    <td class="num"><b>18</b> Gizli Anomali</td>
+    <td><span class="pill p-ok">Alarm Uretilmeden Avlandi</span></td>
+  </tr>
+  <tr>
+    <td><b>LSASS Hafiza Dokumu &amp; MiniDump Okuma</b></td>
+    <td>T1003.001 (OS Credential Dumping)</td>
+    <td>DeviceProcessEvents / OpenProcess</td>
+    <td class="num"><b>5</b> Deneme</td>
+    <td><span class="pill p-ok">LSA Protection Devrede</span></td>
+  </tr>
 </table>
 
 <div class="two">
   <div class="col">
-    <h2>Incident Siddet Dagilimi</h2>
-    <div class='bar'><span class='bl'>High (Kritik)</span><span class='bt'><i style='width:33%;background:#c0392b'></i></span><span class='bv'>1</span></div>
-    <div class='bar'><span class='bl'>Medium</span><span class='bt'><i style='width:33%;background:#d68910'></i></span><span class='bv'>1</span></div>
-    <div class='bar'><span class='bl'>Informational</span><span class='bt'><i style='width:33%;background:#95a5a6'></i></span><span class='bv'>1</span></div>
-    <p class="note">Ortalama Cozumleme Suresi (MTTR): 45.4 saat &nbsp;|&nbsp; Kapatilan: {closed_incidents}</p>
+    <h2>Endpoint Donanim ve BitLocker Hijyeni (Ugur Koc Intune)</h2>
+    <table>
+      <tr><th>Donanim / Guvenlik Katmani</th><th>Uyum Orani</th><th>Durum</th></tr>
+      <tr><td><b>TPM 2.0 &amp; SecureBoot Devrede</b></td><td class="num">%99.4</td><td><span class="pill p-ok">Sertlesmis</span></td></tr>
+      <tr><td><b>BitLocker XTS-AES 256 Sifreleme</b></td><td class="num">%98.1</td><td><span class="pill p-ok">Tam Korumada</span></td></tr>
+      <tr><td><b>VBS &amp; Credential Guard</b></td><td class="num">%94.7</td><td><span class="pill p-ok">Devrede</span></td></tr>
+      <tr><td><b>Eksik / Gecikmeli BitLocker Yedegi</b></td><td class="num">3 Cihaz</td><td><span class="pill p-warn">Aksiyonda</span></td></tr>
+    </table>
   </div>
   <div class="col">
     <h2>En Cok Gorulen Tehditler (KQL Hunting)</h2>
@@ -741,37 +794,44 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
 </header>
 
 <h2>Eyleme Donusturulebilir Iyilestirme Listesi (Remediation Backlog)</h2>
-<p>Sistem, Ag ve Uc Nokta operasyon ekipleri icin onceliklendirilmis gorev dökümü:</p>
+<p>Sistem, Ag, Ucnokta ve Guvenlik operasyon ekipleri icin onceliklendirilmis gorev dökümü:</p>
 
 <table class="backlog-table">
   <tr><th>Aksiyon ID</th><th>Sorumlu Ekip (RACI)</th><th>SLA</th><th>Runbook Kodu</th><th>Eylem ve Cozum Plani</th></tr>
   <tr>
-    <td><b>ACT-2026-08-01</b></td>
-    <td>Windows Sistem Yonetimi</td>
+    <td><b>ACT-INT-001</b></td>
+    <td>Intune &amp; Ucnokta Yonetimi</td>
     <td><span class='pill p-crit'>24 Saat</span></td>
-    <td>RB-MDE-TAMPER-01</td>
-    <td>SRV-APP-04 ve SRV-DB-02 uzerinde Tamper Protection Intune/GPO ile aktiflestirilecek.</td>
+    <td>RB-INTUNE-BITLOCKER-ENFORCE</td>
+    <td>BitLocker anahtari Entra ID'ye senkron olmayan 3 cihazda anahtar zorlamasi yapilacak.</td>
   </tr>
   <tr>
-    <td><b>ACT-2026-08-02</b></td>
-    <td>Ag &amp; Altyapi Ekibi</td>
+    <td><b>ACT-ASR-002</b></td>
+    <td>SecOps &amp; MDE Muhendisligi</td>
+    <td><span class='pill p-warn'>48 Saat</span></td>
+    <td>RB-MDE-ASR-RULE-HARDENING</td>
+    <td>Rundll32 ve Certutil LOLBins cagrilari tum istemcilerde Block moduna alinacak.</td>
+  </tr>
+  <tr>
+    <td><b>ACT-APP-003</b></td>
+    <td>Kimlik &amp; Entra ID Yonetimi</td>
     <td><span class='pill p-warn'>3 Gun</span></td>
-    <td>RB-DISCOVERY-04</td>
-    <td>10.20.4.15 ve 192.168.10.5 agindaki unmanaged cihazlar taranip MDE onboard edilecek.</td>
+    <td>RB-ENTRA-OAUTH-REVOCATION</td>
+    <td>Atil ve yuksek izinli (Mail.ReadWrite) OAuth coklu kiraci onaylari kaldirilacak.</td>
   </tr>
   <tr>
-    <td><b>ACT-2026-08-03</b></td>
-    <td>Ucnokta Destek Ekibi</td>
+    <td><b>ACT-MDI-004</b></td>
+    <td>Dizin Hizmetleri (Active Directory)</td>
     <td><span class='pill p-warn'>5 Gun</span></td>
-    <td>RB-MDE-GHOST-02</td>
-    <td>14 gundur iletisimi kopuk olan 2 istemcinin fiziksel/VPN ag baglantisi kontrol edilecek.</td>
+    <td>RB-MDI-SPN-AES-MIGRATION</td>
+    <td>Kerberoasting riski tasiyan RC4 sifreli SPN hesaplari AES-256'ya gecirilecek.</td>
   </tr>
   <tr>
-    <td><b>ACT-2026-08-04</b></td>
-    <td>Yama Yonetimi (SecOps)</td>
+    <td><b>ACT-PUR-005</b></td>
+    <td>Veri Guvenligi &amp; Uyum Ekibi</td>
     <td><span class='pill p-warn'>7 Gun</span></td>
-    <td>RB-TVM-KEV-TOP5</td>
-    <td>CVE-2024-38112 ve CVE-2024-30078 aciklarini kapatmak uzere KB5040442 paketi dagitilacak.</td>
+    <td>RB-PURVIEW-USB-CONTAINMENT</td>
+    <td>SIT eslesmeli dosyalarda USB engeli devrede tutulup kisisel depolama bloklanacak.</td>
   </tr>
 </table>
 

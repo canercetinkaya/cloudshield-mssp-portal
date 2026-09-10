@@ -208,6 +208,9 @@ body {
     font-weight: 600;
 }
 
+a { text-decoration: none; color: #464feb; }
+.data-table tr th, .data-table tr td { border: 1px solid #e6e6e6; }
+.data-table tr th { background-color: #f5f5f5; color: var(--ks-navy); }
 .data-table td {
     padding: 8px 12px;
     border-bottom: 1px solid var(--ks-border);

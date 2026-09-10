@@ -168,28 +168,46 @@ function Build-CompleteReportHtml {
         $sectionsCombined
     </main>
 
-    <!-- ALT BİLGİ / FOOTER & GİZLİLİK TAAHHÜDÜ -->
-    <footer class="report-footer" style="background-color:#0F172A; color:#94A3B8; padding:24px 32px; font-size:11px; border-top:2px solid #E2E8F0; margin-top:40px; border-radius:8px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:12px;">
+    <!-- ALT BİLGİ / FOOTER & GİZLİLİK TAAHHÜDÜ & KRİPTOGRAFİK DENETİM İZİ -->
+    <footer class="report-footer" style="background-color:#0F172A; color:#94A3B8; padding:28px 32px; font-size:11px; border-top:2px solid #E2E8F0; margin-top:40px; border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:1px solid #334155; padding-bottom:16px;">
             <div style="max-width:72%;">
-                <div style="font-weight:700; color:#F8FAFC; font-size:12px; margin-bottom:4px;">
-                    Enterprise Managed Security & Compliance Services &bull; Gizlilik ve Regülasyon Taahhüdü
+                <div style="font-weight:700; color:#F8FAFC; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+                    <span>🛡️ Enterprise Managed Security & Compliance Services &bull; Regülasyon ve Gizlilik Taahhüdü</span>
                 </div>
-                <div style="line-height:1.5; color:#CBD5E1;">
-                    Bu rapor; <strong>6698 sayılı KVKK (md. 4 ve md. 12)</strong>, <strong>AB GDPR (Madde 5, 25 ve 32 - Privacy by Design)</strong> ve <strong>ISO/IEC 27001:2022 (A.8.11, A.8.15)</strong> gereksinimlerine tam uyumlu olarak üretilmiştir. Raporlanan tüm olaylarda kullanıcı kimlikleri, e-posta adresleri ve dosya adları tuzlu SHA-256 ve k-Anonymity ($k \ge 5$) algoritmalarıyla tek yönlü maskelenmiştir.
+                <div style="line-height:1.6; color:#CBD5E1;">
+                    Bu kurumsal rapor; <strong>6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK md. 4, 6, 12 ve 18)</strong>, <strong>Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR Art. 5, 25, 32 ve 88 - Privacy by Design & Default)</strong>, <strong>ISO/IEC 27001:2022 (Kontroller A.8.11 Veri Maskeleme, A.8.15 Günlükleme)</strong> ve <strong>BDDK Bilgi Sistemleri Tebliği (md. 20 ve 29)</strong> standartlarına %100 uyumlu olarak üretilmiştir.
+                </div>
+                <div style="margin-top:8px; line-height:1.5; color:#94A3B8;">
+                    Rapordaki tüm kişisel veriler, e-posta adresleri (<code>a***.y***@sirket.com</code>), hassas dosya yolları (<code>Mali_Rapor_***.xlsx</code>) ve kullanıcı kimlikleri tek yönlü tuzlu SHA-256 ve $k$-Anonymity ($k \ge 5$) algoritmalarıyla maskelenmiş olup, hiçbir açık metin PII rapor metnine veya günlük kütüklerine yansıtılmamaktadır.
                 </div>
             </div>
             <div style="text-align:right;">
-                <span style="display:inline-block; background-color:#DC2626; color:#FFFFFF; font-weight:700; font-size:10px; padding:3px 8px; border-radius:4px; margin-bottom:4px;">TLP:AMBER &bull; TİCARİ SIR</span>
-                <div style="color:#94A3B8; font-size:10px;">Müşteriye Özel ve Gizli</div>
+                <span style="display:inline-block; background-color:#DC2626; color:#FFFFFF; font-weight:700; font-size:10px; padding:4px 10px; border-radius:4px; margin-bottom:6px; letter-spacing:0.5px;">TLP:AMBER &bull; TİCARİ SIR</span>
+                <div style="color:#F1F5F9; font-weight:600; font-size:11px;">Müşteriye Özel ve Gizli</div>
+                <div style="color:#64748B; font-size:10px; margin-top:2px;">Yetkisiz 3. Kişilerle Paylaşılamaz</div>
             </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#64748B;">
-            <div>
-                <strong>Etik ve Çalışan Hakları Bildirimi:</strong> Bu rapor bir çalışan performans, verimlilik veya kişisel davranış gözetimi niteliği taşımamakta olup; münhasıran teknik bilgi güvenliği ve Purview politika eşleşmelerini yansıtır.
+
+        <!-- CISO DİREKTİFİ 4: KRİPTOGRAFİK DENETİM İZİ VE ŞİFRELEME BÜTÜNLÜĞÜ KANITI -->
+        <div style="background-color:#1E293B; border:1px solid #334155; border-radius:6px; padding:12px 16px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-weight:700; color:#38BDF8; font-size:11px; display:flex; align-items:center; gap:6px;">
+                    <span>🔒 Kriptografik Denetim İzi (Audit Log) & Non-Repudiation (İnkar Edilemezlik) Kanıtı</span>
+                </div>
+                <span style="font-size:10px; color:#A7F3D0; background:#064E3B; padding:2px 8px; border-radius:3px; font-weight:600;">SHA-256 Mühürlü</span>
             </div>
+            <div style="font-size:10px; color:#94A3B8; line-height:1.5;">
+                Bu raporun HTML ve vektörel PDF çıktıları üretildiği anda <strong>SHA-256 kriptografik kontrol özeti</strong> hesaplanarak <code>Logs/Audit_PurviewReporting_*.jsonl</code> dosyasında inkar edilemez şekilde tescillenmiştir. Raporlama motorunu tetikleyen operatör kimliği, makine adı, süreç kimliği ve korelasyon anahtarı (Correlation ID) değiştirilemez JSONL denetim kütüğünde ISO 8601 zaman damgasıyla saklanmaktadır.
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#64748B; border-top:1px solid #1E293B; padding-top:10px;">
             <div>
-                Rapor Tarihi: $((Get-Date).ToString('dd.MM.yyyy HH:mm')) &bull; Denetim İzli (Audit Logged)
+                <strong>Etik ve Çalışan Hakları Bildirimi:</strong> Bu rapor bir çalışan performans, verimlilik veya kişisel davranış gözetimi (surveillance) aracı olmayıp; münhasıran teknik bilgi güvenliği risklerini ve Purview uyum kurallarını yönetmek amacıyla üst yönetime sunulmuştur.
+            </div>
+            <div style="white-space:nowrap; margin-left:16px;">
+                Rapor Tarihi: $((Get-Date).ToString('dd.MM.yyyy HH:mm')) &bull; Audit Trail Active
             </div>
         </div>
     </footer>

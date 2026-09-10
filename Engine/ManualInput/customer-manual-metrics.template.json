@@ -1,22 +1,119 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "Period": "2026-08",
-  "SocHumanOperations": {
-    "TotalTicketsOpened": 142,
-    "TotalTicketsResolvedBySoc": 138,
-    "FalsePositiveTickets": 12,
-    "ProactiveThreatHuntsConducted": 4,
+  "MsspEngineeringOperations": {
+    "SeniorEngineerHours": 86.5,
+    "ProactiveThreatHunts": 6,
+    "PolicyHardeningActions": 18,
+    "FalsePositiveTuningCount": 16,
     "EmergencyContainmentActions": 2,
-    "CustomerAdvisoryBulletinsSent": 3,
-    "AnalystWorkHours": 86.5
+    "AdvisoryBulletinsSent": 3,
+    "FteEquivalent": {
+      "SavedHoursTotal": 420.5,
+      "FteMultiplier": 3.0,
+      "MonthlyHourBasePerFte": 140,
+      "FormulaDescription": "((Otonom Olay x 15 dk) + Doğrudan Mühendis Eforu) / 140 saat"
+    },
+    "CostAvoidance": {
+      "EstimatedAvoidedCostUsd": 385000,
+      "EstimatedAvoidedCostTry": 14200000,
+      "CalculationBasis": [
+        "18 adet engellenen toplu TCKN/Kredi kartı sızıntısı ile önlenen KVKK/GDPR idari para cezası ve itibar kaybı riski",
+        "2 adet uç nokta bellek izolasyonu ile önlenen olası fidye yazılımı (Ransomware) duruş ve iyileştirme maliyeti (~16 gün iş kesintisi tasarrufu)"
+      ]
+    }
+  },
+  "ProactiveThreatHunting": {
+    "TotalCampaigns": 6,
+    "TotalKqlQueriesExecuted": 52,
+    "SubThresholdAnomaliesNeutralized": 18,
+    "ConvertedToCustomDetectionRules": 4,
+    "AverageThreatToHuntLeadHours": 18.5,
+    "IntelligenceSources": [
+      { "Name": "Microsoft Defender Hunting Queries", "Repo": "Microsoft/Defender-Hunting-Queries", "Focus": "Resmi Tehdit Avı ve 0-Day Kampanyaları" },
+      { "Name": "FalconFriday", "Repo": "FalconForce/FalconFriday", "Focus": "İleri Düzey LOTL & Process Injection Kalıpları" },
+      { "Name": "Bert-JanP Cloud Security", "Repo": "Bert-JanP/Open-Threat-Research", "Focus": "Entra ID, Graph API & Azure Privileged Anomalileri" },
+      { "Name": "cyb3rmik3 KQL Collection", "Repo": "cyb3rmik3/KQL-Queries", "Focus": "Sigma Tabanlı Komut Satırı & Obfuscation Taramaları" },
+      { "Name": "ugurkocde Endpoint Tools", "Repo": "ugurkocde/KQL-Queries", "Focus": "Intune Cihaz Uyum & Endpoint Hijyen Kalıpları" }
+    ],
+    "HighlightedCampaigns": [
+      {
+        "Id": "TH-2026-08-01",
+        "SourceRepo": "FalconFriday",
+        "MitreTechnique": "T1055 - Process Injection",
+        "Title": "LOLBins ile Belleğe Enjeksiyon Girişimlerinin Taranması",
+        "Scope": "Tüm Windows Sunucular ve Kritik İş İstasyonları",
+        "ActionTaken": "Alarmsız yürütülen 2 şüpheli certutil/rundll32 bellek anomalisi tespit edildi, süreçler izole edildi.",
+        "Outcome": "Gizli sızma girişimi olaya (Incident) dönüşmeden bertaraf edildi. 1 yeni Custom Detection kuralı yazıldı."
+      },
+      {
+        "Id": "TH-2026-08-02",
+        "SourceRepo": "Bert-JanP",
+        "MitreTechnique": "T1098.001 - Cloud Account Credentials Modification",
+        "Title": "Entra ID Gizli Service Principal Credential Ekleme Taraması",
+        "Scope": "Microsoft Entra ID ve OAuth Uygulama Ekosistemi",
+        "ActionTaken": "Son 30 günde admin dışı eklenen 3 şüpheli API Secret tespit edildi.",
+        "Outcome": "Yetkisiz 1 eski test uygulamasının erişimi iptal edildi. Kalıcı arka kapı riski ortadan kaldırıldı."
+      },
+      {
+        "Id": "TH-2026-08-03",
+        "SourceRepo": "Microsoft Security Research",
+        "MitreTechnique": "T1566.002 - Spearphishing Link / QR Code Phish",
+        "Title": "Görsel İçi Gömülü QR Kod (Quishing) & SVG Gövde Taraması",
+        "Scope": "Exchange Online ve Kullanıcı Posta Kutuları",
+        "ActionTaken": "Optik karakter okuma ve gelişmiş KQL ile 14 şüpheli QR kimlik avı postası tespit edildi.",
+        "Outcome": "Postalar kullanıcılar tıklamadan ZAP ile posta kutularından geri çekildi."
+      }
+    ]
   },
   "HuntOfTheMonth": {
-    "Title": "CVE-2026-XXXX Mimikatz Bellek Enjeksiyon Taraması",
+    "Title": "FalconFriday Destekli CVE-2026 Bellek Enjeksiyon Taraması",
     "Target": "Tüm Windows Domain Controller ve Sunucu Grubu",
-    "Action": "Gelişmiş KQL bellek anomalisi taraması yapıldı, 2 sunucuda şüpheli servis durduruldu.",
+    "Action": "Gelişmiş FalconFriday KQL bellek anomalisi kalıbı çalıştırıldı, 2 sunucuda şüpheli servis durduruldu.",
     "Result": "Başarılı izolasyon sağlandı, kurumsal kimlik sızıntısı önlendi."
   },
+  "ActionableRemediationBacklog": [
+    {
+      "TaskId": "ACT-2026-08-01",
+      "Domain": "Endpoint (MDE)",
+      "Priority": "Critical",
+      "Title": "Hayalet (Ghost) Sensör Verisi Göndermeyen 14 Cihazın Ağ & Ajan Triyajı",
+      "Assignee": "Müşteri Sistem / Ağ Yönetimi Ekibi",
+      "KoçSistemRole": "Analiz, Kılavuz & Doğrulama (RACI: Accountable/Consulted)",
+      "Runbook": "RB-MDE-GHOST-DEVICE-REMEDIATION",
+      "RunbookSteps": "1. Cihazların DNS/IP erişilebilirliğini kontrol et. 2. Windows Sense servis durumunu doğrula ('sc query sense'). 3. GPO ile MDE onboarding paketini yeniden tetikle.",
+      "SlaDays": 5,
+      "Status": "PendingCustomerAction"
+    },
+    {
+      "TaskId": "ACT-2026-08-02",
+      "Domain": "Compliance (Purview DLP)",
+      "Priority": "High",
+      "Title": "Muhasebe Departmanı USB Engeli İçin İstisna & Şifreli USB Politikasına Geçiş",
+      "Assignee": "Müşteri BT Destek & Güvenlik Uyum Ekibi",
+      "KoçSistemRole": "Politika Tasarımı & Test (RACI: Responsible)",
+      "Runbook": "RB-DLP-USB-BITLOCKER-ENCRYPTION",
+      "RunbookSteps": "1. Yalnızca BitLocker to Go ile şifrelenmiş kurumsal USB'lere yazma izni tanıyan MDE/DLP kuralını etkinleştir. 2. Düz USB bellek kullanımını blokla.",
+      "SlaDays": 10,
+      "Status": "InReview"
+    },
+    {
+      "TaskId": "ACT-2026-08-03",
+      "Domain": "Cloud & AI (MDCA & Copilot)",
+      "Priority": "High",
+      "Title": "SharePoint 'Everyone except external users' İzinli 28 Hassas Dokümanın Yetki Daraltması",
+      "Assignee": "Müşteri Bilgi Sistemleri & İlgili Veri Sahipleri",
+      "KoçSistemRole": "DSPM for AI Raporlama & Keşif (RACI: Consulted)",
+      "Runbook": "RB-COPILOT-OVERSHARING-REMEDIATION",
+      "RunbookSteps": "1. DSPM for AI ekranından listelenen 28 dosyanın paylaşım linklerini 'Belirli Kişiler' olarak sınırla. 2. Hassas (Confidential) etiketini zorunlu kıl.",
+      "SlaDays": 7,
+      "Status": "Planned"
+    }
+  ],
   "ExecutiveNotes": [
+    "Bu ay FalconFriday ve Bert-JanP repo kalıplarıyla yürütülen 6 proaktif avlama seferinde standart alarmlara düşmeyen 18 gizli anomali açığa çıkarılmış ve temizlenmiştir.",
     "Bu ay içinde gerçekleştirilen ASR sıkılaştırması sayesinde uç noktalarda şüpheli PowerShell yürütme girişimleri %40 oranında azalmıştır.",
-    "İnsan kaynakları birimiyle koordineli olarak yürütülen Purview DLP pilot çalışmasında 24 hassas veri sızıntısı girişimi engellenmiştir."
+    "İnsan kaynakları ve Hukuk birimleriyle koordineli yürütülen Purview DLP çalışmasında 24 hassas veri sızıntısı girişimi engellenmiştir.",
+    "Copilot öncesi veri temizliği (Data Hygiene) kapsamında 28 adet aşırı yetkilendirilmiş finansal tablo yetki daraltması için müşteri BT ekibine iletilmiştir."
   ]
 }
