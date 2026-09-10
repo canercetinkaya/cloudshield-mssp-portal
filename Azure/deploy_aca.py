@@ -88,12 +88,23 @@ def main():
             "--password", github_token
         ], check=False)
 
-    # 3. Update container image only (minimal diff - does NOT touch ingress/secrets/scale)
-    print(f"=== Updating container image to {image_tag} ===")
+    # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
+    print(f"=== Discovering actual container name inside {app_name} ===")
+    cname_res = run_cmd([
+        "az", "containerapp", "show",
+        "-n", app_name, "-g", resource_group,
+        "--query", "properties.template.containers[0].name",
+        "-o", "tsv"
+    ], check=False)
+    actual_container_name = cname_res.stdout.strip() if cname_res.returncode == 0 and cname_res.stdout.strip() else "cloudshield-mssp-portal"
+    print(f"[DISCOVERY] Actual container name in ACA: '{actual_container_name}'")
+
+    # 3b. Update container image only (minimal diff - does NOT touch ingress/secrets/scale)
+    print(f"=== Updating container image to {image_tag} (container: {actual_container_name}) ===")
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
-        "--container-name", "cloudshield-mssp-portal",
+        "--container-name", actual_container_name,
         "--image", image_tag
     ])
 
@@ -112,7 +123,7 @@ def main():
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
-        "--container-name", "cloudshield-mssp-portal",
+        "--container-name", actual_container_name,
         "--min-replicas", "1",
         "--max-replicas", "3"
     ], check=False)
@@ -139,6 +150,14 @@ def main():
 
     version_url = f"https://{fqdn}/api/version"
     print(f"=== Verifying Live Version Endpoint: {version_url} (Expecting Version: '{expected_version}' / Release: '{expected_release}') ===")
+
+    # Pre-probe: show current revision state for diagnostics
+    print("=== Pre-probe: Current revision list ===")
+    run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
+
+    # Warmup: wait for ACA cold-start before first probe (avoids wasting probe budget)
+    print("=== Waiting 25s for ACA revision cold-start warmup... ===")
+    time.sleep(25)
 
     # 6. Live Endpoint Verification (30 probes x 8s = 240s window for revision traffic shift & cold start)
     verified = False

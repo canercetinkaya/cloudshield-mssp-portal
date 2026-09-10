@@ -18,7 +18,7 @@
 ## 🌐 Pilot & Production Deployment
 
 - **Deployment Host:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-- **Active Release:** `v2.5.10-PILOT` (Managed via Single-Source `version.json`)
+- **Active Release:** `v2.5.11-PILOT` (Managed via Single-Source `version.json`)
 - **Release Channel:** `pilot` (Decoupled from production-ready status)
 - **Version Endpoint:** `GET /api/version` (Dynamic manifest & telemetry verification)
 - **Authentication Wall:** Session-gated access with Enterprise Credentials (managed via environment variables / Azure Key Vault) or Microsoft Entra ID Single Sign-On (SSO).

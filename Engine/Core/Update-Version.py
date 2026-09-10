@@ -124,10 +124,11 @@ if not is_dry_run:
         with open(readme_file, 'r', encoding='utf-8') as f:
             readme_content = f.read()
 
-        readme_content = re.sub(r'badge/Release-v[0-9\.]+(-{1,2})[A-Z]+-[a-zA-Z]+\.svg', f'badge/Release-{new_release}-brightgreen.svg', readme_content)
-        readme_content = re.sub(r'releases/tag/v[0-9\.]+(-[A-Z]+)?', f'releases/tag/{new_release}', readme_content)
-        readme_content = re.sub(r'\*\*Active Release:\*\* [0-9\.]+(-[A-Z]+)?', f'**Active Release:** {new_release}', readme_content)
-        readme_content = re.sub(r'Live Release Badge: v[0-9\.]+(-[A-Z]+)?', 'Dynamic Release Badge', readme_content)
+        readme_content = re.sub(r'badge/Release-v[\d\.]+-[A-Za-z]+-[a-zA-Z]+\.svg', f'badge/Release-{new_release}-brightgreen.svg', readme_content)
+        readme_content = re.sub(r'releases/tag/v[\d\.]+-[A-Z]+', f'releases/tag/{new_release}', readme_content)
+        # Fix: was using \v (vertical tab) instead of backtick — that never matched
+        readme_content = re.sub(r'(\*\*Active Release:\*\*\s*)`v[\d\.]+-[A-Z]+-PILOT`', r'\g<1>' + f'`{new_release}`', readme_content)
+        readme_content = re.sub(r'(\*\*Active Release:\*\*\s*)`v[\d\.]+-[A-Z]+`', r'\g<1>' + f'`{new_release}`', readme_content)
 
         recent_rows = []
         for item in vdata.get('changelog', [])[:5]:

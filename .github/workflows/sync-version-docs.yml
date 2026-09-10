@@ -1,0 +1,195 @@
+﻿name: "🔄 Version & Docs Synchronization"
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'version.json'
+      - 'Data/version.json'
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force sync even if version unchanged'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-version-everywhere:
+    name: "📌 Sync Version → README, Docs, Diagrams, Tags"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🐍 Python 3.11 Setup"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: "📖 Read Current Version Manifest"
+        id: version
+        shell: bash
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          with open("version.json", encoding="utf-8") as f:
+              v = json.load(f)
+          release = v.get("release", "")
+          version = v.get("version", "")
+          channel = v.get("channel", "pilot")
+          build   = v.get("build", "")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"release={release}\n")
+              out.write(f"version={version}\n")
+              out.write(f"channel={channel}\n")
+              out.write(f"build={build}\n")
+          print(f"Version manifest: {release} | Build: {build} | Channel: {channel}")
+          PYEOF
+
+      - name: "🔄 Sync README Active Release, Badge & Changelog Table"
+        shell: bash
+        run: |
+          python3 - <<'PYEOF'
+          import re, json
+
+          with open("version.json", encoding="utf-8") as f:
+              vdata = json.load(f)
+
+          release = vdata["release"]
+
+          with open("README.md", encoding="utf-8") as f:
+              content = f.read()
+
+          # 1. Badge shield URL
+          content = re.sub(
+              r'badge/Release-v[\d.]+-[A-Za-z]+-[a-zA-Z]+\.svg',
+              f'badge/Release-{release}-brightgreen.svg',
+              content
+          )
+          # 2. Badge link target
+          content = re.sub(
+              r'releases/tag/v[\d.]+-[A-Z]+',
+              f'releases/tag/{release}',
+              content
+          )
+          # 3. Active Release line (backtick-wrapped)
+          content = re.sub(
+              r'(\*\*Active Release:\*\*\s*)`v[\d.]+-[A-Z]+-PILOT`',
+              r'\1' + f'`{release}`',
+              content
+          )
+          content = re.sub(
+              r'(\*\*Active Release:\*\*\s*)`v[\d.]+-[A-Z]+`',
+              r'\1' + f'`{release}`',
+              content
+          )
+          # 4. Rebuild changelog table
+          rows = []
+          for item in vdata.get("changelog", [])[:6]:
+              rel = item.get("release", "")
+              bld = item.get("build", "")
+              ts  = item.get("timestamp", "")[:10]
+              sm  = item.get("summary", "").replace("|", "-")
+              rows.append(f"| **{rel}** | {bld} | {ts} | {sm} |")
+
+          new_table = "\n".join([
+              "## \U0001f680 Recent Releases & Autonomous Changelog",
+              "",
+              "| Release Tag | Build | Date | Autonomous Agent Summary |",
+              "| :--- | :--- | :--- | :--- |",
+              *rows,
+              ""
+          ])
+
+          marker = "## \U0001f680 Recent Releases"
+          if marker in content:
+              content = re.sub(
+                  r'## \U0001f680 Recent Releases.*?(?=\n## |\n---|$)',
+                  new_table.strip(),
+                  content,
+                  flags=re.DOTALL
+              )
+
+          with open("README.md", "w", encoding="utf-8") as f:
+              f.write(content)
+
+          print(f"README synced to {release}")
+          PYEOF
+
+      - name: "📐 Sync Architecture & Operations Docs"
+        shell: bash
+        run: |
+          python3 - <<'PYEOF'
+          import re, json, glob
+
+          with open("version.json", encoding="utf-8") as f:
+              vdata = json.load(f)
+          release = vdata["release"]
+
+          doc_paths = (
+              glob.glob("docs/architecture/**/*.md", recursive=True) +
+              glob.glob("docs/operations/**/*.md", recursive=True) +
+              glob.glob("docs/capabilities/**/*.md", recursive=True)
+          )
+
+          for path in doc_paths:
+              with open(path, encoding="utf-8") as f:
+                  content = f.read()
+              new_content = re.sub(
+                  r'(\*\*Active Release:\*\*\s*)`v[\d.]+-[A-Z]+-PILOT`',
+                  r'\1' + f'`{release}`', content
+              )
+              new_content = re.sub(
+                  r'(\*\*Active Release:\*\*\s*)`v[\d.]+-[A-Z]+`',
+                  r'\1' + f'`{release}`', new_content
+              )
+              if new_content != content:
+                  with open(path, "w", encoding="utf-8") as f:
+                      f.write(new_content)
+                  print(f"Updated: {path}")
+          print("Docs sync complete.")
+          PYEOF
+
+      - name: "🏷️ Ensure Git Tag Exists for This Release"
+        shell: bash
+        run: |
+          RELEASE="${{ steps.version.outputs.release }}"
+          if git tag | grep -qF "$RELEASE"; then
+            echo "Tag $RELEASE already exists — skipping."
+          else
+            git config user.name  "CloudShield Autonomous Agent"
+            git config user.email "devops@cloudshield.mssp"
+            git tag -a "$RELEASE" -m "Release $RELEASE — auto-tagged by sync-version-docs workflow"
+            git push origin "$RELEASE"
+            echo "Tag $RELEASE pushed."
+          fi
+
+      - name: "💾 Commit Synced Files Back to main"
+        shell: bash
+        run: |
+          git config user.name  "CloudShield Autonomous Agent"
+          git config user.email "devops@cloudshield.mssp"
+          git add README.md docs/
+          if git diff --cached --quiet; then
+            echo "No doc changes to commit — all in sync."
+          else
+            git commit -m "chore(sync): auto-sync docs to ${{ steps.version.outputs.release }} [skip ci]"
+            git push origin main
+            echo "Docs committed and pushed."
+          fi
+
+      - name: "📊 Version Sync Summary"
+        run: |
+          echo "=========================================="
+          echo "  Version Sync Complete"
+          echo "  Release  : ${{ steps.version.outputs.release }}"
+          echo "  Build    : ${{ steps.version.outputs.build }}"
+          echo "  Channel  : ${{ steps.version.outputs.channel }}"
+          echo "=========================================="
