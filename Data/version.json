@@ -1,12 +1,24 @@
 {
-  "version": "2.5.3",
-  "release": "v2.5.3-LIVE",
-  "build": "2026.09.10.3",
-  "build_number": 3,
-  "last_updated": "2026-09-10T11:07:59+03:00",
+  "version": "2.5.4",
+  "release": "v2.5.4-LIVE",
+  "build": "2026.09.10.4",
+  "build_number": 4,
+  "last_updated": "2026-09-10T11:14:57+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.4",
+      "release": "v2.5.4-LIVE",
+      "build": "2026.09.10.4",
+      "timestamp": "2026-09-10T11:14:57+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(docs): automate multi-document synchronization across README, CONTRIBUTING, and SECURITY with live release changelog table",
+      "details": [
+        "Güncellenen dosya: Engine/Core/Update-Version.py"
+      ]
+    },
     {
       "version": "2.5.3",
       "release": "v2.5.3-LIVE",
