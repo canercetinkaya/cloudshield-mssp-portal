@@ -1,15 +1,32 @@
 {
-  "version": "2.5.11",
-  "release": "v2.5.11-PILOT",
-  "build": "2026.09.10.11",
+  "version": "2.5.12",
+  "release": "v2.5.12-PILOT",
+  "build": "2026.09.10.12",
   "channel": "pilot",
-  "build_number": 11,
-  "last_updated": "2026-09-10T16:53:01+03:00",
+  "build_number": 12,
+  "last_updated": "2026-09-10T23:30:42+03:00",
   "environment": "pilot",
   "productionReady": false,
   "commit": "2121704",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.12",
+      "release": "v2.5.12-PILOT",
+      "build": "2026.09.10.12",
+      "timestamp": "2026-09-10T23:30:42+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(quality-gate): blocking report-product remediation and 14 semantic quality gates",
+      "details": [
+        "Güncellenen dosya: Data/report_registry.json",
+        "Güncellenen dosya: Engine/Core/PluginLoader.psm1",
+        "Güncellenen dosya: Engine/Core/ReportRenderer.psm1",
+        "Güncellenen dosya: Engine/Invoke-CloudShieldSecurityReporting.ps1",
+        "Güncellenen dosya: Engine/Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1",
+        "Güncellenen dosya: Engine/Plugins/PurviewDlp/PurviewDlp.Plugin.psm1"
+      ]
+    },
     {
       "version": "2.5.11",
       "release": "v2.5.11-PILOT",

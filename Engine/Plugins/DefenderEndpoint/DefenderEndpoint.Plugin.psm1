@@ -264,8 +264,8 @@ function Get-ServiceKpis {
     $hayaletCihazlar = $ghost7to14 + $ghost14to30 + $ghost30Plus
 
     # Sensör Kapsama Oranı: (Sağlıklı Onboard Cihazlar / Toplam AD Cihazları) * 100
-    $totalAd = if ($RawData.TotalAdDevices -and $RawData.TotalAdDevices -gt 0) { [int]$RawData.TotalAdDevices } else { [math]::Max($d.Count, 1) }
-    $sensorCoveragePct = [math]::Round(($aktifCihazlar.Count / $totalAd) * 100, 1)
+    $totalAd = if ($RawData.TotalAdDevices -and $RawData.TotalAdDevices -gt 0) { [int]$RawData.TotalAdDevices } elseif ($d.Count -gt 0) { $d.Count } else { 0 }
+    $sensorCoveragePct = if ($totalAd -gt 0) { [math]::Round(($aktifCihazlar.Count / $totalAd) * 100, 1) } else { 'N/A' }
 
     # Otonom ve Manuel Response Aksiyonları
     $otonomRegex = '(?i)(automated|automatic|autoir|system|defender)'
@@ -296,7 +296,7 @@ function Get-ServiceKpis {
     }
     $tvmYuzde = if (($toplamUyumlu + $toplamUyumsuz) -gt 0) {
         [math]::Round(($toplamUyumlu / ($toplamUyumlu + $toplamUyumsuz)) * 100, 1)
-    } else { 100 }
+    } else { 'N/A' }
 
     return [ordered]@{
         ToplamCihaz         = $d.Count

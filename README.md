@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Release](https://img.shields.io/badge/Release-v2.5.11-PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.11-PILOT)
+[![Release](https://img.shields.io/badge/Release-v2.5.12-PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.12-PILOT)
 [![Channel](https://img.shields.io/badge/Channel-Pilot%20Validation-yellow.svg)](#release-channels)
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 [![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
@@ -18,7 +18,7 @@
 ## 🌐 Pilot & Production Deployment
 
 - **Deployment Host:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-- **Active Release:** `v2.5.11-PILOT` (Managed via Single-Source `version.json`)
+- **Active Release:** `v2.5.12-PILOT` (Managed via Single-Source `version.json`)
 - **Release Channel:** `pilot` (Decoupled from production-ready status)
 - **Version Endpoint:** `GET /api/version` (Dynamic manifest & telemetry verification)
 - **Authentication Wall:** Session-gated access with Enterprise Credentials (managed via environment variables / Azure Key Vault) or Microsoft Entra ID Single Sign-On (SSO).
@@ -168,6 +168,7 @@ az containerapp up \
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
+| **v2.5.12-PILOT** | 2026.09.10.12 | 2026-09-10 | feat(quality-gate): blocking report-product remediation and 14 semantic quality gates |
 | **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |
 | **v2.5.10-PILOT** | 2026.09.10.10 | 2026-09-10 | refactor(release): establish single-source version manifest and dynamic azure deployment discovery |
 ---

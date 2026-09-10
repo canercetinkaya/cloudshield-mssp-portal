@@ -26,14 +26,14 @@
         {
           "Segment": "Quishing & QR Kod Kimlik Avı",
           "KqlSource": "Defender Office (EmailEvents & UrlClickEvents)",
-          "Metric": "0 Sızıntı (%100 Koruma)",
+          "Metric": "0 Tespit",
           "Benchmark": "Global Sektör Ort. %3.2 Risk",
           "Posture": "Doğrulandı: Temiz"
         },
         {
           "Segment": "AiTM / Token Hırsızlığı & Session Hijack",
           "KqlSource": "Entra ID & MDE Token Theft Rules",
-          "Metric": "0 Sızıntı (%100 Koruma)",
+          "Metric": "0 Tespit",
           "Benchmark": "Zero Trust Standart",
           "Posture": "Dayanıklı"
         },
@@ -49,7 +49,7 @@
           "KqlSource": "MDE TVM & CISA KEV Feed",
           "Metric": "Sıfır Gecikme",
           "Benchmark": "Global Hedef < 14 Gün",
-          "Posture": "Tam Uyumlu"
+          "Posture": "Uyumlu"
         }
       ],
       "FalconFridayCampaigns": [

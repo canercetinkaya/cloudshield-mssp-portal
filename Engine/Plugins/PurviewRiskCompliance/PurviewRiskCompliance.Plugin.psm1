@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Insider Risk Management (IRM) & Communication Compliance Service Plugin (Isolated Privacy App).
 [CmdletBinding()]
 param()
@@ -232,7 +232,7 @@ function Get-ServiceHtmlSection {
                 <th>Risk Seviyesi</th>
                 <th>Olay Sayısı</th>
                 <th>MSSP Triyaj Durumu</th>
-                <th>k-Anonymity Koruma Güvencesi</th>
+                <th>k-Anonymity Koruma Seviyesi</th>
             </tr>
         </thead>
         <tbody>
@@ -250,7 +250,7 @@ function Get-ServiceHtmlSection {
     </table>
 
     <div class="callout-box" style="margin-top:16px;">
-        <strong>Gizlilik & KVKK Güvencesi (Privacy-by-Design & Separation of Duties):</strong> Bu rapor yalnızca agregasyon ve sayısal sinyal düzeyinde veri içerir. 6698 sayılı Kanun (md. 4 ve md. 6) ve GDPR (Madde 88) istihdam mahremiyeti ilkeleri uyarınca kişisel kullanıcı kimlikleri, çalışan risk skorları veya e-posta/sohbet mesaj içerikleri rapora asla yansıtılmaz; bağımsız ve izole edilmiş İK/Hukuk rolleri tarafından Purview portalı üzerinden yönetilir.
+        <strong>Gizlilik & KVKK Bildirimi (Privacy-by-Design & Separation of Duties):</strong> Bu rapor yalnızca agregasyon ve sayısal sinyal düzeyinde veri içerir. 6698 sayılı Kanun (md. 4 ve md. 6) ve GDPR (Madde 88) istihdam mahremiyeti ilkeleri uyarınca kişisel kullanıcı kimlikleri, çalışan risk skorları veya e-posta/sohbet mesaj içerikleri rapora asla yansıtılmaz; bağımsız ve izole edilmiş İK/Hukuk rolleri tarafından Purview portalı üzerinden yönetilir.
     </div>
 </section>
 "@

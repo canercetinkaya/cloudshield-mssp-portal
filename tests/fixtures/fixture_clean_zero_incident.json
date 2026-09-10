@@ -31,7 +31,7 @@
       "BlockedEvents": 0,
       "OverrideEvents": 0,
       "EndpointEvents": 0,
-      "ProtectionRatePct": 100.0,
+      "ProtectionRatePct": null,
       "KazanilanZamanSaat": 0.0,
       "ManuelAnalistEforu": 0
     }

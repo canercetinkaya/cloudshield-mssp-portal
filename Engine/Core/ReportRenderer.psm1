@@ -176,7 +176,7 @@ function Build-CompleteReportHtml {
                     <span>🛡️ Enterprise Managed Security & Compliance Services &bull; Regülasyon ve Gizlilik Taahhüdü</span>
                 </div>
                 <div style="line-height:1.6; color:#CBD5E1;">
-                    Bu kurumsal rapor; <strong>6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK md. 4, 6, 12 ve 18)</strong>, <strong>Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR Art. 5, 25, 32 ve 88 - Privacy by Design & Default)</strong>, <strong>ISO/IEC 27001:2022 (Kontroller A.8.11 Veri Maskeleme, A.8.15 Günlükleme)</strong> ve <strong>BDDK Bilgi Sistemleri Tebliği (md. 20 ve 29)</strong> standartlarına %100 uyumlu olarak üretilmiştir.
+                    Bu kurumsal rapor; <strong>6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK md. 4, 6, 12 ve 18)</strong>, <strong>Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR Art. 5, 25, 32 ve 88 - Privacy by Design & Default)</strong>, <strong>ISO/IEC 27001:2022 (Kontroller A.8.11 Veri Maskeleme, A.8.15 Günlükleme)</strong> ve <strong>BDDK Bilgi Sistemleri Tebliği (md. 20 ve 29)</strong> standartları ve ilkeleri gözetilerek teknik denetim amacıyla üretilmiştir.
                 </div>
                 <div style="margin-top:8px; line-height:1.5; color:#94A3B8;">
                     Rapordaki tüm kişisel veriler, e-posta adresleri (<code>a***.y***@sirket.com</code>), hassas dosya yolları (<code>Mali_Rapor_***.xlsx</code>) ve kullanıcı kimlikleri tek yönlü tuzlu SHA-256 ve $k$-Anonymity ($k \ge 5$) algoritmalarıyla maskelenmiş olup, hiçbir açık metin PII rapor metnine veya günlük kütüklerine yansıtılmamaktadır.
@@ -193,12 +193,12 @@ function Build-CompleteReportHtml {
         <div style="background-color:#1E293B; border:1px solid #334155; border-radius:6px; padding:12px 16px; margin-bottom:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <div style="font-weight:700; color:#38BDF8; font-size:11px; display:flex; align-items:center; gap:6px;">
-                    <span>🔒 Kriptografik Denetim İzi (Audit Log) & Non-Repudiation (İnkar Edilemezlik) Kanıtı</span>
+                    <span>🔒 Kriptografik Denetim İzi (Audit Log) & Değişiklik Bütünlüğü Kontrolü</span>
                 </div>
                 <span style="font-size:10px; color:#A7F3D0; background:#064E3B; padding:2px 8px; border-radius:3px; font-weight:600;">SHA-256 Mühürlü</span>
             </div>
             <div style="font-size:10px; color:#94A3B8; line-height:1.5;">
-                Bu raporun HTML ve vektörel PDF çıktıları üretildiği anda <strong>SHA-256 kriptografik kontrol özeti</strong> hesaplanarak <code>Logs/Audit_PurviewReporting_*.jsonl</code> dosyasında inkar edilemez şekilde tescillenmiştir. Raporlama motorunu tetikleyen operatör kimliği, makine adı, süreç kimliği ve korelasyon anahtarı (Correlation ID) değiştirilemez JSONL denetim kütüğünde ISO 8601 zaman damgasıyla saklanmaktadır.
+                Bu raporun HTML ve vektörel PDF çıktıları üretildiği anda <strong>SHA-256 kriptografik kontrol özeti</strong> hesaplanarak <code>Logs/Audit_PurviewReporting_*.jsonl</code> dosyasında teknik değişiklik kontrolü amacıyla mühürlenmiştir. Bu kontrol özeti tek başına hukuki inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez. Raporlama motorunu tetikleyen operatör kimliği, makine adı, süreç kimliği ve korelasyon anahtarı (Correlation ID) değiştirilemez JSONL denetim kütüğünde ISO 8601 zaman damgasıyla saklanmaktadır.
             </div>
         </div>
 

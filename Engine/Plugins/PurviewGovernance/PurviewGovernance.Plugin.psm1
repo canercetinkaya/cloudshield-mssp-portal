@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewGovernance/PurviewGovernance.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/PurviewGovernance/PurviewGovernance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Lifecycle & Records Management Service Plugin.
 [CmdletBinding()]
 param()
@@ -174,12 +174,12 @@ function Get-ServiceHtmlSection {
                 <div class="kpi-description">Yasal süresi dolup otonom imha edilen atıl veriler</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">Yasal Uyum Güvencesi</div>
+                <div class="kpi-title">Yasal Uyum ve Saklama Durumu</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">%100</div>
-                    <span class="badge positive">Uyumlu</span>
+                    <div class="kpi-value">Aktif</div>
+                    <span class="badge positive">İzleniyor</span>
                 </div>
-                <div class="kpi-description">Yasal mevzuat ve regülasyonlara uygun saklama & imha garantisi</div>
+                <div class="kpi-description">Yasal mevzuat gereksinimlerine uygun saklama ve imha politikası takibi</div>
             </div>
         </div>
     </div>

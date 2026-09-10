@@ -1990,27 +1990,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
                     proc_log += f"\n[WARN] PowerShell execution: {pe}"
 
-                # If PowerShell failed or did not produce report files, invoke Python fallback engine
-
-                if not latest_html_path:
-
-                    try:
-
-                        py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR)
-
-                        if py_html and os.path.exists(py_html):
-
-                            latest_html_path = py_html
-
-                        if py_pdf and os.path.exists(py_pdf):
-
-                            latest_pdf_path = py_pdf
-
-                        proc_log += "\n[OK] CloudShield Kurumsal Rapor Motoru ile rapor başarıyla derlendi."
-
-                    except Exception as pye:
-
-                        proc_log += f"\n[ERROR] Python report engine error: {pye}"
+                # Invoke authoritative report_generator engine using collected data.json
+                try:
+                    py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR)
+                    if py_html and os.path.exists(py_html):
+                        latest_html_path = py_html
+                    if py_pdf and os.path.exists(py_pdf):
+                        latest_pdf_path = py_pdf
+                    proc_log += "\n[OK] CloudShield Kurumsal Rapor Motoru ile rapor başarıyla derlendi."
+                except Exception as pye:
+                    proc_log += f"\n[ERROR] Python report engine error: {pye}"
 
                 # If HTML exists but PDF was not generated, perform secondary headless render
 

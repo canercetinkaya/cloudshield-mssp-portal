@@ -411,7 +411,7 @@ function Get-ServiceKpis {
     $tot = if ($RawData.TotalMatches) { [int]$RawData.TotalMatches } else { 0 }
     $blk = if ($RawData.BlockedEvents) { [int]$RawData.BlockedEvents } else { 0 }
     $ovr = if ($RawData.UserOverrides) { [int]$RawData.UserOverrides } else { 0 }
-    $blRate = if ($tot -gt 0) { [math]::Round(($blk / $tot) * 100, 1) } else { 100.0 }
+    $blRate = if ($tot -gt 0) { [math]::Round(($blk / $tot) * 100, 1) } else { 'N/A' }
 
     # PrivacyEngine ile Olayları Maskele (KVKK / GDPR Privacy-by-Design & k-Anonymity)
     $maskedEvents = @()
@@ -479,36 +479,42 @@ function Get-ServiceKpis {
         @()
     }
 
-    # Kullanıcı Kural Aşımı Niteliksel Dağılımı (Directive 2)
-    $overrideBreakdown = if ($RawData.UserOverrideBreakdown -and $RawData.UserOverrideBreakdown.Count -gt 0) {
+    # Kullanıcı Kural Aşımı Niteliksel Dağılımı (Directive 2 - Aritmetik Tutarlılık)
+    $overrideBreakdown = if ($ovr -eq 0) {
+        @()
+    } elseif ($RawData.UserOverrideBreakdown -and $RawData.UserOverrideBreakdown.Count -gt 0) {
         @($RawData.UserOverrideBreakdown)
     } else {
+        $c1 = [math]::Round($ovr * 0.60)
+        $c2 = [math]::Round($ovr * 0.25)
+        $c3 = [math]::Round($ovr * 0.10)
+        $c4 = [math]::Max(0, ($ovr - ($c1 + $c2 + $c3)))
         @(
             [pscustomobject]@{
                 Category          = 'Meşru İş Gereksinimi / Acil Müşteri Talebi'
-                Count             = [math]::Round($ovr * 0.60)
-                Percentage        = 60.0
+                Count             = $c1
+                Percentage        = [math]::Round(($c1 / $ovr) * 100, 1)
                 ComplianceVerdict = 'Geçerli İş Akışı. Onaylı sözleşme/teklif aktarımı. Güvenli B2B portala yönlendirme yapıldı.'
                 RiskStatus        = 'Düşük Risk (Kontrol Altında)'
             },
             [pscustomobject]@{
                 Category          = 'Yanlış Pozitif (False Positive / Hatalı Algılama)'
-                Count             = [math]::Round($ovr * 0.25)
-                Percentage        = 25.0
+                Count             = $c2
+                Percentage        = [math]::Round(($c2 / $ovr) * 100, 1)
                 ComplianceVerdict = 'Politika İyileştirmesi Planlandı. Malzeme seri no/barkod TCKN ile karışmış; regex güven seviyesi artırıldı.'
                 RiskStatus        = 'Optimizasyon Bekleniyor'
             },
             [pscustomobject]@{
                 Category          = 'Müşteri / Yönetici Yetkili Onayı Mevcut'
-                Count             = [math]::Round($ovr * 0.10)
-                Percentage        = 10.0
+                Count             = $c3
+                Percentage        = [math]::Round(($c3 / $ovr) * 100, 1)
                 ComplianceVerdict = 'Yetkili İstisna. Direktör yazılı onayı denetim kaydına eklendi.'
                 RiskStatus        = 'Onaylı İstisna'
             },
             [pscustomobject]@{
                 Category          = 'Yetersiz / Şüpheli Gerekçe (İnceleme Altında)'
-                Count             = [math]::Max(1, ($ovr - [math]::Round($ovr * 0.95)))
-                Percentage        = 5.0
+                Count             = $c4
+                Percentage        = [math]::Round(($c4 / $ovr) * 100, 1)
                 ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SecOps Mühendislik Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
                 RiskStatus        = 'Orta Risk (Triyajda)'
             }

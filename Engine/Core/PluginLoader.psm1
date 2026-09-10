@@ -228,7 +228,7 @@ function Invoke-AllActiveHtmlSections {
         }
         catch {
             Write-Warning "HTML bölümü üretilemedi ($svcCode): $($_.Exception.Message)"
-            $sections[$svcCode] = "<div class='error-box'>Bölüm yüklenemedi: $svcCode</div>"
+            $sections[$svcCode] = "<div class='service-notice-box warn'><b>Telemetri Durumu ($svcCode):</b> Veri kaynağına erişilemedi veya telemetri bulunamadı.</div>"
         }
     }
     return $sections

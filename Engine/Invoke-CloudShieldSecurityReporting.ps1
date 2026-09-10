@@ -149,6 +149,8 @@ if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir -Forc
 # 8b. Live Data JSON — Python fallback renderer reads this to display REAL values
 # Compose a data.json with per-service KPIs + availability state
 $liveDataForJson = @{}
+$ignoredProps = @('IsSynchronized', 'IsReadOnly', 'Count', 'IsFixedSize', 'Keys', 'Values', 'SyncRoot')
+
 foreach ($svcCode in $activeServices) {
     $rawData   = if ($rawDataMap -and $rawDataMap.Contains($svcCode)) { $rawDataMap[$svcCode] } else { $null }
     $kpiData   = if ($kpiMap -and $kpiMap.Contains($svcCode)) { $kpiMap[$svcCode] } else { $null }
@@ -157,27 +159,53 @@ foreach ($svcCode in $activeServices) {
                  elseif ($rawData) { 'SupportedAppOnly' }
                  else { 'CollectionFailed' }
 
-    # Flatten KPI data into a simple dict for Python
+    # Source Layer Rule: Failed collectors must NEVER produce KPI objects (must be $null)
+    if ($avail -eq 'CollectionFailed' -or -not $rawData -or -not $kpiData) {
+        $liveDataForJson[$svcCode] = @{
+            availabilityState = if ($avail) { $avail } else { 'CollectionFailed' }
+            collectedAtUtc    = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            periodStart       = $StartDate.ToString('yyyy-MM-ddTHH:mm:ssZ')
+            periodEnd         = $EndDate.ToString('yyyy-MM-ddTHH:mm:ssZ')
+            kpis              = $null
+        }
+        continue
+    }
+
+    # Flatten KPI data into clean dictionary (excluding PowerShell internal metadata)
     $kpiFlat = @{}
-    if ($kpiData) {
-        foreach ($prop in ($kpiData.PSObject.Properties + $kpiData.Keys)) {
-            try {
-                $pName = if ($prop -is [string]) { $prop } else { $prop.Name }
-                $pVal  = if ($prop -is [string]) { $kpiData[$prop] } else { $prop.Value }
-                if ($pVal -ne $null -and ($pVal -is [int] -or $pVal -is [double] -or $pVal -is [string] -or $pVal -is [bool])) {
-                    $kpiFlat[$pName] = $pVal
+    if ($kpiData -is [System.Collections.IDictionary]) {
+        foreach ($k in $kpiData.Keys) {
+            if ($k -notin $ignoredProps) {
+                $pVal = $kpiData[$k]
+                if ($pVal -eq 'N/A') {
+                    $kpiFlat[$k] = $null
+                } elseif ($pVal -ne $null -and ($pVal -is [int] -or $pVal -is [double] -or $pVal -is [string] -or $pVal -is [bool] -or $pVal -is [array])) {
+                    $kpiFlat[$k] = $pVal
                 }
-            } catch {}
+            }
+        }
+    } else {
+        foreach ($prop in $kpiData.PSObject.Properties) {
+            if ($prop.Name -notin $ignoredProps) {
+                $pVal = $prop.Value
+                if ($pVal -eq 'N/A') {
+                    $kpiFlat[$prop.Name] = $null
+                } elseif ($pVal -ne $null -and ($pVal -is [int] -or $pVal -is [double] -or $pVal -is [string] -or $pVal -is [bool] -or $pVal -is [array])) {
+                    $kpiFlat[$prop.Name] = $pVal
+                }
+            }
         }
     }
-    # Also include raw data top-level scalars (e.g. TotalMatches, BlockedEvents)
+
+    # Include raw data top-level scalars
     if ($rawData) {
         foreach ($prop in $rawData.PSObject.Properties) {
-            try {
-                if ($prop.Value -ne $null -and ($prop.Value -is [int] -or $prop.Value -is [double] -or $prop.Value -is [string]) -and -not $kpiFlat.ContainsKey($prop.Name)) {
-                    $kpiFlat[$prop.Name] = $prop.Value
+            if ($prop.Name -notin $ignoredProps -and -not $kpiFlat.ContainsKey($prop.Name)) {
+                $pVal = $prop.Value
+                if ($pVal -ne $null -and ($pVal -is [int] -or $pVal -is [double] -or $pVal -is [string] -or $pVal -is [bool])) {
+                    $kpiFlat[$prop.Name] = $pVal
                 }
-            } catch {}
+            }
         }
     }
 
@@ -192,7 +220,9 @@ foreach ($svcCode in $activeServices) {
 
 try {
     $dataJsonPath = Join-Path $outDir 'data.json'
-    $liveDataForJson | ConvertTo-Json -Depth 8 -Compress:$false | Set-Content -Path $dataJsonPath -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    $jsonStr = $liveDataForJson | ConvertTo-Json -Depth 8
+    [System.IO.File]::WriteAllText($dataJsonPath, $jsonStr, $utf8NoBom)
     Write-PlatformLog -Level 'OK' -Message "Canlı veri JSON kaydedildi (Python renderer için): $dataJsonPath" -Component 'Orchestrator'
 } catch {
     Write-PlatformLog -Level 'WARN' -Message "data.json yazılamadı: $($_.Exception.Message)" -Component 'Orchestrator'
@@ -247,8 +277,7 @@ if ($activeServices.Count -gt 1) {
         } catch {}
     }
 
-    $fteKapasite = [Math]::Round(($toplamSaat / 160.0), 1)
-    if ($fteKapasite -lt 0.8) { $fteKapasite = 1.2 }
+    $fteKapasite = if ($toplamSaat -gt 0) { [Math]::Round(($toplamSaat / 160.0), 1) } else { 0.0 }
 
     $execSummaryHtml = @"
     <div class="executive-summary-container">
