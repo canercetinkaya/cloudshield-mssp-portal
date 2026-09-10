@@ -1,62 +1,107 @@
 name: Trigger auto deployment for cs-mssp-poc-app
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
     branches: 
       [ main ]
     paths:
     - '**'
-    - '.github/workflows/cs-mssp-poc-app-AutoDeployTrigger-e70e00a1-3ae4-4b88-a6be-343e239cba38.yml'
-
-  # Allow manual trigger 
   workflow_dispatch:      
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions: 
-      id-token: write # This is required for requesting the OIDC JWT Token
-      contents: read # Required when GH token is used to authenticate with repo
-      packages: write # Required for publishing and pushing Docker container to GHCR
+      id-token: write
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout to the branch
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Azure Login
+      - name: 🔑 Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.CSMSSPPOCAPP_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.CSMSSPPOCAPP_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.CSMSSPPOCAPP_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
-        uses: azure/container-apps-deploy-action@v2
+      - name: 🔑 Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
         with:
-          appSourcePath: ${{ github.workspace }}
-          dockerfilePath: Docker/Dockerfile
-          registryUrl: ghcr.io
-          registryUsername: ${{ github.actor }}
-          registryPassword: ${{ secrets.GITHUB_TOKEN }}
-          containerAppName: cs-mssp-poc-app
-          resourceGroup: cloudshield
-          imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}
-          targetPort: 8080
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🛡️ Diagnose & Enforce High Availability (ACA Ingress & Scale)
+      - name: 🏗️ Build & Push Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}
+            ghcr.io/canercetinkaya/cloudshield-mssp-portal:latest
+
+      - name: 🚀 Clean & Deploy Single-Container ACA Topology
         shell: bash
         run: |
-          echo "=== 1. Azure Container App Configuration ==="
-          az containerapp show -n cs-mssp-poc-app -g cloudshield --query "{ingress:properties.configuration.ingress, provisioningState:properties.provisioningState, runningStatus:properties.runningStatus}" -o json
+          set -e
+          echo "=== 1. Resolving Managed Environment ID ==="
+          ENV_ID=$(az containerapp show -n cs-mssp-poc-app -g cloudshield --query properties.managedEnvironmentId -o tsv)
+          echo "Managed Environment: $ENV_ID"
           
-          echo "=== 2. Enforcing Target Port 8080 and Min Replicas 1 ==="
-          az containerapp ingress update -n cs-mssp-poc-app -g cloudshield --target-port 8080 --transport auto --type external
-          az containerapp update -n cs-mssp-poc-app -g cloudshield --min-replicas 1 --max-replicas 3
+          echo "=== 2. Generating Clean Single-Container Deployment Manifest ==="
+          cat << EOF > aca_deployment.yaml
+properties:
+  managedEnvironmentId: "$ENV_ID"
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: Auto
+      allowInsecure: false
+    registries:
+      - server: ghcr.io
+        username: canercetinkaya
+        passwordSecretRef: ghcrio-secret
+    secrets:
+      - name: ghcrio-secret
+        value: "${{ secrets.GITHUB_TOKEN }}"
+  template:
+    containers:
+      - name: cloudshield-mssp-portal
+        image: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}"
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          - name: PORT
+            value: "8080"
+          - name: ENVIRONMENT
+            value: "poc"
+    scale:
+      minReplicas: 1
+      maxReplicas: 3
+EOF
           
-          echo "=== 3. Active Revisions & Replica Health ==="
+          echo "=== 3. Applying Clean Deployment to Azure Container Apps ==="
+          az containerapp update -n cs-mssp-poc-app -g cloudshield --yaml aca_deployment.yaml
+          
+          echo "=== 4. Checking Active Revisions & Health ==="
           az containerapp revision list -n cs-mssp-poc-app -g cloudshield -o table
           
-          echo "=== 4. Recent Container App Console Logs ==="
+          echo "=== 5. Verifying Live Health Endpoint via Curl ==="
+          for i in {1..12}; do
+            echo "Health probe attempt \$i..."
+            if curl -s -f -m 10 "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/health"; then
+              echo ""
+              echo "[SUCCESS] cs-mssp-poc-app is LIVE, HEALTHY, and RESPONDING!"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "[WARN] Verification probe timed out, checking container logs:"
           az containerapp logs show -n cs-mssp-poc-app -g cloudshield --tail 50 || true
