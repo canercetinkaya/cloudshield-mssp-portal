@@ -59,8 +59,8 @@
                 </div>
                 <h2 class="text-base font-bold">MSSP SaaS Portal Girişi</h2>
                 <p class="text-xs text-slate-300 mt-1">Microsoft Security & Purview Yönetilen Hizmetler</p>
-                <div class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                    v2.5.0-LIVE
+                <div id="loginVersionBadge" class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+                    v2.5.10-PILOT
                 </div>
             </div>
 
@@ -1555,7 +1555,10 @@
                 if (res.ok) {
                     const data = await res.json();
                     const badge = document.getElementById('headerVersionBadge');
-                    if (badge) badge.textContent = data.release || 'v2.5.1-LIVE';
+                    if (badge) badge.textContent = data.release || 'v2.5.10-PILOT';
+
+                    const loginBadge = document.getElementById('loginVersionBadge');
+                    if (loginBadge) loginBadge.textContent = data.release || 'v2.5.10-PILOT';
                     
                     const buildSpan = document.getElementById('headerVersionBuild');
                     if (buildSpan && data.last_updated) {

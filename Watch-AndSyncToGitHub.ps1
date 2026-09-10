@@ -138,20 +138,31 @@ try {
                     }
                 }
 
-                # 2. Git Add & Commit
-                & $gitExe add .
+                # 2. Güvenli Allow-list Tabanlı Git Add (Geçici/Secret dosyaları asla ekleme)
+                $safePaths = @("Portal", "Engine", "Azure", "Docker", ".github", "docs", "Data/version.json", "version.json", "README.md", "CONTRIBUTING.md", "test_comprehensive_qa.py", "qa_test_results.json")
+                foreach ($sp in $safePaths) {
+                    if (Test-Path $sp) {
+                        & $gitExe add $sp
+                    }
+                }
                 Write-Host "[>] Değişiklikler commit ediliyor: $commitMsg" -ForegroundColor Cyan
                 & $gitExe commit -m $commitMsg
                 
-                # 3. Git Tag Oluşturma (Her versiyon için)
+                # 3. İmmutable Git Tag Oluşturma (tag -f kaldırıldı, çakışma ve ezilme önlendi)
                 try {
-                    & $gitExe tag -f $newRelease
+                    $existingTag = & $gitExe tag -l $newRelease
+                    if (-not $existingTag) {
+                        & $gitExe tag -a $newRelease -m "Immutable release: $newRelease"
+                        Write-Host "[+] Yeni Immutable Tag Oluşturuldu: $newRelease" -ForegroundColor Green
+                    } else {
+                        Write-Host "[i] $newRelease etiketi zaten mevcut, immutable kuralı gereği ezilmedi." -ForegroundColor DarkGray
+                    }
                 } catch {}
 
                 # 4. GitHub Push
-                Write-Host "[>] GitHub'a aktarılıyor (git push origin $Branch --tags)..." -ForegroundColor Yellow
-                & $gitExe push origin $Branch --tags
-                Write-Host "[OK] $newRelease sürümü başarıyla GitHub ve canlı ortama aktarıldı!`n" -ForegroundColor Green
+                Write-Host "[>] GitHub'a aktarılıyor (git push origin $Branch)..." -ForegroundColor Yellow
+                & $gitExe push origin $Branch
+                Write-Host "[OK] $newRelease sürümü başarıyla GitHub ve ortama aktarıldı!`n" -ForegroundColor Green
             }
             else {
                 Write-Host "[i] Değişiklik algılandı fakat git'e eklenecek yeni içerik yok." -ForegroundColor DarkGray

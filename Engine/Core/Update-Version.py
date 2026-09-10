@@ -3,19 +3,23 @@ import sys, json, os, subprocess, re
 from datetime import datetime
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-version_file = os.path.join(ROOT_DIR, 'Data', 'version.json')
+root_version_file = os.path.join(ROOT_DIR, 'version.json')
+data_version_file = os.path.join(ROOT_DIR, 'Data', 'version.json')
+version_file = root_version_file if os.path.exists(root_version_file) else data_version_file
 readme_file = os.path.join(ROOT_DIR, 'README.md')
 contributing_file = os.path.join(ROOT_DIR, 'CONTRIBUTING.md')
 security_file = os.path.join(ROOT_DIR, '.github', 'SECURITY.md')
 
 if not os.path.exists(version_file):
     vdata = {
-        'version': '2.5.3',
-        'release': 'v2.5.3-LIVE',
-        'build': datetime.now().strftime('%Y.%m.%d.1'),
-        'build_number': 1,
+        'version': '2.5.10',
+        'release': 'v2.5.10-PILOT',
+        'build': datetime.now().strftime('%Y.%m.%d.10'),
+        'channel': 'pilot',
+        'build_number': 10,
         'last_updated': datetime.now().strftime('%Y-%m-%dT%H:%M:%S+03:00'),
-        'environment': 'production',
+        'environment': 'pilot',
+        'productionReady': False,
         'agent_name': 'CloudShield DevSecOps Autonomous Agent',
         'changelog': []
     }
@@ -73,9 +77,14 @@ changelog_entry = {
 vdata.setdefault('changelog', []).insert(0, changelog_entry)
 vdata['changelog'] = vdata['changelog'][:30]
 
-# 1. Save Data/version.json
-with open(version_file, 'w', encoding='utf-8') as f:
-    json.dump(vdata, f, indent=2, ensure_ascii=False)
+# 1. Save root version.json and Data/version.json
+for vf in [root_version_file, data_version_file]:
+    try:
+        os.makedirs(os.path.dirname(vf), exist_ok=True)
+        with open(vf, 'w', encoding='utf-8') as f:
+            json.dump(vdata, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"[WARN] Error saving {vf}: {e}", file=sys.stderr)
 
 # 2. Update README.md (Badges, Live Production, Architecture Diagram, Changelog table)
 if os.path.exists(readme_file):

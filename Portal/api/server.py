@@ -68,23 +68,22 @@ def load_json_file(path, default=None):
 
 
 def get_version_info():
-    """Load latest version and release metadata dynamically from Data/version.json."""
+    """Load latest version and release metadata dynamically from root version.json or Data/version.json."""
+    root_ver = os.path.join(ROOT_DIR, "version.json")
+    vpath = root_ver if os.path.exists(root_ver) else VERSION_FILE
     default_info = {
-        "version": "2.5.2",
-        "release": "v2.5.2-LIVE",
-        "build": "2026.09.10.2",
-        "build_number": 2,
-        "last_updated": "2026-09-10T10:58:00+03:00",
-        "environment": "production",
+        "version": "2.5.10",
+        "release": "v2.5.10-PILOT",
+        "build": "2026.09.10.10",
+        "channel": "pilot",
+        "build_number": 10,
+        "last_updated": "2026-09-10T12:54:45+03:00",
+        "environment": "pilot",
+        "productionReady": False,
         "agent_name": "CloudShield DevSecOps Autonomous Agent",
         "changelog": []
     }
-    return load_json_file(VERSION_FILE, default_info)
-
-
-PORTAL_VERSION = get_version_info().get("version", "2.5.2")
-PORTAL_RELEASE = get_version_info().get("release", "v2.5.2-LIVE")
-PORTAL_BUILD = get_version_info().get("build", "2026.09.10.2")
+    return load_json_file(vpath, default_info)
 
 
 
@@ -124,11 +123,12 @@ def save_json_file(path, data):
 
 class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
     def end_headers(self):
+        vinfo = get_version_info()
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.send_header("X-Portal-Version", PORTAL_VERSION)
-        self.send_header("X-Portal-Release", PORTAL_RELEASE)
+        self.send_header("X-Portal-Version", vinfo.get("version", "2.5.10"))
+        self.send_header("X-Portal-Release", vinfo.get("release", "v2.5.10-PILOT"))
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -220,11 +220,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         # API ROUTES
         if path == "/api/health":
+            vinfo = get_version_info()
             self.send_json_response({
                 "status": "Healthy",
-                "version": PORTAL_VERSION,
-                "release": PORTAL_RELEASE,
-                "build": PORTAL_BUILD,
+                "version": vinfo.get("version", "2.5.10"),
+                "release": vinfo.get("release", "v2.5.10-PILOT"),
+                "build": vinfo.get("build", "2026.09.10.10"),
+                "channel": vinfo.get("channel", "pilot"),
+                "environment": vinfo.get("environment", "pilot"),
+                "productionReady": vinfo.get("productionReady", False),
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
             return
@@ -232,15 +236,18 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/version":
             vinfo = get_version_info()
             self.send_json_response({
-                "version": vinfo.get("version", "2.5.1"),
-                "release": vinfo.get("release", "v2.5.1-LIVE"),
-                "build": vinfo.get("build", "2026.09.10.1"),
-                "build_number": vinfo.get("build_number", 1),
+                "version": vinfo.get("version", "2.5.10"),
+                "release": vinfo.get("release", "v2.5.10-PILOT"),
+                "build": vinfo.get("build", "2026.09.10.10"),
+                "channel": vinfo.get("channel", "pilot"),
+                "build_number": vinfo.get("build_number", 10),
                 "last_updated": vinfo.get("last_updated", datetime.now(timezone.utc).isoformat()),
+                "commit": vinfo.get("commit", "latest"),
                 "agent_name": vinfo.get("agent_name", "CloudShield DevSecOps Autonomous Agent"),
                 "changelog": vinfo.get("changelog", []),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "environment": vinfo.get("environment", "production"),
+                "environment": vinfo.get("environment", "pilot"),
+                "productionReady": vinfo.get("productionReady", False),
                 "features": [
                     "LiveDataPipeline",
                     "LiveGraphApiCollector",
@@ -253,7 +260,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "EntraIdDynamicBranding",
                     "GdprKvkkPrivacyEngine",
                     "AutonomousAgentVersioning",
-                    "GitAutoSyncContinuousRelease"
+                    "SingleSourceVersionManifest",
+                    "DynamicAzureDiscovery"
                 ]
             })
             return

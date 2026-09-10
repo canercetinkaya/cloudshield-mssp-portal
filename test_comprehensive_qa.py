@@ -23,6 +23,7 @@ if sys.platform == "win32":
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 import shutil
 import urllib.request
 import urllib.error
@@ -130,18 +131,24 @@ def run_engine_tests():
     print("="*80)
     test_script = os.path.join(ENGINE_DIR, "Tests", "Test-Platform.ps1")
     start = time.time()
+    # Prefer pwsh (PowerShell 7) if available, fallback to powershell.exe
+    ps_cmd = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
+    print(f"   [RUNTIME] PowerShell Engine Runner: {ps_cmd}")
     proc = subprocess.run(
-        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", test_script],
+        [ps_cmd, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", test_script],
         cwd=ENGINE_DIR, capture_output=True, text=True, errors="replace"
     )
     dur = (time.time() - start) * 1000
     out = proc.stdout
     lines = [l.strip() for l in out.splitlines() if "[PASS]" in l or "[FAIL]" in l]
     
-    for l in lines:
-        is_pass = "[PASS]" in l
-        test_name = l.replace("[PASS]", "").replace("[FAIL]", "").strip()
-        log_test("engine_tests", test_name, is_pass, "Executed via Test-Platform.ps1", dur / max(len(lines), 1))
+    if proc.returncode != 0 and not lines:
+        log_test("engine_tests", "PowerShell Test Process Execution", False, f"Process exited with non-zero code {proc.returncode}: {proc.stderr[:100]}", dur)
+    else:
+        for l in lines:
+            is_pass = "[PASS]" in l
+            test_name = l.replace("[PASS]", "").replace("[FAIL]", "").strip()
+            log_test("engine_tests", test_name, is_pass, "Executed via Test-Platform.ps1", dur / max(len(lines), 1))
     
     print(f"Engine Tests Summary: Process Exit Code = {proc.returncode}, Parsed Tests = {len(lines)}")
 
@@ -153,15 +160,30 @@ def run_api_tests():
     print(" 2. WEB API REST CONTRACTS & GUARDRAIL TESTS")
     print("="*80)
     
+    # Load single source of truth version manifest
+    def load_version_manifest():
+        vpath = os.path.join(ROOT_DIR, "version.json")
+        if not os.path.exists(vpath):
+            vpath = os.path.join(ROOT_DIR, "Data", "version.json")
+        try:
+            with open(vpath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {"version": "2.5.10", "release": "v2.5.10-PILOT"}
+
+    expected_v = load_version_manifest()
+    expected_ver = expected_v.get("version", "2.5.10")
+    expected_rel = expected_v.get("release", "v2.5.10-PILOT")
+
     # 2.1 GET /api/health
     status, body, dur, _ = http_get("/api/health")
-    passed = status == 200 and body.get("status") == "Healthy" and "2.5.0" in body.get("version", "")
-    log_test("api_tests", "GET /api/health - Sistem Sağlık Durumu (v2.5.0)", passed, f"Status={status}, Version={body.get('version')}", dur)
+    passed = status == 200 and body.get("status") == "Healthy" and body.get("version") == expected_ver
+    log_test("api_tests", f"GET /api/health - Sistem Sağlık Durumu (v{expected_ver})", passed, f"Status={status}, Version={body.get('version')}", dur)
 
     # 2.2 GET /api/version
     status, body, dur, _ = http_get("/api/version")
-    passed = status == 200 and body.get("version") == "2.5.0" and body.get("release") == "v2.5.0-LIVE"
-    log_test("api_tests", "GET /api/version - Platform Sürüm ve Sürüm Başlığı Doğrulaması", passed, f"Status={status}, Release={body.get('release')}, Build={body.get('build')}", dur)
+    passed = status == 200 and body.get("version") == expected_ver and body.get("release") == expected_rel
+    log_test("api_tests", "GET /api/version - Platform Sürüm ve Sürüm Başlığı Doğrulaması", passed, f"Status={status}, Release={body.get('release')}, ExpectedRelease={expected_rel}, Build={body.get('build')}", dur)
 
     # 2.3 POST /api/auth/login & GET /api/auth/verify (Dinamik ve Güvenli Kimlik Çözümleme)
     auth_local_file = os.path.join(ROOT_DIR, "Data", "auth.local.json")
@@ -381,10 +403,31 @@ def main():
     print(f" Toplam Süre: {results['summary']['execution_time_sec']} saniye")
     print("="*80)
     
+    # Attach release and execution metadata
+    vpath = os.path.join(ROOT_DIR, "version.json")
+    vmeta = {}
+    if os.path.exists(vpath):
+        try:
+            with open(vpath, "r", encoding="utf-8") as vf:
+                vmeta = json.load(vf)
+        except Exception:
+            pass
+
+    results["metadata"] = {
+        "version": vmeta.get("version", "2.5.10"),
+        "release": vmeta.get("release", "v2.5.10-PILOT"),
+        "build": vmeta.get("build", "2026.09.10.10"),
+        "channel": vmeta.get("channel", "pilot"),
+        "environment": vmeta.get("environment", "pilot"),
+        "commit": vmeta.get("commit", "auto"),
+        "runner": "local-test-harness",
+        "completedAtUtc": datetime.now(timezone.utc).isoformat()
+    }
+    
     output_json = os.path.join(ROOT_DIR, "qa_test_results.json")
     with open(output_json, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    print(f"[OK] Test sonuçları kaydedildi: {output_json}")
+    print(f"[OK] Test sonuçları metadata ile kaydedildi: {output_json}")
 
 if __name__ == "__main__":
     main()
