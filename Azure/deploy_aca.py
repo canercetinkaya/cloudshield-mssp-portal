@@ -93,10 +93,14 @@ def main():
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
+        "--container-name", "cloudshield-mssp-portal",
         "--image", image_tag
     ])
 
     # 4. Route 100% traffic to latest revision and ensure scale
+    print("=== Checking active revisions ===")
+    run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
+
     print("=== Directing 100% traffic to latest revision ===")
     run_cmd([
         "az", "containerapp", "ingress", "traffic", "set",
@@ -108,6 +112,7 @@ def main():
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
+        "--container-name", "cloudshield-mssp-portal",
         "--min-replicas", "1",
         "--max-replicas", "3"
     ], check=False)
