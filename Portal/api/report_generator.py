@@ -674,6 +674,48 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     else:
         incident_rows = """<tr><td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;"><b>✓ Doğrulanmış Temiz Durum:</b> Rapor döneminde açık veya triyaj bekleyen kritik incident bulunmamaktadır.</td></tr>"""
 
+    # Format MDE Backlog Rows (pre-computed for Python <3.12 PEP 701 compatibility)
+    mde_backlog_parts = []
+    if ghost_14_30 > 0:
+        mde_backlog_parts.append(f"""<tr>
+    <td><b>ACT-MDE-01</b></td>
+    <td>Intune &amp; Ucnokta Yonetimi</td>
+    <td><span class='pill p-crit'>24 Saat</span></td>
+    <td>RB-MDE-GHOST-REMEDIATION</td>
+    <td>Iletisim kurulamayan {ghost_14_30} cihaz icin ag erisimi ve sensor saglik kontrolu yapilacak.</td>
+  </tr>""")
+    if analyst_actions > 0:
+        mde_backlog_parts.append("""<tr>
+    <td><b>ACT-MDE-02</b></td>
+    <td>SecOps &amp; MDE Muhendisligi</td>
+    <td><span class='pill p-warn'>48 Saat</span></td>
+    <td>RB-MDE-ASR-RULE-HARDENING</td>
+    <td>ASR kurallari ve otomatik iyilestirme (AIR) politikalari incelenecek.</td>
+  </tr>""")
+    if not mde_backlog_parts:
+        mde_backlog_parts.append("""<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Kurumsal filoda açık zafiyet veya müdahale gerektiren bekleyen acil iyileştirme görevi bulunmamaktadır.
+    </td>
+  </tr>""")
+    mde_backlog_rows = "".join(mde_backlog_parts)
+
+    # Format MDE C-Level Decision Matrix Rows
+    if ghost_14_30 > 0:
+        mde_clevel_rows = f"""<tr>
+    <td><b>P1 - Oncelikli</b></td>
+    <td>Hayalet Cihazlarin Envanterden Dusulmesi</td>
+    <td>{ghost_14_30} cihazda 14 gundur iletisim eksikligi saptandi</td>
+    <td>BT Altyapi Muduru Onayi</td>
+    <td>Lisans ve sensor kor noktasi riski sifirlanir</td>
+  </tr>"""
+    else:
+        mde_clevel_rows = """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Genel Savunma Duruşu Güçlü:</b> C-Level müdahale veya olağanüstü bütçe onayı gerektiren açık bir altyapı riski bulunmamaktadır.
+    </td>
+  </tr>"""
+
     return f"""<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
 <title>Aylik Guvenlik Raporu - {customer_name}</title>
@@ -833,41 +875,13 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
 
 <table class="backlog-table">
   <tr><th>Aksiyon ID</th><th>Sorumlu Ekip (RACI)</th><th>SLA</th><th>Runbook Kodu</th><th>Eylem ve Cozum Plani</th></tr>
-  {f"""<tr>
-    <td><b>ACT-MDE-01</b></td>
-    <td>Intune &amp; Ucnokta Yonetimi</td>
-    <td><span class='pill p-crit'>24 Saat</span></td>
-    <td>RB-MDE-GHOST-REMEDIATION</td>
-    <td>Iletisim kurulamayan {ghost_14_30} cihaz icin ag erisimi ve sensor saglik kontrolu yapilacak.</td>
-  </tr>""" if ghost_14_30 > 0 else ""}
-  {f"""<tr>
-    <td><b>ACT-MDE-02</b></td>
-    <td>SecOps &amp; MDE Muhendisligi</td>
-    <td><span class='pill p-warn'>48 Saat</span></td>
-    <td>RB-MDE-ASR-RULE-HARDENING</td>
-    <td>ASR kurallari ve otomatik iyilestirme (AIR) politikalari incelenecek.</td>
-  </tr>""" if analyst_actions > 0 else ""}
-  {"""<tr>
-    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
-      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Kurumsal filoda açık zafiyet veya müdahale gerektiren bekleyen acil iyileştirme görevi bulunmamaktadır.
-    </td>
-  </tr>""" if (ghost_14_30 == 0 and analyst_actions == 0) else ""}
+  {mde_backlog_rows}
 </table>
 
 <h2>C-Level Stratejik Yatirim ve Karar Matrisi</h2>
 <table>
   <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Karar / Onay</th><th>Guvenlik Etkisi</th></tr>
-  {f"""<tr>
-    <td><b>P1 - Oncelikli</b></td>
-    <td>Hayalet Cihazlarin Envanterden Dusulmesi</td>
-    <td>{ghost_14_30} cihazda 14 gundur iletisim eksikligi saptandi</td>
-    <td>BT Altyapi Muduru Onayi</td>
-    <td>Lisans ve sensor kor noktasi riski sifirlanir</td>
-  </tr>""" if ghost_14_30 > 0 else """<tr>
-    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
-      <b>✓ Genel Savunma Duruşu Güçlü:</b> C-Level müdahale veya olağanüstü bütçe onayı gerektiren açık bir altyapı riski bulunmamaktadır.
-    </td>
-  </tr>"""}
+  {mde_clevel_rows}
 </table>
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
@@ -964,6 +978,45 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
         dlp_event_rows = """<tr>
     <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
       <b>✓ Doğrulanmış Temiz Durum:</b> Dönem içinde açık DLP uyarısı veya güvenlik ihlali oluşturacak olay kaydı saptanmamıştır.
+    </td>
+  </tr>"""
+
+    # Format Purview Backlog Rows (pre-computed for Python <3.12 PEP 701 compatibility)
+    if endpoint_blocks > 0 or overrides > 0:
+        prv_backlog_rows = f"""<tr>
+    <td><b>ACT-PRV-01</b></td>
+    <td>Veri Guvenligi Ekibi</td>
+    <td><span class='pill p-crit'>48 Saat</span></td>
+    <td>RB-DLP-ENDPOINT-BLOCK</td>
+    <td>Ucnoktada tespit edilen {endpoint_blocks} adet dosya aktarimi icin kural bloklama optimizasyonu.</td>
+  </tr>
+  <tr>
+    <td><b>ACT-PRV-02</b></td>
+    <td>IK &amp; Ic Denetim</td>
+    <td><span class='pill p-warn'>7 Gun</span></td>
+    <td>RB-DLP-AWARENESS</td>
+    <td>Kural asimi (override) gerceklestiren {overrides} kullanici icin hedeflenmis farkindalik egitimi.</td>
+  </tr>"""
+    else:
+        prv_backlog_rows = """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Dönem içinde açık DLP uyarısı veya acil müdahale gerektiren kural aşımı bulunmamaktadır.
+    </td>
+  </tr>"""
+
+    # Format Purview C-Level Decision Matrix Rows
+    if endpoint_blocks > 0:
+        prv_clevel_rows = f"""<tr>
+    <td><b>P1 - Oncelikli</b></td>
+    <td>Endpoint DLP kurallarinin Blok moduna alinmasi</td>
+    <td>Ucnoktada {endpoint_blocks} adet harici aktarim tespit edildi</td>
+    <td>CISO Onayi</td>
+    <td>Ucnokta sizinti riski bertaraf edilir</td>
+  </tr>"""
+    else:
+        prv_clevel_rows = """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Proaktif Uyum Güvencesi:</b> Mevcut kurallar tam korumada çalışmakta olup C-Level acil karar gerektiren açık risk bulunmamaktadır.
     </td>
   </tr>"""
 
@@ -1095,40 +1148,13 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
 <h2>Eyleme Donusturulebilir DLP Backlog Listesi</h2>
 <table class="backlog-table">
   <tr><th>Aksiyon ID</th><th>Sorumlu Ekip (RACI)</th><th>SLA</th><th>Runbook Kodu</th><th>Eylem ve Cozum Plani</th></tr>
-  {f"""<tr>
-    <td><b>ACT-PRV-01</b></td>
-    <td>Veri Guvenligi Ekibi</td>
-    <td><span class='pill p-crit'>48 Saat</span></td>
-    <td>RB-DLP-ENDPOINT-BLOCK</td>
-    <td>Ucnoktada tespit edilen {endpoint_blocks} adet dosya aktarimi icin kural bloklama optimizasyonu.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-PRV-02</b></td>
-    <td>IK &amp; Ic Denetim</td>
-    <td><span class='pill p-warn'>7 Gun</span></td>
-    <td>RB-DLP-AWARENESS</td>
-    <td>Kural asimi (override) gerceklestiren {overrides} kullanici icin hedeflenmis farkindalik egitimi.</td>
-  </tr>""" if (endpoint_blocks > 0 or overrides > 0) else """<tr>
-    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
-      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Dönem içinde açık DLP uyarısı veya acil müdahale gerektiren kural aşımı bulunmamaktadır.
-    </td>
-  </tr>"""}
+  {prv_backlog_rows}
 </table>
 
 <h2>C-Level Stratejik Karar ve Onay Matrisi</h2>
 <table>
   <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Onay</th><th>Guvenlik Etkisi</th></tr>
-  {f"""<tr>
-    <td><b>P1 - Oncelikli</b></td>
-    <td>Endpoint DLP kurallarinin Blok moduna alinmasi</td>
-    <td>Ucnoktada {endpoint_blocks} adet harici aktarim tespit edildi</td>
-    <td>CISO Onayi</td>
-    <td>Ucnokta sizinti riski bertaraf edilir</td>
-  </tr>""" if endpoint_blocks > 0 else """<tr>
-    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
-      <b>✓ Proaktif Uyum Güvencesi:</b> Mevcut kurallar tam korumada çalışmakta olup C-Level acil karar gerektiren açık risk bulunmamaktadır.
-    </td>
-  </tr>"""}
+  {prv_clevel_rows}
 </table>
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
