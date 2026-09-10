@@ -64,6 +64,54 @@ def discover_container_app():
     return fallback_rg, fallback_app
 
 
+def make_ghcr_package_public(github_token: str, owner: str = "canercetinkaya", package: str = "cloudshield-mssp-portal") -> bool:
+    """
+    Set GHCR container package visibility to 'public' via GitHub API.
+    Once public, ACA cold-starts never need stored credentials — eliminates ImagePullBackOff permanently.
+    Requires a token with 'write:packages' scope (GITHUB_TOKEN with packages:write permission works).
+    API: PATCH /user/packages/container/{package_name}
+    """
+    if not github_token:
+        print("[WARN] No GITHUB_TOKEN — cannot set package visibility via API.")
+        return False
+
+    url = f"https://api.github.com/user/packages/container/{package}"
+    payload = json.dumps({"visibility": "public"}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="PATCH",
+        headers={
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "Content-Type": "application/json",
+            "User-Agent": "CloudShield-DeployScript/1.0",
+        }
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = resp.status
+            body = resp.read().decode("utf-8", errors="replace")
+            if status in (200, 204):
+                print(f"[OK] GHCR package '{package}' is now PUBLIC — ACA cold-starts will never need credentials.")
+                return True
+            else:
+                print(f"[WARN] Unexpected status {status} when setting package public: {body[:200]}")
+                return False
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"[WARN] Could not set GHCR package to public (HTTP {e.code}): {body[:300]}")
+        print("[WARN] Falling back to stored registry credentials. Ensure GHCR_PAT secret is set for cold-start pulls.")
+        return False
+    except Exception as e:
+        print(f"[WARN] GHCR visibility API call failed: {e}")
+        return False
+
+
+
+
+
 def main():
     github_sha = os.environ.get("GITHUB_SHA", "latest")
     github_token = os.environ.get("GITHUB_TOKEN", "")
@@ -73,9 +121,15 @@ def main():
 
     print(f"=== Deploying {app_name} | RG: {resource_group} | Image: {image_tag} ===")
 
+    # 0. Make GHCR package public — permanently eliminates ImagePullBackOff on ACA cold-starts.
+    #    Once public, ACA never needs stored credentials to pull. Safe to call every deploy.
+    print("=== Step 0: Ensuring GHCR package is public (eliminate ImagePullBackOff) ===")
+    make_ghcr_package_public(github_token)
+
     # 1. Verify the Container App exists
     res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "name", "-o", "tsv"])
     print(f"[OK] Container App verified: {res.stdout.strip()}")
+
 
     # 2. Update GHCR registry credentials so ACA can pull the new image.
     #    CRITICAL: GITHUB_TOKEN expires after the workflow job, causing ACA ImagePullBackOff on cold-starts.
