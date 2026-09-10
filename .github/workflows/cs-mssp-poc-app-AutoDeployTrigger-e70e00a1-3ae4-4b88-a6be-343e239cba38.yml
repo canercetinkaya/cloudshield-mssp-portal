@@ -45,63 +45,8 @@ jobs:
             ghcr.io/canercetinkaya/cloudshield-mssp-portal:latest
 
       - name: 🚀 Clean & Deploy Single-Container ACA Topology
-        shell: bash
-        run: |
-          set -e
-          echo "=== 1. Resolving Managed Environment ID ==="
-          ENV_ID=$(az containerapp show -n cs-mssp-poc-app -g cloudshield --query properties.managedEnvironmentId -o tsv)
-          echo "Managed Environment: $ENV_ID"
-          
-          echo "=== 2. Generating Clean Single-Container Deployment Manifest ==="
-          cat << EOF > aca_deployment.yaml
-properties:
-  managedEnvironmentId: "$ENV_ID"
-  configuration:
-    activeRevisionsMode: Single
-    ingress:
-      external: true
-      targetPort: 8080
-      transport: Auto
-      allowInsecure: false
-    registries:
-      - server: ghcr.io
-        username: canercetinkaya
-        passwordSecretRef: ghcrio-secret
-    secrets:
-      - name: ghcrio-secret
-        value: "${{ secrets.GITHUB_TOKEN }}"
-  template:
-    containers:
-      - name: cloudshield-mssp-portal
-        image: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}"
-        resources:
-          cpu: 0.5
-          memory: 1.0Gi
         env:
-          - name: PORT
-            value: "8080"
-          - name: ENVIRONMENT
-            value: "poc"
-    scale:
-      minReplicas: 1
-      maxReplicas: 3
-EOF
-          
-          echo "=== 3. Applying Clean Deployment to Azure Container Apps ==="
-          az containerapp update -n cs-mssp-poc-app -g cloudshield --yaml aca_deployment.yaml
-          
-          echo "=== 4. Checking Active Revisions & Health ==="
-          az containerapp revision list -n cs-mssp-poc-app -g cloudshield -o table
-          
-          echo "=== 5. Verifying Live Health Endpoint via Curl ==="
-          for i in {1..12}; do
-            echo "Health probe attempt \$i..."
-            if curl -s -f -m 10 "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/health"; then
-              echo ""
-              echo "[SUCCESS] cs-mssp-poc-app is LIVE, HEALTHY, and RESPONDING!"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "[WARN] Verification probe timed out, checking container logs:"
-          az containerapp logs show -n cs-mssp-poc-app -g cloudshield --tail 50 || true
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python Azure/deploy_aca.py
