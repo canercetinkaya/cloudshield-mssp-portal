@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Release](https://img.shields.io/badge/Release-v2.5.4--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.4-LIVE)
+[![Release](https://img.shields.io/badge/Release-v2.5.5-LIVE--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.5-LIVE)
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 [![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
 [![CodeQL Security](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml)
@@ -17,7 +17,7 @@
 ## 🌐 Live Production Deployment
 
 - **Production Portal:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-- **Active Release:** `v2.5.4-LIVE`
+- **Active Release:** `v2.5.5-LIVE`
 - **Version Endpoint:** `GET /api/version` (Health & Telemetry verification)
 - **Authentication Wall:** Session-gated access with Enterprise Credentials (managed via environment variables / Azure Key Vault) or Microsoft Entra ID Single Sign-On (SSO).
 - **Tenant Scope:** Exclusively live, validated customer tenants. Zero synthetic or mock tenant data.
@@ -37,7 +37,7 @@ flowchart TD
 
     subgraph PortalLayer ["Azure Container Apps (Serverless Host)"]
         WebServer["Python REST API Gateway (port 8080)"]
-        VersionBadge["Live Release Badge: v2.5.4-LIVE"]
+        VersionBadge["Live Release Badge: v2.5.5-LIVE"]
         ReportDispatcher["Scheduled Dispatch & SendMail Engine"]
     end
 
@@ -166,12 +166,11 @@ az containerapp up \
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
+| **v2.5.5-LIVE** | `2026.09.10.5` | 2026-09-10 | feat(reporting): 100% dynamic data shell with zero-incident verified posture and removed KQL menu |
 | **v2.5.4-LIVE** | `2026.09.10.4` | 2026-09-10 | feat(docs): automate multi-document synchronization across README, CONTRIBUTING, and SECURITY with live release changelog table |
 | **v2.5.3-LIVE** | `2026.09.10.3` | 2026-09-10 | fix(deploy): update README badges to v2.5.2, fix Zero SOC CI compliance in PurviewDlp and route traffic to latest ACA revision |
 | **v2.5.2-LIVE** | `2026.09.10.2` | 2026-09-10 | feat(versioning): enable dynamic agent semver, live changelog UI and continuous release tagging |
 | **v2.5.1-LIVE** | `2026.09.10.1` | 2026-09-10 | feat(reporting): enrich monthly reports with community KQL threat barometer and hygiene matrix |
-| **v2.5.0-LIVE** | `2026.09.09.live-pipeline` | 2026-09-09 | feat(kql-hub): implement enterprise query catalog, validation, metadata, packages and portal UI |
-
 ---
 
 ## 📄 License & Governance

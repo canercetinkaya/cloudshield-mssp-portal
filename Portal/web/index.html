@@ -199,10 +199,7 @@
                     <i class="fa-solid fa-paper-plane text-xs"></i>
                     <span>Zamanlanmış Dağıtım</span>
                 </button>
-                <button onclick="switchTab('kql')" id="tabBtn-kql" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
-                    <i class="fa-solid fa-crosshairs text-xs text-ks-red"></i>
-                    <span class="font-semibold">Tehdit Avı (KQL Hub)</span>
-                </button>
+
                 <button onclick="switchTab('teams')" id="tabBtn-teams" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-users-gear text-xs"></i>
                     <span>Ekipler & Hizmetler</span>
@@ -1210,124 +1207,7 @@
         </div>
 
         <!-- ========================================================================= -->
-        <!-- 7. TEHDİT AVI & KQL HUB (QUERY CATALOG & PACKAGES) -->
-        <!-- ========================================================================= -->
-        <div id="view-kql" class="hidden space-y-6">
-            <!-- Header Banner -->
-            <div class="bg-gradient-to-r from-ks-navy via-ks-navylight to-slate-900 rounded-xl p-6 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="bg-ks-red text-[11px] font-bold px-2.5 py-0.5 rounded shadow">ENTERPRISE KQL HUB</span>
-                        <h1 class="text-lg font-bold">Microsoft Defender XDR & Purview Tehdit Avı Kataloğu</h1>
-                    </div>
-                    <p class="text-xs text-slate-300 mt-1 max-w-3xl">
-                        Resmi Microsoft repoları (<a href="https://github.com/microsoft/Microsoft-365-Defender-Hunting-Queries" target="_blank" class="underline text-blue-300">Microsoft-365-Defender-Hunting-Queries</a>), <a href="https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules" target="_blank" class="underline text-blue-300">Bert-JanP</a>, <a href="https://github.com/FalconForceSecurity/FalconFriday" target="_blank" class="underline text-blue-300">FalconFriday</a>, <a href="https://github.com/ugurkocde/KQL_Intune" target="_blank" class="underline text-blue-300">ugurkocde/Intune</a> ve <a href="https://github.com/ep3p/Sentinel_KQL" target="_blank" class="underline text-blue-300">Sentinel_KQL</a> topluluk standartlarıyla geliştirilen kurumsal KQL avlama koleksiyonu.
-                    </p>
-                </div>
-                <div class="mt-4 md:mt-0 flex space-x-2">
-                    <button onclick="loadKqlCatalogUI()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-3.5 py-2 rounded-lg border border-white/20 transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Kataloğu Yenile</span>
-                    </button>
-                </div>
-            </div>
 
-            <!-- Paket Kartları Grid (MITRE, Ransomware, EmailSecurity, IdentitySecurity, Intune, Purview) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" id="kqlPackagesGrid">
-                <!-- Javascript will populate package cards -->
-            </div>
-
-            <!-- Filtreleme ve Arama Çubuğu -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3">
-                <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="font-bold text-slate-700">Servis Filtresi:</span>
-                    <button onclick="filterKqlByService('')" id="btnKqlSvc-ALL" class="px-3 py-1 rounded-md bg-ks-navy text-white font-semibold">Tümü</button>
-                    <button onclick="filterKqlByService('MDE')" id="btnKqlSvc-MDE" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">MDE (Endpoint)</button>
-                    <button onclick="filterKqlByService('MDO')" id="btnKqlSvc-MDO" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">MDO (Email)</button>
-                    <button onclick="filterKqlByService('MDI')" id="btnKqlSvc-MDI" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">MDI (Identity)</button>
-                    <button onclick="filterKqlByService('MDCA')" id="btnKqlSvc-MDCA" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">MDCA (Cloud)</button>
-                    <button onclick="filterKqlByService('ENTRA')" id="btnKqlSvc-ENTRA" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Entra ID</button>
-                    <button onclick="filterKqlByService('INTUNE')" id="btnKqlSvc-INTUNE" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Intune</button>
-                    <button onclick="filterKqlByService('PURVIEW')" id="btnKqlSvc-PURVIEW" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Purview DLP</button>
-                    <button onclick="filterKqlByService('XDR')" id="btnKqlSvc-XDR" class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700">Defender XDR</button>
-                </div>
-                <div class="w-full md:w-64">
-                    <input type="text" id="kqlSearchInput" onkeyup="searchKqlTable()" placeholder="Sorgu veya teknik ara (örn: LSASS)..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ks-navy">
-                </div>
-            </div>
-
-            <!-- Kullanıcının Özel Belirttiği Tablo Stiliyle KQL Tablosu -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs kql-table" id="kqlCatalogTable">
-                        <thead>
-                            <tr>
-                                <th class="py-2.5 px-3">Sorgu ID / Başlık</th>
-                                <th class="py-2.5 px-3">Servis & Paket</th>
-                                <th class="py-2.5 px-3">MITRE TTP</th>
-                                <th class="py-2.5 px-3">Hedef Tablolar</th>
-                                <th class="py-2.5 px-3">Şiddet & SLA</th>
-                                <th class="py-2.5 px-3">Kaynak & Yazar</th>
-                                <th class="py-2.5 px-3 text-right">İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody id="kqlCatalogTbody">
-                            <!-- JS Will Render Rows -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- KQL Sorgu Detayı & Canlı Çalıştırma Modal/Drawer -->
-            <div id="kqlModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-                    <div class="px-6 py-4 bg-ks-navy text-white flex justify-between items-center">
-                        <div class="flex items-center space-x-2">
-                            <span id="modalKqlId" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded font-mono">ID</span>
-                            <h3 id="modalKqlTitle" class="text-sm font-bold truncate max-w-xl">Sorgu Başlığı</h3>
-                        </div>
-                        <button onclick="closeKqlModal()" class="text-slate-300 hover:text-white text-lg">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                    <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                            <div><span class="text-slate-500 block font-semibold">Servis:</span> <span id="modalKqlService" class="font-bold text-slate-800">MDE</span></div>
-                            <div><span class="text-slate-500 block font-semibold">Paket:</span> <span id="modalKqlPackage" class="font-bold text-slate-800">Ransomware</span></div>
-                            <div><span class="text-slate-500 block font-semibold">Şiddet:</span> <span id="modalKqlSeverity" class="font-bold text-red-600">Critical</span></div>
-                            <div><span class="text-slate-500 block font-semibold">SLA Yanıtı:</span> <span id="modalKqlSla" class="font-bold text-slate-800">1 Saat</span></div>
-                        </div>
-
-                        <div>
-                            <span class="font-bold text-slate-700 uppercase block mb-1">Açıklama & Operasyonel Amaç:</span>
-                            <p id="modalKqlDesc" class="text-slate-600 bg-slate-50 p-2.5 rounded border border-slate-200"></p>
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-slate-700 uppercase">KQL Kodu:</span>
-                                <button onclick="copyKqlToClipboard()" class="text-blue-600 hover:text-blue-800 font-semibold text-[11px] flex items-center space-x-1">
-                                    <i class="fa-regular fa-copy"></i>
-                                    <span>Kodu Kopyala</span>
-                                </button>
-                            </div>
-                            <pre id="modalKqlCode" class="bg-slate-900 text-emerald-400 p-4 rounded-lg font-mono text-[11px] overflow-x-auto border border-slate-800"></pre>
-                        </div>
-                    </div>
-                    <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex justify-between items-center">
-                        <span id="modalKqlSource" class="text-[11px] text-slate-500"></span>
-                        <div class="flex space-x-2">
-                            <button onclick="closeKqlModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg transition">Kapat</button>
-                            <button onclick="runKqlOnActiveTenant()" class="bg-ks-red hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
-                                <i class="fa-solid fa-play text-xs"></i>
-                                <span>Seçili Müşteride Canlı Avla</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
 
     </main>
 

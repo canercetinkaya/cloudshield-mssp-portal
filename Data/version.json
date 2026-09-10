@@ -1,12 +1,25 @@
 {
-  "version": "2.5.4",
-  "release": "v2.5.4-LIVE",
-  "build": "2026.09.10.4",
-  "build_number": 4,
-  "last_updated": "2026-09-10T11:14:57+03:00",
+  "version": "2.5.5",
+  "release": "v2.5.5-LIVE",
+  "build": "2026.09.10.5",
+  "build_number": 5,
+  "last_updated": "2026-09-10T11:42:39+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.5",
+      "release": "v2.5.5-LIVE",
+      "build": "2026.09.10.5",
+      "timestamp": "2026-09-10T11:42:39+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(reporting): 100% dynamic data shell with zero-incident verified posture and removed KQL menu",
+      "details": [
+        "Güncellenen dosya: Portal/api/report_generator.py",
+        "Güncellenen dosya: Portal/web/index.html"
+      ]
+    },
     {
       "version": "2.5.4",
       "release": "v2.5.4-LIVE",
