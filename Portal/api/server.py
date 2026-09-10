@@ -23,7 +23,7 @@ try:
 except ImportError:
     from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
 
-PORT = 8080
+PORT = int(os.environ.get("PORT", 8080))
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 WEB_DIR = os.path.join(ROOT_DIR, "Portal", "web")
 DATA_DIR = os.path.join(ROOT_DIR, "Data")
@@ -1260,14 +1260,27 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         self.send_error(404, "Endpoint Not Found")
 
-def run(port=PORT):
+def run(port=None):
+    if port is None:
+        port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", PORT))
     server_address = ("", port)
     httpd = http.server.ThreadingHTTPServer(server_address, MSSPPortalHandler)
     print("=" * 80)
     print(f"  CloudShield Enterprise MSSP Security & Compliance Platform")
-    print(f"  Web Portalı ve REST API başlatıldı: http://localhost:{port}")
+    print(f"  Web Portalı ve REST API başlatıldı: http://0.0.0.0:{port}")
     print(f"  Statik Web Dosyaları: {WEB_DIR}")
     print(f"  Veritabanı: {TENANTS_FILE}")
+    
+    # Dual-port binding: Try binding port 80 if primary is 8080 (or vice-versa) for Azure Container Apps ingress
+    alt_port = 80 if port != 80 else 8080
+    try:
+        alt_httpd = http.server.ThreadingHTTPServer(("", alt_port), MSSPPortalHandler)
+        import threading
+        t = threading.Thread(target=alt_httpd.serve_forever, daemon=True)
+        t.start()
+        print(f"  [+] Dual-port aktif: http://0.0.0.0:{alt_port} (ACA Ingress yedek port)")
+    except Exception as e:
+        print(f"  [INFO] İkincil port ({alt_port}) dinlenemedi (normal/yetki yok): {e}")
     print("=" * 80)
     try:
         httpd.serve_forever()
@@ -1276,5 +1289,5 @@ def run(port=PORT):
         httpd.server_close()
 
 if __name__ == "__main__":
-    p = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
+    p = int(sys.argv[1]) if len(sys.argv) > 1 else None
     run(p)

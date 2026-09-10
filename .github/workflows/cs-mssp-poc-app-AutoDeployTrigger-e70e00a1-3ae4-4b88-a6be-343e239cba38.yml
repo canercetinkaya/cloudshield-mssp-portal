@@ -43,5 +43,20 @@ jobs:
           containerAppName: cs-mssp-poc-app
           resourceGroup: cloudshield
           imageToBuild: ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}
+          targetPort: 8080
 
-
+      - name: 🛡️ Diagnose & Enforce High Availability (ACA Ingress & Scale)
+        shell: bash
+        run: |
+          echo "=== 1. Azure Container App Configuration ==="
+          az containerapp show -n cs-mssp-poc-app -g cloudshield --query "{ingress:properties.configuration.ingress, provisioningState:properties.provisioningState, runningStatus:properties.runningStatus}" -o json
+          
+          echo "=== 2. Enforcing Target Port 8080 and Min Replicas 1 ==="
+          az containerapp ingress update -n cs-mssp-poc-app -g cloudshield --target-port 8080 --transport auto --type external
+          az containerapp update -n cs-mssp-poc-app -g cloudshield --min-replicas 1 --max-replicas 3
+          
+          echo "=== 3. Active Revisions & Replica Health ==="
+          az containerapp revision list -n cs-mssp-poc-app -g cloudshield -o table
+          
+          echo "=== 4. Recent Container App Console Logs ==="
+          az containerapp logs show -n cs-mssp-poc-app -g cloudshield --tail 50 || true

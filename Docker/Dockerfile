@@ -35,8 +35,8 @@ COPY . /app
 # Fix Windows CRLF line endings on entrypoint script if cloned on Windows
 RUN sed -i 's/\r$//' /app/Docker/entrypoint.sh && chmod +x /app/Docker/entrypoint.sh
 
-# Expose web portal & API port
-EXPOSE 8080
+# Expose web portal & API port (8080 primary, 80 backup)
+EXPOSE 8080 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
