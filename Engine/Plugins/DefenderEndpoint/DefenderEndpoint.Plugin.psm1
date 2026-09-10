@@ -121,15 +121,32 @@ function Get-ServiceRawData {
                 [pscustomobject]@{ ConfigurationCategory = 'Attack Surface Reduction'; Uyumlu = 290; Uyumsuz = 60 },
                 [pscustomobject]@{ ConfigurationCategory = 'BitLocker Encryption'; Uyumlu = 342; Uyumsuz = 8 }
             )
+            TamperProtectionInaktif = @(
+                [pscustomobject]@{ DeviceName = 'SRV-APP-04.corp.local'; OSPlatform = 'Windows Server 2022'; TamperStatus = 'Inactive' },
+                [pscustomobject]@{ DeviceName = 'SRV-DB-02.corp.local'; OSPlatform = 'Windows Server 2019'; TamperStatus = 'Inactive' }
+            )
+            UnmanagedKesif = @(
+                [pscustomobject]@{ DeviceName = 'UNMANAGED-PRINTER-01'; IPAddresses = '10.20.4.15'; OSPlatform = 'Linux / Embedded'; OnboardingStatus = 'CanBeOnboarded' },
+                [pscustomobject]@{ DeviceName = 'LEGACY-DEV-99'; IPAddresses = '10.20.12.88'; OSPlatform = 'Windows 7 SP1'; OnboardingStatus = 'Unsupported' },
+                [pscustomobject]@{ DeviceName = 'IOT-CAMERA-GW'; IPAddresses = '192.168.10.5'; OSPlatform = 'Linux'; OnboardingStatus = 'CanBeOnboarded' }
+            )
+            CisaKevTop5 = @(
+                [pscustomobject]@{ CveId = 'CVE-2024-38112'; VulnerabilitySeverityLevel = 'Critical'; AffectedDevices = 12 },
+                [pscustomobject]@{ CveId = 'CVE-2024-30078'; VulnerabilitySeverityLevel = 'Critical'; AffectedDevices = 9 },
+                [pscustomobject]@{ CveId = 'CVE-2024-38077'; VulnerabilitySeverityLevel = 'Critical'; AffectedDevices = 7 },
+                [pscustomobject]@{ CveId = 'CVE-2023-36884'; VulnerabilitySeverityLevel = 'High'; AffectedDevices = 5 },
+                [pscustomobject]@{ CveId = 'CVE-2024-21412'; VulnerabilitySeverityLevel = 'High'; AffectedDevices = 4 }
+            )
         }
 
         return [pscustomobject]@{
-            Devices   = $mockDevices
-            Actions   = $mockActions
-            Hunt      = $mockHunt
-            StartDate = $StartDate
-            EndDate   = $EndDate
-            IsMock    = $true
+            Devices         = $mockDevices
+            TotalAdDevices  = 358 # Toplam AD / Entra ID cihaz sayısı (Sensör kapsama hesabı için)
+            Actions         = $mockActions
+            Hunt            = $mockHunt
+            StartDate       = $StartDate
+            EndDate         = $EndDate
+            IsMock          = $true
         }
     }
 
@@ -213,18 +230,42 @@ function Get-ServiceKpis {
     $ac = @($RawData.Actions)
     $h = if ($RawData.Hunt) { $RawData.Hunt } else { @{} }
 
-    $ghostThreshold = $RawData.EndDate.AddDays(-7)
-    $hayaletCihazlar = @($d | Where-Object {
-        if ($_.lastSeen) {
-            try { [DateTime]::Parse($_.lastSeen) -lt $ghostThreshold } catch { $false }
-        } else { $false }
-    })
+    $now = $RawData.EndDate
+    $warnThreshold = $now.AddDays(-7)
+    $critThreshold = $now.AddDays(-14)
+    $hygieneThreshold = $now.AddDays(-30)
 
-    $aktifCihazlar = @($d | Where-Object {
-        if ($_.lastSeen) {
-            try { [DateTime]::Parse($_.lastSeen) -ge $ghostThreshold } catch { $true }
-        } else { $true }
-    })
+    $ghost7to14 = @()
+    $ghost14to30 = @()
+    $ghost30Plus = @()
+    $aktifCihazlar = @()
+
+    foreach ($dev in $d) {
+        if ($dev.lastSeen) {
+            try {
+                $lastSeenDate = [DateTime]::Parse($dev.lastSeen)
+                if ($lastSeenDate -lt $hygieneThreshold) {
+                    $ghost30Plus += $dev
+                } elseif ($lastSeenDate -lt $critThreshold) {
+                    $ghost14to30 += $dev
+                } elseif ($lastSeenDate -lt $warnThreshold) {
+                    $ghost7to14 += $dev
+                } else {
+                    $aktifCihazlar += $dev
+                }
+            } catch {
+                $aktifCihazlar += $dev
+            }
+        } else {
+            $aktifCihazlar += $dev
+        }
+    }
+
+    $hayaletCihazlar = $ghost7to14 + $ghost14to30 + $ghost30Plus
+
+    # Sensör Kapsama Oranı: (Sağlıklı Onboard Cihazlar / Toplam AD Cihazları) * 100
+    $totalAd = if ($RawData.TotalAdDevices -and $RawData.TotalAdDevices -gt 0) { [int]$RawData.TotalAdDevices } else { [math]::Max($d.Count, 1) }
+    $sensorCoveragePct = [math]::Round(($aktifCihazlar.Count / $totalAd) * 100, 1)
 
     # Otonom ve Manuel Response Aksiyonları
     $otonomRegex = '(?i)(automated|automatic|autoir|system|defender)'
@@ -259,8 +300,13 @@ function Get-ServiceKpis {
 
     return [ordered]@{
         ToplamCihaz         = $d.Count
+        TotalAdDevices      = $totalAd
         AktifCihaz          = $aktifCihazlar.Count
+        SensorCoveragePct   = $sensorCoveragePct
         HayaletCihaz        = $hayaletCihazlar.Count
+        Ghost7to14d         = $ghost7to14.Count
+        Ghost14to30d        = $ghost14to30.Count
+        Ghost30Plusd        = $ghost30Plus.Count
         HayaletCihazListesi = $hayaletCihazlar
         OtonomAksiyonSayisi = $otonomAksiyonlar.Count
         ManuelAksiyonSayisi = $manuelAksiyonlar.Count
@@ -271,6 +317,9 @@ function Get-ServiceKpis {
         AsrKurallari        = @($h['Asr'])
         WebEngellemeleri    = @($h['WebKoruma'])
         KurcalamaOlaylari   = @($h['KurcalamaGirisimi'])
+        TamperProtectionInaktif = @($h['TamperProtectionInaktif'])
+        UnmanagedKesif      = @($h['UnmanagedKesif'])
+        CisaKevTop5         = @($h['CisaKevTop5'])
     }
 }
 

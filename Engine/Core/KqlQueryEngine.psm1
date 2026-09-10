@@ -164,6 +164,49 @@ $win
 | top 10 by Adet desc
 "@
 
+    # 11. MDE - Tamper Protection Inactive Devices (Zero-Tolerance Security Risk)
+    $queries['TamperProtectionStatus'] = @"
+DeviceInfo
+| where Timestamp > ago(7d)
+| summarize arg_max(Timestamp, IsTamperProtected, OSPlatform, DeviceName) by DeviceId
+| where IsTamperProtected == false or isempty(IsTamperProtected)
+| project DeviceId, DeviceName, OSPlatform, TamperStatus = "Inactive"
+| top 20 by DeviceName asc
+"@
+
+    # 12. MDE - Device Discovery Unmanaged Rogue Devices
+    $queries['UnmanagedRogueDevices'] = @"
+DeviceInfo
+| where Timestamp > ago(7d)
+| summarize arg_max(Timestamp, OnboardingStatus, DeviceName, IPAddresses, OSPlatform) by DeviceId
+| where OnboardingStatus in ("CanBeOnboarded", "Unsupported", "InsufficientInfo")
+| project DeviceId, DeviceName, OSPlatform, OnboardingStatus, IPAddresses
+| top 50 by Timestamp desc
+"@
+
+    # 13. MDE - CISA Known Exploited Vulnerabilities (KEV) Top 5
+    $queries['CisaKevTop5'] = @"
+DeviceTvmSoftwareVulnerabilities
+| where Timestamp > ago(7d)
+| where IsExploitAvailable == 1 or VulnerabilitySeverityLevel =~ "Critical"
+| summarize AffectedDevices = dcount(DeviceId) by CveId, VulnerabilitySeverityLevel
+| top 5 by AffectedDevices desc
+"@
+
+    # 14. MDE - Progressive Ghost Devices (7d, 14d, 30d+)
+    $queries['ProgressiveGhostDevices'] = @"
+DeviceInfo
+| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName, OSPlatform
+| extend InactivityDays = datetime_diff('day', now(), LastSeen)
+| where InactivityDays >= 7
+| extend Category = case(
+    InactivityDays between (7 .. 14), "Warning_7_14d",
+    InactivityDays between (15 .. 30), "Critical_14_30d",
+    "Hygiene_30d_Plus"
+)
+| summarize DeviceCount = dcount(DeviceId) by Category
+"@
+
     return $queries
 }
 
