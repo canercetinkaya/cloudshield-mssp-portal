@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     CloudShield Microsoft Security Managed Services Reporting Platform - Ana Raporlama Motoru
 .DESCRIPTION
@@ -244,26 +244,6 @@ if ($activeServices.Count -gt 1) {
             </div>
         </div>
 
-        <!-- C-LEVEL STRATEJİK REÇETESEL EYLEM PLANI (PRESCRIPTIVE ROADMAP) -->
-        <div style="margin-top:20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:16px;">
-            <div style="font-weight:700; color:var(--ks-navy); font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                <span>🎯 Gelecek Ay Stratejik Öncelik ve Kural Olgunlaştırma Planı (Prescriptive Roadmap)</span>
-            </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; font-size:12px;">
-                <div style="background:#FFFFFF; border-left:4px solid #005691; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="font-weight:700; color:#005691; margin-bottom:4px;">1. Hassas Veri & DLP Hijyeni</div>
-                    <div style="color:#475569; line-height:1.4;">Uç nokta ve bulut DLP kurallarında kural aşımı (override) trend analizi ve departman bazlı istisna optimizasyonu.</div>
-                </div>
-                <div style="background:#FFFFFF; border-left:4px solid #10B981; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="font-weight:700; color:#10B981; margin-bottom:4px;">2. XDR & Otonom Sıkılaştırma</div>
-                    <div style="color:#475569; line-height:1.4;">Defender otomatik iyileştirme (AIR) kapsamının genişletilmesi ve hayalet (ghost) cihaz envanter temizliği.</div>
-                </div>
-                <div style="background:#FFFFFF; border-left:4px solid #D97706; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="font-weight:700; color:#D97706; margin-bottom:4px;">3. Kimlik Güvenliği & Uyum</div>
-                    <div style="color:#475569; line-height:1.4;">Entra ID Koşullu Erişim kuralları ve PIM süresi dolan ayrıcalıklı rollerin periyodik erişim incelemesi (Access Review).</div>
-                </div>
-            </div>
-        </div>
     </div>
 "@
 }

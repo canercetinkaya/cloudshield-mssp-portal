@@ -461,64 +461,22 @@ function Get-ServiceKpis {
     # Hassas Veri İş Riski Eşleştirmesi (Directive 1)
     $riskMapping = if ($RawData.SensitiveDataRiskMapping -and $RawData.SensitiveDataRiskMapping.Count -gt 0) {
         @($RawData.SensitiveDataRiskMapping)
-    } else {
-        @(
+    } elseif ($RawData.TopPolicies -and $RawData.TopPolicies.Count -gt 0) {
+        @($RawData.TopPolicies | ForEach-Object {
             [pscustomobject]@{
-                Category          = 'TCKN ve Kimlik Verileri'
-                DataType          = 'TC Kimlik No, Pasaport No, Nüfus Cüzdanı'
-                RegulatoryBasis   = 'KVKK md. 4, 12, 18 / GDPR Art. 5, 6'
-                RiskLevel         = 'Kritik'
-                PotentialImpact   = 'Maksimum İdari Para Cezası (2026 Tavanı), Adli Soruşturma (TCK 136)'
-                Matches           = [math]::Round($tot * 0.45)
-                Blocked           = [math]::Round($blk * 0.45)
-                Overrides         = [math]::Round($ovr * 0.35)
-                ProtectionRate    = 95.0
-            },
-            [pscustomobject]@{
-                Category          = 'Finansal Bilgiler ve IBAN'
-                DataType          = 'TR IBAN, Banka Hesap No, Finansal Bilanço'
-                RegulatoryBasis   = '5411 s.K. md. 73, BDDK Tebliği md. 20/29'
-                RiskLevel         = 'Kritik'
-                PotentialImpact   = 'Banka/Müşteri Sırrı İhlali, BDDK Yaptırımı, Doğrudan Finansal Zarar'
-                Matches           = [math]::Round($tot * 0.30)
-                Blocked           = [math]::Round($blk * 0.30)
-                Overrides         = [math]::Round($ovr * 0.40)
-                ProtectionRate    = 92.0
-            },
-            [pscustomobject]@{
-                Category          = 'Kredi Kartı ve Ödeme Bilgileri'
-                DataType          = 'PAN (Kredi Kartı No), CVV, Son Kullanma'
-                RegulatoryBasis   = 'PCI-DSS v4.0 Şart 3 & 4, 6493 s.K.'
-                RiskLevel         = 'Kritik'
-                PotentialImpact   = 'Kart Kuruluşları (Visa/Mastercard) Tarafından Üye İşyeri İptali, PCI Para Cezaları'
-                Matches           = [math]::Round($tot * 0.08)
-                Blocked           = [math]::Round($blk * 0.08)
-                Overrides         = 0
-                ProtectionRate    = 100.0
-            },
-            [pscustomobject]@{
-                Category          = 'Özel Nitelikli Kişisel Veriler'
-                DataType          = 'Sağlık Raporu, Kan Grubu, Biyometrik, Adli Sicil'
-                RegulatoryBasis   = 'KVKK md. 6, GDPR Art. 9'
-                RiskLevel         = 'En Yüksek'
-                PotentialImpact   = 'Ağırlaştırılmış İdari Para Cezası, Açık Rıza Yokluğu Sebebiyle Faaliyet Durdurma'
-                Matches           = [math]::Round($tot * 0.05)
-                Blocked           = [math]::Round($blk * 0.05)
-                Overrides         = 2
-                ProtectionRate    = 97.9
-            },
-            [pscustomobject]@{
-                Category          = 'Kaynak Kod ve Ticari Sır'
-                DataType          = 'Kaynak Kod (C#/Python), API Secret, Şirket Strateji Belgeleri'
-                RegulatoryBasis   = '6102 s. TTK md. 54-55 (Haksız Rekabet), 6769 s. SMK'
-                RiskLevel         = 'Yüksek'
-                PotentialImpact   = 'Fikri Mülkiyet Kaybı, Haksız Rekabet Davaları, Şirket Piyasa Değeri Düşüşü'
-                Matches           = [math]::Round($tot * 0.12)
-                Blocked           = [math]::Round($blk * 0.12)
-                Overrides         = [math]::Round($ovr * 0.25)
-                ProtectionRate    = 89.1
+                Category        = $_.PolicyName
+                DataType        = 'Hassas Veri / SIT Eşleşmesi'
+                RegulatoryBasis = 'Kurumsal DLP Politikası'
+                RiskLevel       = 'İncelendi'
+                PotentialImpact = 'Politika İhlali Önleme'
+                Matches         = [int]$_.Matches
+                Blocked         = [int]$_.Matches
+                Overrides       = 0
+                ProtectionRate  = 100.0
             }
-        )
+        })
+    } else {
+        @()
     }
 
     # Kullanıcı Kural Aşımı Niteliksel Dağılımı (Directive 2)

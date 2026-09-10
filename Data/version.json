@@ -1,12 +1,27 @@
 {
-  "version": "2.5.6",
-  "release": "v2.5.6-LIVE",
-  "build": "2026.09.10.6",
-  "build_number": 6,
-  "last_updated": "2026-09-10T11:48:10+03:00",
+  "version": "2.5.7",
+  "release": "v2.5.7-LIVE",
+  "build": "2026.09.10.7",
+  "build_number": 7,
+  "last_updated": "2026-09-10T11:55:38+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.7",
+      "release": "v2.5.7-LIVE",
+      "build": "2026.09.10.7",
+      "timestamp": "2026-09-10T11:55:38+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(reporting): remove static prescriptive roadmap and make SIT distribution & action backlog 100% dynamic",
+      "details": [
+        "Güncellenen dosya: Engine/Invoke-CloudShieldSecurityReporting.ps1",
+        "Güncellenen dosya: Engine/Invoke-KocSistemSecurityReporting.ps1",
+        "Güncellenen dosya: Engine/Plugins/PurviewDlp/PurviewDlp.Plugin.psm1",
+        "Güncellenen dosya: Portal/api/report_generator.py"
+      ]
+    },
     {
       "version": "2.5.6",
       "release": "v2.5.6-LIVE",

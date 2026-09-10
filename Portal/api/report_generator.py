@@ -832,60 +832,41 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
 
 <table class="backlog-table">
   <tr><th>Aksiyon ID</th><th>Sorumlu Ekip (RACI)</th><th>SLA</th><th>Runbook Kodu</th><th>Eylem ve Cozum Plani</th></tr>
-  <tr>
-    <td><b>ACT-INT-001</b></td>
+  {f"""<tr>
+    <td><b>ACT-MDE-01</b></td>
     <td>Intune &amp; Ucnokta Yonetimi</td>
     <td><span class='pill p-crit'>24 Saat</span></td>
-    <td>RB-INTUNE-BITLOCKER-ENFORCE</td>
-    <td>BitLocker anahtari Entra ID'ye senkron olmayan cihazlarda anahtar zorlamasi yapilacak.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-ASR-002</b></td>
+    <td>RB-MDE-GHOST-REMEDIATION</td>
+    <td>Iletisim kurulamayan {ghost_14_30} cihaz icin ag erisimi ve sensor saglik kontrolu yapilacak.</td>
+  </tr>""" if ghost_14_30 > 0 else ""}
+  {f"""<tr>
+    <td><b>ACT-MDE-02</b></td>
     <td>SecOps &amp; MDE Muhendisligi</td>
     <td><span class='pill p-warn'>48 Saat</span></td>
     <td>RB-MDE-ASR-RULE-HARDENING</td>
-    <td>Rundll32 ve Certutil LOLBins cagrilari tum istemcilerde Block modunda dogrulanacak.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-APP-003</b></td>
-    <td>Kimlik &amp; Entra ID Yonetimi</td>
-    <td><span class='pill p-warn'>3 Gun</span></td>
-    <td>RB-ENTRA-OAUTH-REVOCATION</td>
-    <td>Atil ve yuksek izinli (Mail.ReadWrite) OAuth coklu kiraci onaylari periyodik taranacak.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-MDI-004</b></td>
-    <td>Dizin Hizmetleri (Active Directory)</td>
-    <td><span class='pill p-warn'>5 Gun</span></td>
-    <td>RB-MDI-SPN-AES-MIGRATION</td>
-    <td>Kerberoasting riski tasiyan RC4 sifreli SPN hesaplari AES-256'ya gecirilecek.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-PUR-005</b></td>
-    <td>Veri Guvenligi &amp; Uyum Ekibi</td>
-    <td><span class='pill p-warn'>7 Gun</span></td>
-    <td>RB-PURVIEW-USB-CONTAINMENT</td>
-    <td>SIT eslesmeli dosyalarda USB engeli devrede tutulup kisisel depolama bloklanacak.</td>
-  </tr>
+    <td>ASR kurallari ve otomatik iyilestirme (AIR) politikalari incelenecek.</td>
+  </tr>""" if analyst_actions > 0 else ""}
+  {"""<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Kurumsal filoda açık zafiyet veya müdahale gerektiren bekleyen acil iyileştirme görevi bulunmamaktadır.
+    </td>
+  </tr>""" if (ghost_14_30 == 0 and analyst_actions == 0) else ""}
 </table>
 
 <h2>C-Level Stratejik Yatirim ve Karar Matrisi</h2>
 <table>
   <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Karar / Onay</th><th>Guvenlik Etkisi</th></tr>
-  <tr>
-    <td><b>P1 - Acil</b></td>
-    <td>Tamper Protection eksik sunucularin Intune zorlamasina alinmasi</td>
-    <td>Kurcalama korumasiz sistemlerde savunma devre disi birakilabilir</td>
+  {f"""<tr>
+    <td><b>P1 - Oncelikli</b></td>
+    <td>Hayalet Cihazlarin Envanterden Dusulmesi</td>
+    <td>{ghost_14_30} cihazda 14 gundur iletisim eksikligi saptandi</td>
     <td>BT Altyapi Muduru Onayi</td>
-    <td>Kritik sunucularda ransomware riski sifirlanir</td>
-  </tr>
-  <tr>
-    <td><b>P2 - Yuksek</b></td>
-    <td>CISA KEV aciklarina karsi planli ara yama gecisi</td>
-    <td>Aktif exploit edilen zafiyetlerin varligi</td>
-    <td>Planli 30 dk Bakim Penceresi</td>
-    <td>TVM Skoru +8.4 puan artar</td>
-  </tr>
+    <td>Lisans ve sensor kor noktasi riski sifirlanir</td>
+  </tr>""" if ghost_14_30 > 0 else """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Genel Savunma Duruşu Güçlü:</b> C-Level müdahale veya olağanüstü bütçe onayı gerektiren açık bir altyapı riski bulunmamaktadır.
+    </td>
+  </tr>"""}
 </table>
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
@@ -938,19 +919,19 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
     override_breakdown = kpis.get("UserOverrideBreakdown") or []
     recent_dlp_events = kpis.get("RecentDlpEvents") or []
 
-    # Format SIT Risk Table
+    # Format SIT Distribution Table
     if sit_risk_mapping:
         sit_rows = "".join(f"""<tr>
     <td><b>{s.get('Category', s.get('DataType', 'Hassas Veri'))}</b></td>
-    <td>{s.get('RegulatoryBasis', 'KVKK / GDPR')}</td>
-    <td class='num'>{s.get('Matches', 0)}</td>
-    <td class='num'><b>{s.get('Blocked', 0)}</b></td>
-    <td>{s.get('PotentialImpact', 'İdari Yaptırım / Risk')}</td>
+    <td>{s.get('RegulatoryBasis', s.get('PolicyName', 'Kurumsal DLP Politikası'))}</td>
+    <td class='num'>{s.get('Matches', 0)} Olay</td>
+    <td class='num'><b>{s.get('Blocked', 0)}</b> Blok</td>
+    <td><span class='pill p-ok'>%{s.get('ProtectionRate', 100.0)} Koruma</span></td>
   </tr>""" for s in sit_risk_mapping)
     else:
         sit_rows = f"""<tr>
     <td colspan="5" class="text-center" style="text-align:center; padding:14px; color:#065f46; background:#f0fdf4;">
-      <b>✓ Sıfır DLP İhlali &amp; Proaktif Uyum Güvencesi:</b> Dönem içerisinde KVKK md. 4, 12, 18 veya GDPR Art. 5, 25 kapsamında harici paylaşılan veya sızan veri tespit edilmemiştir. Hassas veri koruma kalkanı devrededir.
+      <b>✓ Sıfır DLP İhlali &amp; Proaktif Uyum Güvencesi:</b> Dönem içerisinde harici paylaşılan veya sızan kurumsal hassas veri (SIT) tespit edilmemiştir. Hassas veri koruma kalkanı tam devrededir.
     </td>
   </tr>"""
 
@@ -1067,28 +1048,28 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
 <div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard v2.5.5</div>
 </div>
 
-<!-- SAYFA 2: HASSAS VERİ İŞ RİSKİ VE USER OVERRIDE ANALİZİ -->
+<!-- SAYFA 2: EN ÇOK DLP KURALLARINA TAKILAN HASSAS VERİLER (SIT DAĞILIMI) VE KURAL AŞIMI -->
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Hassas Veri Is Riski ve Kural Asimi (Override) Analizi</h1>
+  <h1>Hassas Veri Dagilimi ve Kural Asimi (Override) Analizi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label} (Son 30 gun)</div>
 </header>
 
-<h2>Hassas Veri Turlerinin (SIT) Is Riski ve Mevzuat Eslesmesi</h2>
-<p>Dönem icinde tespit edilen veri tiplerinin potansiyel cezai ve kurumsal etki analizi:</p>
+<h2>En Cok DLP Kurallarina Takilan Hassas Verileriniz (SIT Dagilimi)</h2>
+<p>Dönem icinde kurumsal politikalara takilan toplam <b>{total_matches}</b> olaydaki hassas veri turleri (Sensitive Information Types - SIT):</p>
 
 <table>
-  <tr><th>Hassas Veri Kategorisi</th><th>Mevzuat Dayanak</th><th>Tespit</th><th>Engelleme</th><th>Potansiyel Etki / Risk</th></tr>
+  <tr><th>Hassas Veri / SIT Turu</th><th>Ilgili Politika</th><th>Tespit</th><th>Otonom Blok</th><th>Koruma Durumu</th></tr>
   {sit_rows}
 </table>
 
 <h2>Kullanici Kural Asimi (User Override) Niteliksel Dökümü</h2>
-<p>Kullanicilarin uyariyi gecerek veri transferi yapma gerekcelerinin uzman analizi:</p>
+<p>Kullanicilarin uyariyi gecerek veri transferi yapma gerekcelerinin uzman analizi (Toplam {overrides} olay):</p>
 
 <table>
-  <tr><th>Gerekce Kategorisi</th><th>Adet</th><th>Oran</th><th>Uyum Degerlendirmesi ve Alinan Tedbir</th></tr>
+  <tr><th>Gerekce Kategorisi</th><th>Adet</th><th>Oran</th><th>MSSP Uyum ve Triyaj Degerlendirmesi</th></tr>
   {override_rows}
 </table>
 
@@ -1098,10 +1079,10 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
 </table>
 
 <p class="note">Tum kisi ve dosya verileri PrivacyEngine tarafindan tuzlu SHA-256 ve k &ge; 5 k-Anonymity ile maskelenmistir.</p>
-<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard v2.5.5</div>
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard v2.5.7</div>
 </div>
 
-<!-- SAYFA 3: PURVIEW EYLEME DÖNÜŞTÜRÜLEBİLİR BACKLOG VE YOL HARİTASI -->
+<!-- SAYFA 3: PURVIEW EYLEME DÖNÜŞTÜRÜLEBİLİR BACKLOG VE YÖNETİŞİM -->
 <div class="page">
 <header>
   {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
@@ -1113,53 +1094,40 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
 <h2>Eyleme Donusturulebilir DLP Backlog Listesi</h2>
 <table class="backlog-table">
   <tr><th>Aksiyon ID</th><th>Sorumlu Ekip (RACI)</th><th>SLA</th><th>Runbook Kodu</th><th>Eylem ve Cozum Plani</th></tr>
-  <tr>
-    <td><b>ACT-PRV-2026-01</b></td>
+  {f"""<tr>
+    <td><b>ACT-PRV-01</b></td>
     <td>Veri Guvenligi Ekibi</td>
     <td><span class='pill p-crit'>48 Saat</span></td>
-    <td>RB-DLP-USB-BLOCK</td>
-    <td>Finans ve Muhasebe departmanlarinda USB kuralinin 'Uyari' modundan 'Blok' moduna gecirilmesi.</td>
+    <td>RB-DLP-ENDPOINT-BLOCK</td>
+    <td>Ucnoktada tespit edilen {endpoint_blocks} adet dosya aktarimi icin kural bloklama optimizasyonu.</td>
   </tr>
   <tr>
-    <td><b>ACT-PRV-2026-02</b></td>
-    <td>SharePoint Yonetimi</td>
-    <td><span class='pill p-warn'>5 Gun</span></td>
-    <td>RB-COPILOT-OVERSHARE</td>
-    <td>Copilot oncesi herkese acik (Everyone) paylasilmis finans ve IK tablolari icin erisim denetimi yapilmasi.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-PRV-2026-03</b></td>
+    <td><b>ACT-PRV-02</b></td>
     <td>IK &amp; Ic Denetim</td>
     <td><span class='pill p-warn'>7 Gun</span></td>
     <td>RB-DLP-AWARENESS</td>
-    <td>Supheli override gerekcesi giren calisanlar icin periyodik KVKK farkindalik egitimi atanmasi.</td>
-  </tr>
-  <tr>
-    <td><b>ACT-PRV-2026-04</b></td>
-    <td>MSSP Kural Muhendisligi</td>
-    <td><span class='pill p-info'>Planli</span></td>
-    <td>RB-SIT-REGEX-TUNE</td>
-    <td>TCKN ve IBAN kurallarindaki yanlis pozitif oranlarini dusurmek adina ek dogrulama kelimelerinin eklenmesi.</td>
-  </tr>
+    <td>Kural asimi (override) gerceklestiren {overrides} kullanici icin hedeflenmis farkindalik egitimi.</td>
+  </tr>""" if (endpoint_blocks > 0 or overrides > 0) else """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Bekleyen Aksiyon Bulunmamaktadır:</b> Dönem içinde açık DLP uyarısı veya acil müdahale gerektiren kural aşımı bulunmamaktadır.
+    </td>
+  </tr>"""}
 </table>
 
 <h2>C-Level Stratejik Karar ve Onay Matrisi</h2>
 <table>
   <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Onay</th><th>Guvenlik Etkisi</th></tr>
-  <tr>
-    <td><b>P1 - Acil</b></td>
-    <td>USB DLP politikasinin istisnasiz Bloklanmasi</td>
-    <td>Ucnoktada engelleme goruldu; fiziki sizinti riski yuksek</td>
-    <td>Genel Mudur / CISO Onayi</td>
-    <td>Ucnokta sizinti riski %90 azalir</td>
-  </tr>
-  <tr>
-    <td><b>P2 - Yuksek</b></td>
-    <td>SharePoint asiri yetkili paylasimlarin temizligi</td>
-    <td>Copilot uzerinden istem disi finansal veri ifsa riski</td>
-    <td>Birim Mudurleri Onayi</td>
-    <td>GenAI veri guvenligi temin edilir</td>
-  </tr>
+  {f"""<tr>
+    <td><b>P1 - Oncelikli</b></td>
+    <td>Endpoint DLP kurallarinin Blok moduna alinmasi</td>
+    <td>Ucnoktada {endpoint_blocks} adet harici aktarim tespit edildi</td>
+    <td>CISO Onayi</td>
+    <td>Ucnokta sizinti riski bertaraf edilir</td>
+  </tr>""" if endpoint_blocks > 0 else """<tr>
+    <td colspan="5" class="text-center" style="text-align:center; padding:12px; color:#065f46; background:#f0fdf4;">
+      <b>✓ Proaktif Uyum Güvencesi:</b> Mevcut kurallar tam korumada çalışmakta olup C-Level acil karar gerektiren açık risk bulunmamaktadır.
+    </td>
+  </tr>"""}
 </table>
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
