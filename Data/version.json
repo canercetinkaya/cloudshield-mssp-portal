@@ -1,12 +1,26 @@
 {
-  "version": "2.5.2",
-  "release": "v2.5.2-LIVE",
-  "build": "2026.09.10.2",
-  "build_number": 2,
-  "last_updated": "2026-09-10T10:58:46+03:00",
+  "version": "2.5.3",
+  "release": "v2.5.3-LIVE",
+  "build": "2026.09.10.3",
+  "build_number": 3,
+  "last_updated": "2026-09-10T11:07:59+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.3",
+      "release": "v2.5.3-LIVE",
+      "build": "2026.09.10.3",
+      "timestamp": "2026-09-10T11:07:59+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "fix(deploy): update README badges to v2.5.2, fix Zero SOC CI compliance in PurviewDlp and route traffic to latest ACA revision",
+      "details": [
+        "Güncellenen dosya: Azure/deploy_aca.py",
+        "Güncellenen dosya: Engine/Plugins/PurviewDlp/PurviewDlp.Plugin.psm1",
+        "Güncellenen dosya: README.md"
+      ]
+    },
     {
       "version": "2.5.2",
       "release": "v2.5.2-LIVE",

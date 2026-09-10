@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Release](https://img.shields.io/badge/Release-v2.5.0--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.0)
+[![Release](https://img.shields.io/badge/Release-v2.5.3--LIVE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.3-LIVE)
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 [![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
 [![CodeQL Security](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/codeql.yml)
@@ -17,7 +17,7 @@
 ## 🌐 Live Production Deployment
 
 - **Production Portal:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-- **Active Release:** `v2.5.0-LIVE`
+- **Active Release:** `v2.5.3-LIVE`
 - **Version Endpoint:** `GET /api/version` (Health & Telemetry verification)
 - **Authentication Wall:** Session-gated access with Enterprise Credentials (managed via environment variables / Azure Key Vault) or Microsoft Entra ID Single Sign-On (SSO).
 - **Tenant Scope:** Exclusively live, validated customer tenants. Zero synthetic or mock tenant data.
@@ -37,7 +37,7 @@ flowchart TD
 
     subgraph PortalLayer ["Azure Container Apps (Serverless Host)"]
         WebServer["Python REST API Gateway (port 8080)"]
-        VersionBadge["Live Release Badge: v2.5.0-LIVE"]
+        VersionBadge["Live Release Badge: v2.5.2-LIVE"]
         ReportDispatcher["Scheduled Dispatch & SendMail Engine"]
     end
 

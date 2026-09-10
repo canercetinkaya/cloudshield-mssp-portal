@@ -105,24 +105,42 @@ def main():
     print("=== Applying clean single-container configuration ===")
     run_cmd(["az", "containerapp", "update", "-n", app_name, "-g", resource_group, "--yaml", config_file])
     
-    # 4. List Active Revisions
-    print("=== Active Revisions & Replicas ===")
+    # 4. Deactivate old revisions so traffic strictly routes to newest revision
+    print("=== Managing Revisions & Routing Traffic ===")
+    rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
+    try:
+        revs = json.loads(rev_res.stdout)
+        # Sort newest first
+        revs_sorted = sorted(revs, key=lambda x: x.get("properties", {}).get("createdTime", ""), reverse=True)
+        if revs_sorted:
+            latest_rev_name = revs_sorted[0].get("name")
+            print(f"Latest Revision: {latest_rev_name}")
+            # Deactivate older active revisions
+            for old_rev in revs_sorted[1:]:
+                if old_rev.get("properties", {}).get("active"):
+                    old_name = old_rev.get("name")
+                    print(f"Deactivating stale revision: {old_name}")
+                    run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_name], check=False)
+    except Exception as e:
+        print(f"[WARN] Error handling revisions: {e}")
+
     run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
     
     # 5. Live Endpoint Verification
-    health_url = "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/health"
-    print(f"=== Verifying Live Health Endpoint: {health_url} ===")
+    version_url = "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/version"
+    print(f"=== Verifying Live Version Endpoint: {version_url} ===")
     
     verified = False
-    for attempt in range(1, 15):
-        print(f"Health check probe attempt {attempt}/14...")
+    for attempt in range(1, 20):
+        print(f"Version check probe attempt {attempt}/19...")
         try:
-            req = urllib.request.Request(health_url, headers={"User-Agent": "Mozilla/5.0 (Deployment-Verifier)"})
+            req = urllib.request.Request(version_url, headers={"User-Agent": "Mozilla/5.0 (Deployment-Verifier)"})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     body = resp.read().decode("utf-8")
+                    data = json.loads(body)
                     print(f"\n[SUCCESS] Azure Container App is LIVE & RESPONDING!")
-                    print(f"Response: {body}\n")
+                    print(f"Active Release: {data.get('release')} | Version: {data.get('version')} | Build: {data.get('build')}\n")
                     verified = True
                     break
         except Exception as e:

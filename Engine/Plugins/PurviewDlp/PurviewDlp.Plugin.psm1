@@ -175,7 +175,7 @@ function Get-ServiceRawData {
                     Category          = 'Yetersiz / Şüpheli Gerekçe (İnceleme Altında)'
                     Count             = 6
                     Percentage        = 5.3
-                    ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SOC Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
+                    ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SecOps Mühendislik Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
                     RiskStatus        = 'Orta Risk (Triyajda)'
                 }
             )
@@ -551,7 +551,7 @@ function Get-ServiceKpis {
                 Category          = 'Yetersiz / Şüpheli Gerekçe (İnceleme Altında)'
                 Count             = [math]::Max(1, ($ovr - [math]::Round($ovr * 0.95)))
                 Percentage        = 5.0
-                ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SOC Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
+                ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SecOps Mühendislik Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
                 RiskStatus        = 'Orta Risk (Triyajda)'
             }
         )
