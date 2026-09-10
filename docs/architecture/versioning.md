@@ -1,15 +1,40 @@
 # CloudShield MSSP Platform - Single-Source Versioning Architecture
 
-## 1. Overview
-The CloudShield MSSP Platform enforces a strict Single-Source-of-Truth versioning architecture anchored at the repository root in version.json. Every component reads version metadata dynamically or derives it from this single manifest during automated release gates.
+**Document Version:** 2.0.0  
+**Classification:** Release Governance  
 
-## 2. Allowed Release Channels
-1. DEV: Local developer workstations and sandbox environments.
-2. INTERNAL: Internal quality assurance and integration testing.
-3. PILOT: Controlled customer pilot deployments. Production readiness remains explicitly false.
-4. PRODUCTION: Full customer production deployments. Requires explicit manual executive approval.
+---
 
-## 3. Enforcement & Immutable Tags
-- Direct git tag -f or tag overwriting is blocked.
-- Release tags equal the manifest release value exactly (v2.5.11-PILOT).
-- productionReady is decoupled from deployment and remains false throughout the pilot phase.
+## 1. Single Source of Truth (`version.json`)
+
+To prevent version drift across microservices and documentation, platform versioning is governed exclusively by `version.json` at the repository root:
+
+```json
+{
+  "version": "2.5.13",
+  "release": "v2.5.13-PILOT",
+  "build": "2026.09.11.1",
+  "channel": "pilot",
+  "build_number": 13,
+  "environment": "pilot",
+  "productionReady": false,
+  "commit": "auto"
+}
+```
+
+---
+
+## 2. Automated Synchronization Pipeline
+
+The script `Engine/Core/Update-Version.py` orchestrates automatic synchronization across all dependent files:
+- `Data/version.json`
+- `Portal/api/server.py` (via dynamic `get_version_info()`)
+- `README.md` (badges and changelog table)
+- `docs/` references
+
+---
+
+## 3. Release Channel Decoupling
+
+- **`pilot` Channel:** Allows active continuous deployment to Azure Container Apps for integration validation without certifying general production availability (`productionReady: false`).
+- **`production` Channel:** Requires 100% sign-off from all 6 independent review gates before `productionReady: true` can be tagged.
