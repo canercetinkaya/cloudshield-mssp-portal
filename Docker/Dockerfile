@@ -15,7 +15,6 @@ ENV PYTHONUNBUFFERED=1
 # stricter f-string rules; 3.11 matches our CI/CD environment and supports all syntax used)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
-    python3.11-distutils \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
@@ -23,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     xdg-utils \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
     && wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && (dpkg -i /tmp/google-chrome.deb || apt-get install -y -f --no-install-recommends) \
     && rm -f /tmp/google-chrome.deb \
