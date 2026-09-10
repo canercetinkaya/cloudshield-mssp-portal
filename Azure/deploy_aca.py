@@ -77,16 +77,27 @@ def main():
     res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "name", "-o", "tsv"])
     print(f"[OK] Container App verified: {res.stdout.strip()}")
 
-    # 2. Update GHCR registry credentials so ACA can pull the new image
-    if github_token:
-        print("=== Updating GHCR registry credentials ===")
+    # 2. Update GHCR registry credentials so ACA can pull the new image.
+    #    CRITICAL: GITHUB_TOKEN expires after the workflow job, causing ACA ImagePullBackOff on cold-starts.
+    #    Prefer GHCR_PAT (Personal Access Token, read:packages) which is long-lived.
+    #    → Create at: GitHub Settings > Developer settings > Personal access tokens > Fine-grained
+    #      Permission: Read access to packages. Store as repo secret GHCR_PAT.
+    ghcr_pat = os.environ.get("GHCR_PAT", "").strip()
+    registry_token = ghcr_pat if ghcr_pat else github_token
+    token_type = "GHCR_PAT (long-lived)" if ghcr_pat else "GITHUB_TOKEN (ephemeral - may cause ImagePullBackOff on cold-start)"
+    if registry_token:
+        print(f"=== Storing GHCR credentials in ACA (using: {token_type}) ===")
         run_cmd([
             "az", "containerapp", "registry", "set",
             "-n", app_name, "-g", resource_group,
             "--server", "ghcr.io",
             "--username", "canercetinkaya",
-            "--password", github_token
+            "--password", registry_token
         ], check=False)
+    else:
+        print("[WARN] No GHCR credentials available — ACA may fail to pull private images!")
+        print("[WARN] Set GHCR_PAT secret or make the GHCR package public.")
+
 
     # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
     print(f"=== Discovering actual container name inside {app_name} ===")
