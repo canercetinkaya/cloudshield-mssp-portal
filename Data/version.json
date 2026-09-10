@@ -1,12 +1,24 @@
 {
-  "version": "2.5.5",
-  "release": "v2.5.5-LIVE",
-  "build": "2026.09.10.5",
-  "build_number": 5,
-  "last_updated": "2026-09-10T11:42:39+03:00",
+  "version": "2.5.6",
+  "release": "v2.5.6-LIVE",
+  "build": "2026.09.10.6",
+  "build_number": 6,
+  "last_updated": "2026-09-10T11:48:10+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.6",
+      "release": "v2.5.6-LIVE",
+      "build": "2026.09.10.6",
+      "timestamp": "2026-09-10T11:48:10+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(docs): create docs/agents modular knowledge base and subagent task matrix",
+      "details": [
+        "Güncellenen dosya: docs/agents/"
+      ]
+    },
     {
       "version": "2.5.5",
       "release": "v2.5.5-LIVE",

@@ -6,7 +6,7 @@ Security updates, vulnerability patches, and zero-day remediations are actively 
 
 | Version | Release Tag | Status | Supported |
 | :--- | :--- | :--- | :--- |
-| **v2.5.x** | `v2.5.5-LIVE` | **Active Production** | :white_check_mark: Supported |
+| **v2.5.x** | `v2.5.6-LIVE` | **Active Production** | :white_check_mark: Supported |
 | **v2.4.x** | `v2.4.x` | Deprecated | :x: End of Life |
 | **< v2.4** | Legacy | Deprecated | :x: Unsupported |
 
