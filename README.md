@@ -238,7 +238,6 @@ python test_rbac_authorization.py
 | **v2.5.12-PILOT** | 2026.09.10.12 | 2026-09-10 | feat(quality-gate): blocking report-product remediation and 14 semantic quality gates |
 | **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |
 | **v2.5.10-PILOT** | 2026.09.10.10 | 2026-09-10 | refactor(release): establish single-source version manifest and dynamic azure deployment discovery |
-
 ---
 
 ## 🌐 Live Pilot Deployment
