@@ -96,7 +96,14 @@ def main():
         "--image", image_tag
     ])
 
-    # 4. Ensure minReplicas=1 so the app never scales to zero
+    # 4. Route 100% traffic to latest revision and ensure scale
+    print("=== Directing 100% traffic to latest revision ===")
+    run_cmd([
+        "az", "containerapp", "ingress", "traffic", "set",
+        "-n", app_name, "-g", resource_group,
+        "--revision-weight", "latest=100"
+    ], check=False)
+
     print("=== Ensuring scale: min=1 max=3 ===")
     run_cmd([
         "az", "containerapp", "update",
@@ -111,29 +118,51 @@ def main():
     if not fqdn:
         fqdn = "cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io"
     
-    version_url = f"https://{fqdn}/api/version"
-    print(f"=== Verifying Live Version Endpoint: {version_url} ===")
+    # Load expected version and release from version.json
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    version_file = os.path.join(root_dir, "version.json")
+    expected_version = ""
+    expected_release = ""
+    if os.path.exists(version_file):
+        try:
+            with open(version_file, "r", encoding="utf-8") as vf:
+                vdata = json.load(vf)
+                expected_version = vdata.get("version", "")
+                expected_release = vdata.get("release", "")
+        except Exception:
+            pass
 
-    # 6. Live Endpoint Verification (24 probes x 8s = 192s window for ACA cold start)
+    version_url = f"https://{fqdn}/api/version"
+    print(f"=== Verifying Live Version Endpoint: {version_url} (Expecting Version: '{expected_version}' / Release: '{expected_release}') ===")
+
+    # 6. Live Endpoint Verification (30 probes x 8s = 240s window for revision traffic shift & cold start)
     verified = False
-    for attempt in range(1, 25):
-        print(f"Version check probe attempt {attempt}/24...")
+    for attempt in range(1, 31):
+        print(f"Version check probe attempt {attempt}/30...")
         try:
             req = urllib.request.Request(version_url, headers={"User-Agent": "Mozilla/5.0 (Deployment-Verifier)"})
             with urllib.request.urlopen(req, timeout=12) as resp:
                 if resp.status == 200:
                     body = resp.read().decode("utf-8")
                     data = json.loads(body)
-                    print(f"\n[SUCCESS] Azure Container App is LIVE & RESPONDING!")
-                    print(f"Active Release: {data.get('release')} | Version: {data.get('version')} | Build: {data.get('build')}\n")
-                    verified = True
-                    break
+                    live_version = data.get("version")
+                    live_release = data.get("release")
+                    print(f"  Live probe returned: Release={live_release}, Version={live_version}")
+                    
+                    # Verify that the response matches the new version, not a stale revision
+                    if expected_release and live_release != expected_release:
+                        print(f"  [STALE REVISION DETECTED] Expected release '{expected_release}', but live endpoint returned '{live_release}'. Waiting for ACA revision switch...")
+                    else:
+                        print(f"\n[SUCCESS] Azure Container App is LIVE & ACTIVE REVISION MATCHES TARGET!")
+                        print(f"Active Release: {live_release} | Version: {live_version} | Build: {data.get('build')}\n")
+                        verified = True
+                        break
         except Exception as e:
             print(f"  Attempt {attempt} failed: {e}")
         time.sleep(8)
 
     if not verified:
-        print("[WARN] Verification timed out. Fetching recent container logs:")
+        print("[WARN] Verification timed out or target revision not active. Fetching recent container logs:")
         run_cmd(["az", "containerapp", "logs", "show", "-n", app_name, "-g", resource_group, "--tail", "80"], check=False)
         sys.exit(1)
 
