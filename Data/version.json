@@ -1,12 +1,24 @@
 {
-  "version": "2.5.8",
-  "release": "v2.5.8-LIVE",
-  "build": "2026.09.10.8",
-  "build_number": 8,
-  "last_updated": "2026-09-10T12:35:21+03:00",
+  "version": "2.5.9",
+  "release": "v2.5.9-LIVE",
+  "build": "2026.09.10.9",
+  "build_number": 9,
+  "last_updated": "2026-09-10T12:44:51+03:00",
   "environment": "production",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.9",
+      "release": "v2.5.9-LIVE",
+      "build": "2026.09.10.9",
+      "timestamp": "2026-09-10T12:44:51+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "feat(agent): autonomous update and synchronization",
+      "details": [
+        "Güncellenen dosya: Azure/deploy_aca.py"
+      ]
+    },
     {
       "version": "2.5.8",
       "release": "v2.5.8-LIVE",

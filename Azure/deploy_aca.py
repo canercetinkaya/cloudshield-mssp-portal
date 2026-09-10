@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Azure Container Apps - Single Container Deployment & Verification Script
+Uses `az containerapp update --image` (correct minimal-diff update pattern).
 Enforces single-container topology, port 8080 mapping, and verifies live health.
 """
 
@@ -19,103 +20,61 @@ def run_cmd(cmd, check=True):
     if result.stderr:
         print(result.stderr, file=sys.stderr)
     if check and result.returncode != 0:
+        print(f"[FATAL] Command failed with exit code {result.returncode}", file=sys.stderr)
         sys.exit(result.returncode)
     return result
 
 def main():
     github_sha = os.environ.get("GITHUB_SHA", "latest")
     github_token = os.environ.get("GITHUB_TOKEN", "")
-    
+
     app_name = "cs-mssp-poc-app"
     resource_group = "cs-mssp-poc-rg"
     image_tag = f"ghcr.io/canercetinkaya/cloudshield-mssp-portal:{github_sha}"
-    
-    print(f"=== Deploying {app_name} with Image: {image_tag} ===")
-    
-    # 1. Resolve Managed Environment ID
-    res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "properties.managedEnvironmentId", "-o", "tsv"])
-    env_id = res.stdout.strip()
-    print(f"Managed Environment ID: {env_id}")
-    
-    # 2. Build Clean Single-Container Deployment Config (JSON is valid YAML)
-    config = {
-        "properties": {
-            "managedEnvironmentId": env_id,
-            "configuration": {
-                "activeRevisionsMode": "Single",
-                "ingress": {
-                    "external": True,
-                    "targetPort": 8080,
-                    "transport": "Auto",
-                    "allowInsecure": False
-                },
-                "registries": [
-                    {
-                        "server": "ghcr.io",
-                        "username": "canercetinkaya",
-                        "passwordSecretRef": "ghcrio-secret"
-                    }
-                ],
-                "secrets": [
-                    {
-                        "name": "ghcrio-secret",
-                        "value": github_token
-                    }
-                ]
-            },
-            "template": {
-                "containers": [
-                    {
-                        "name": "cloudshield-mssp-portal",
-                        "image": image_tag,
-                        "resources": {
-                            "cpu": 0.5,
-                            "memory": "1.0Gi"
-                        },
-                        "env": [
-                            {"name": "PORT", "value": "8080"},
-                            {"name": "ENVIRONMENT", "value": "poc"}
-                        ]
-                    }
-                ],
-                "scale": {
-                    "minReplicas": 1,
-                    "maxReplicas": 3,
-                    "rules": [
-                        {
-                            "name": "http-rule",
-                            "http": {
-                                "metadata": {
-                                    "concurrentRequests": "10"
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-    }
-    
-    config_file = "aca_deployment.json"
-    with open(config_file, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2)
-    print(f"Saved clean configuration to {config_file}")
-    
-    # 3. Apply Clean Deployment
-    print("=== Applying clean single-container configuration ===")
-    run_cmd(["az", "containerapp", "update", "-n", app_name, "-g", resource_group, "--yaml", config_file])
-    
-    # 4. Deactivate old revisions so traffic strictly routes to newest revision
+
+    print(f"=== Deploying {app_name} | RG: {resource_group} | Image: {image_tag} ===")
+
+    # 1. Verify the Container App exists
+    res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "name", "-o", "tsv"])
+    print(f"[OK] Container App found: {res.stdout.strip()}")
+
+    # 2. Update GHCR registry credentials so ACA can pull the new image
+    print("=== Updating GHCR registry credentials ===")
+    run_cmd([
+        "az", "containerapp", "registry", "set",
+        "-n", app_name, "-g", resource_group,
+        "--server", "ghcr.io",
+        "--username", "canercetinkaya",
+        "--password", github_token
+    ], check=False)
+
+    # 3. Update container image only (minimal diff - does NOT touch ingress/secrets/scale)
+    print(f"=== Updating container image to {image_tag} ===")
+    run_cmd([
+        "az", "containerapp", "update",
+        "-n", app_name, "-g", resource_group,
+        "--image", image_tag,
+        "--set-env-vars", "PORT=8080", "ENVIRONMENT=poc"
+    ])
+
+    # 4. Ensure minReplicas=1 so the app never scales to zero
+    print("=== Ensuring scale: min=1 max=3 ===")
+    run_cmd([
+        "az", "containerapp", "update",
+        "-n", app_name, "-g", resource_group,
+        "--min-replicas", "1",
+        "--max-replicas", "3"
+    ], check=False)
+
+    # 5. Deactivate stale revisions (keep newest only)
     print("=== Managing Revisions & Routing Traffic ===")
     rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
     try:
-        revs = json.loads(rev_res.stdout)
-        # Sort newest first
+        revs = json.loads(rev_res.stdout or "[]")
         revs_sorted = sorted(revs, key=lambda x: x.get("properties", {}).get("createdTime", ""), reverse=True)
         if revs_sorted:
             latest_rev_name = revs_sorted[0].get("name")
             print(f"Latest Revision: {latest_rev_name}")
-            # Deactivate older active revisions
             for old_rev in revs_sorted[1:]:
                 if old_rev.get("properties", {}).get("active"):
                     old_name = old_rev.get("name")
@@ -125,17 +84,17 @@ def main():
         print(f"[WARN] Error handling revisions: {e}")
 
     run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
-    
-    # 5. Live Endpoint Verification
+
+    # 6. Live Endpoint Verification (24 probes x 8s = 192s window for ACA cold start)
     version_url = "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/version"
     print(f"=== Verifying Live Version Endpoint: {version_url} ===")
-    
+
     verified = False
-    for attempt in range(1, 20):
-        print(f"Version check probe attempt {attempt}/19...")
+    for attempt in range(1, 25):
+        print(f"Version check probe attempt {attempt}/24...")
         try:
             req = urllib.request.Request(version_url, headers={"User-Agent": "Mozilla/5.0 (Deployment-Verifier)"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=12) as resp:
                 if resp.status == 200:
                     body = resp.read().decode("utf-8")
                     data = json.loads(body)
@@ -145,11 +104,11 @@ def main():
                     break
         except Exception as e:
             print(f"  Attempt {attempt} failed: {e}")
-        time.sleep(5)
-        
+        time.sleep(8)
+
     if not verified:
         print("[WARN] Verification timed out. Fetching recent container logs:")
-        run_cmd(["az", "containerapp", "logs", "show", "-n", app_name, "-g", resource_group, "--tail", "60"], check=False)
+        run_cmd(["az", "containerapp", "logs", "show", "-n", app_name, "-g", resource_group, "--tail", "80"], check=False)
         sys.exit(1)
 
 if __name__ == "__main__":
