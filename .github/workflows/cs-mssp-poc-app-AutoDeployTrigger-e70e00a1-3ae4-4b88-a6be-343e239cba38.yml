@@ -1,4 +1,4 @@
-name: Trigger auto deployment for cs-mssp-poc-app
+﻿name: Trigger auto deployment for cs-mssp-poc-app
 
 on:
   push:
@@ -17,24 +17,24 @@ jobs:
       packages: write
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🔑 Azure Login
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.CSMSSPPOCAPP_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.CSMSSPPOCAPP_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.CSMSSPPOCAPP_AZURE_SUBSCRIPTION_ID }}
 
-      - name: 🔑 Log in to GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏗️ Build & Push Container Image
+      - name: Build & Push Container Image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -44,9 +44,9 @@ jobs:
             ghcr.io/canercetinkaya/cloudshield-mssp-portal:${{ github.sha }}
             ghcr.io/canercetinkaya/cloudshield-mssp-portal:latest
 
-      - name: 🚀 Clean & Deploy Single-Container ACA Topology
+      - name: Deploy to Azure Container Apps
         env:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python Azure/deploy_aca.py
+          python3 Azure/deploy_aca.py

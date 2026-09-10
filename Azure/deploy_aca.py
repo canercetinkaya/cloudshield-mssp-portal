@@ -53,8 +53,7 @@ def main():
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
-        "--image", image_tag,
-        "--set-env-vars", "PORT=8080", "ENVIRONMENT=poc"
+        "--image", image_tag
     ])
 
     # 4. Ensure minReplicas=1 so the app never scales to zero
