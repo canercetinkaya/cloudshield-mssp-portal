@@ -1,0 +1,26 @@
+{
+  "reviewerRole": "Customer CISO & Board Executive",
+  "scopeExamined": [
+    "Engine/Output/Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.pdf",
+    "Engine/Output/Emre-TestTenant/2026-08/Rapor_Emre-TestTenant_2026-08.html",
+    "Portal/api/report_generator.py (Executive Brief)"
+  ],
+  "decision": "CHANGES_REQUIRED",
+  "approvalStatus": "REJECTED",
+  "findings": [
+    "Board cannot accept ROI metrics based on synthetic 1.5x multipliers; savings must reflect audited engineering time.",
+    "Silent layout truncation via CSS overflow: hidden creates an unacceptable risk of missing boardroom risk disclosures.",
+    "Consolidated report lacks provenance tags, preventing independent verification of tenant security posture.",
+    "Self-awarded 10/10 quality scores undermine confidence in the MSSP governance framework."
+  ],
+  "riskList": [
+    "RSK-01: Unsubstantiated ROI and capacity gain figures presented to executive leadership.",
+    "RSK-03: Board receiving truncated reports with clipped action items."
+  ],
+  "recommendations": [
+    "Present only verified worklog hours and mark unverified metrics as 'Doğrulanmış Kayıt Yok'.",
+    "Guarantee print integrity by eliminating overflow clipping in PDF stylesheets.",
+    "Ensure consolidated reports provide full provenance auditability on every card."
+  ],
+  "timestamp": "2026-09-10T20:45:05Z"
+}

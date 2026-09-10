@@ -1,0 +1,26 @@
+{
+  "reviewerRole": "Microsoft Purview & Regulatory Compliance Lead",
+  "scopeExamined": [
+    "Engine/Plugins/PurviewDlp/PurviewDlp.Plugin.psm1",
+    "Engine/Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1",
+    "Engine/Output/Emre-TestTenant/2026-08/data.json",
+    "PrivacyLeakageAudit.md"
+  ],
+  "decision": "CHANGES_REQUIRED",
+  "approvalStatus": "REJECTED",
+  "findings": [
+    "TCKN, credit card, and UPN masking are functioning properly under k-anonymity rules.",
+    "External partner domain 'partner-lojistik.com' was emitted unmasked in customer output data.json.",
+    "Report disclaimer contains 'hukuki inkar edilemezlik', creating potential KVKK md. 12 / GDPR Art. 32 liability.",
+    "Purview DLP override breakdown table suppression on zero overrides is verified, but non-zero cases require strict audit log reconciliation."
+  ],
+  "riskList": [
+    "RSK-05: Regulatory exposure from unqualified non-repudiation statements.",
+    "RSK-06: Supply-chain partner relationship exposure in telemetry."
+  ],
+  "recommendations": [
+    "Mask all external recipient email domains in data.json exports.",
+    "Revise cryptographic disclaimer to affirm file hash integrity without claiming legal non-repudiation."
+  ],
+  "timestamp": "2026-09-10T20:45:05Z"
+}

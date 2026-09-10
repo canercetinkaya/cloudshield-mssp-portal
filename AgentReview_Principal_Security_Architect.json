@@ -1,0 +1,28 @@
+{
+  "reviewerRole": "Principal Security Architect",
+  "scopeExamined": [
+    "Engine/Plugins/DefenderEndpoint/DefenderEndpoint.Plugin.psm1",
+    "Engine/KQL/query-metadata/catalog-index.json",
+    "Engine/Output/Emre-TestTenant/2026-08/data.json",
+    "PortalWorkflowEvidence.json",
+    "docs/capabilities/permission-matrix.md"
+  ],
+  "decision": "CHANGES_REQUIRED",
+  "approvalStatus": "REJECTED",
+  "findings": [
+    "KPI cards in single-service reports use ad-hoc query strings ('DeviceEvents | count') rather than QueryCatalog IDs ('MS-MDE-001').",
+    "Consolidated report cards lack data-kpi-id and provenance tracking attributes entirely.",
+    "Customer data.json carries 'DryRunMock' availabilityState without formal isolation from production data.",
+    "Least privilege permissions in PermissionMatrix are verified, but runtime query verification is incomplete."
+  ],
+  "riskList": [
+    "RSK-04: Lineage verification impossible due to missing catalog IDs.",
+    "RSK-07: Ambiguity between dry-run simulations and production telemetry."
+  ],
+  "recommendations": [
+    "Map every data-source-query attribute directly to official IDs in catalog-index.json.",
+    "Instrument consolidated report summary cards with complete provenance attributes.",
+    "Strictly segregate dry-run mock outputs into a designated test folder."
+  ],
+  "timestamp": "2026-09-10T20:45:05Z"
+}

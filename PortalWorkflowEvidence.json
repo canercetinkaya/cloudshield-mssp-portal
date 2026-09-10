@@ -1,0 +1,83 @@
+{
+  "audit": "Portal Workflow Execution & Cryptographic Traceability Audit",
+  "requestTimestamp": "2026-09-10T20:42:15Z",
+  "httpStatus": 200,
+  "durationSeconds": 7.95,
+  "correlationId": "b305e1d3-d36f-4566-86f7-914498ff8e80",
+  "runId": "ccca294d-8417-4ef5-b9b5-ac09399e707a",
+  "customerId": "tenant-002",
+  "customerName": "Emre-TestTenant",
+  "period": "2026-08",
+  "selectedServices": [
+    "SVC-MDE",
+    "SVC-PURVIEW"
+  ],
+  "generatorVersion": "2.5.12",
+  "sourceCommitId": "2121704",
+  "responseBody": {
+    "success": true,
+    "reportId": "ccca294d-8417-4ef5-b9b5-ac09399e707a",
+    "pdfReportId": "ccca294d-8417-4ef5-b9b5-ac09399e707a",
+    "htmlReportId": "c9df165d-4381-49ac-b47d-4e12814ae32f",
+    "customer": "Emre-TestTenant",
+    "isSimulation": false,
+    "services": [
+      "SVC-MDE",
+      "SVC-PURVIEW"
+    ],
+    "pdfUrl": "/api/reports/ccca294d-8417-4ef5-b9b5-ac09399e707a/download",
+    "htmlUrl": "/api/reports/c9df165d-4381-49ac-b47d-4e12814ae32f/download",
+    "outputLog": "e - CETINKAYA\\Documents\\Microsoft Purview Reports\\KocSistemMSSPPortal\\Engi\n              ne\\Output\\Emre-TestTenant\\2026-08\\Rapor_Emre-TestTenant_2026-08.html\nPdfPath     : C:\\Users\\CANERCETINKAYA\\OneDrive - CETINKAYA\\Documents\\Microsoft Purview Reports\\KocSistemMSSPPortal\\Engi\n              ne\\Output\\Emre-TestTenant\\2026-08\\Rapor_Emre-TestTenant_2026-08.pdf\nServicesRun : {SVC-MDE, SVC-PRV-DLP, SVC-PRV-CLASS, SVC-PRV-GOV...}\n\n\n\n\n[OK] CloudShield Kurumsal Rapor Motoru ile rapor başarıyla derlendi."
+  },
+  "outputArtifacts": {
+    "pdfReport": {
+      "path": "c:\\Users\\CANERCETINKAYA\\OneDrive - CETINKAYA\\Documents\\Microsoft Purview Reports\\KocSistemMSSPPortal\\Engine\\Output\\Emre-TestTenant\\2026-08\\Rapor_Emre-TestTenant_2026-08.pdf",
+      "sha256": "83f85fea604dd0c04a5de53297582dd1676ce2282c62283ab55dd60f78655233",
+      "sizeBytes": 284625
+    },
+    "htmlReport": {
+      "path": "c:\\Users\\CANERCETINKAYA\\OneDrive - CETINKAYA\\Documents\\Microsoft Purview Reports\\KocSistemMSSPPortal\\Engine\\Output\\Emre-TestTenant\\2026-08\\Rapor_Emre-TestTenant_2026-08.html",
+      "sha256": "fe659461460e7330dc4450a9578d16818b287ae53cc840ddf10a48b8f68a5f19",
+      "sizeBytes": 20959
+    },
+    "normalizedKpiJson": {
+      "path": "c:\\Users\\CANERCETINKAYA\\OneDrive - CETINKAYA\\Documents\\Microsoft Purview Reports\\KocSistemMSSPPortal\\Engine\\Output\\Emre-TestTenant\\2026-08\\data.json",
+      "sha256": "e1ff2d4d2023b2001f5e7b9efe223865396bcac1933f2b007a86b791fe152eac",
+      "sizeBytes": 58138
+    }
+  },
+  "collectionHealthResult": {
+    "SVC-MDE": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    },
+    "SVC-AI-SECURITY": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    },
+    "SVC-PRV-CLASS": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    },
+    "SVC-PRV-DLP": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    },
+    "SVC-PRV-RISK": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    },
+    "SVC-PRV-GOV": {
+      "availabilityState": "DryRunMock",
+      "collectorStatus": "Completed",
+      "hasKpis": true
+    }
+  },
+  "cryptographicIntegrityVerified": true,
+  "auditConclusion": "PASS_OPERATIONAL_TRACE_ESTABLISHED"
+}
