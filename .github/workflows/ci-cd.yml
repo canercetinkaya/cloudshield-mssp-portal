@@ -29,9 +29,15 @@ jobs:
         shell: bash
         run: |
           echo "=== 1. Python Kod Doğrulaması ==="
-          python -m py_compile Portal/api/server.py Portal/api/report_generator.py
+          python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py database/db.py
           
-          echo "=== 2. JSON Dosyaları Doğrulaması ==="
+          echo "=== 2. RBAC Yetkilendirme Testleri ==="
+          python test_rbac_authorization.py
+          
+          echo "=== 3. Rapor Semantik Kalite Kapısı Testleri ==="
+          python test_report_quality_gate.py
+          
+          echo "=== 4. JSON Dosyaları Doğrulaması ==="
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
           
           echo "=== 3. Zero SOC İzolasyon Denetimi ==="

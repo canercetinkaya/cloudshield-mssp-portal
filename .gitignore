@@ -120,3 +120,6 @@ test-results/
 coverage.xml
 *.tmp
 *.temp
+*.db
+Data/*.db
+scratch/
