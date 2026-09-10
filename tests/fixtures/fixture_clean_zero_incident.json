@@ -1,0 +1,39 @@
+{
+  "tenant_id": "tenant-clean-01",
+  "tenant_name": "Zero-Incident-Enterprise",
+  "period_tag": "2026-08",
+  "period_label": "Ağustos 2026 Dönemi",
+  "SVC-MDE": {
+    "availabilityState": "SupportedAdvancedHunting",
+    "kpis": {
+      "TotalDevices": 500,
+      "ActiveDevices": 500,
+      "GhostDevices": 0,
+      "Ghost7to14d": 0,
+      "Ghost14to30d": 0,
+      "Ghost30Plusd": 0,
+      "TotalAdDevices": 500,
+      "SensorCoveragePct": 100.0,
+      "OtonomAksiyonSayisi": 120,
+      "OtonomAvTemizlenen": 90,
+      "ManuelAksiyonSayisi": 0,
+      "TasarrufEdilenSaat": 90.0,
+      "AcikOlaylar": 0,
+      "KapatilanOlaylar": 0,
+      "ToplamAlarm": 120,
+      "TvmUyumYuzdesi": 100.0
+    }
+  },
+  "SVC-PURVIEW": {
+    "availabilityState": "SupportedManagementActivityAPI",
+    "kpis": {
+      "TotalMatches": 0,
+      "BlockedEvents": 0,
+      "OverrideEvents": 0,
+      "EndpointEvents": 0,
+      "ProtectionRatePct": 100.0,
+      "KazanilanZamanSaat": 0.0,
+      "ManuelAnalistEforu": 0
+    }
+  }
+}

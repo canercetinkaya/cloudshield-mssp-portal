@@ -1,0 +1,147 @@
+{
+  "tenant_id": "tenant-002",
+  "tenant_name": "Emre-TestTenant",
+  "period_tag": "2026-08",
+  "period_label": "Ağustos 2026 Dönemi",
+  "SVC-MDE": {
+    "availabilityState": "SupportedAdvancedHunting",
+    "kpis": {
+      "TotalDevices": 350,
+      "ActiveDevices": 336,
+      "GhostDevices": 14,
+      "Ghost7to14d": 8,
+      "Ghost14to30d": 4,
+      "Ghost30Plusd": 2,
+      "TotalAdDevices": 350,
+      "SensorCoveragePct": 96.0,
+      "OtonomAksiyonSayisi": 84,
+      "OtonomAvTemizlenen": 45,
+      "ManuelAksiyonSayisi": 17,
+      "TasarrufEdilenSaat": 96.8,
+      "AcikOlaylar": 0,
+      "KapatilanOlaylar": 22,
+      "ToplamAlarm": 146,
+      "TvmUyumYuzdesi": 89.7,
+      "ModernThreatBarometer": [
+        {
+          "Segment": "Quishing & QR Kod Kimlik Avı",
+          "KqlSource": "Defender Office (EmailEvents & UrlClickEvents)",
+          "Metric": "0 Sızıntı (%100 Koruma)",
+          "Benchmark": "Global Sektör Ort. %3.2 Risk",
+          "Posture": "Doğrulandı: Temiz"
+        },
+        {
+          "Segment": "AiTM / Token Hırsızlığı & Session Hijack",
+          "KqlSource": "Entra ID & MDE Token Theft Rules",
+          "Metric": "0 Sızıntı (%100 Koruma)",
+          "Benchmark": "Zero Trust Standart",
+          "Posture": "Dayanıklı"
+        },
+        {
+          "Segment": "Yüksek Yetkili OAuth Uygulama Riski",
+          "KqlSource": "Graph Security & OAuth Auditing",
+          "Metric": "0 Riskli İzin",
+          "Benchmark": "Sıfır Tolerans",
+          "Posture": "Denetlendi"
+        },
+        {
+          "Segment": "CISA KEV İstismar Edilebilir Zafiyet",
+          "KqlSource": "MDE TVM & CISA KEV Feed",
+          "Metric": "Sıfır Gecikme",
+          "Benchmark": "Global Hedef < 14 Gün",
+          "Posture": "Tam Uyumlu"
+        }
+      ],
+      "FalconFridayCampaigns": [
+        {
+          "Name": "LOLBins / Certutil & Bitsadmin İstismarı",
+          "Mitre": "T1105 (Ingress Tool Transfer)",
+          "Scope": "Tüm Windows İstemciler",
+          "Detections": 0,
+          "Status": "Sıfır İhlal Doğrulandı"
+        },
+        {
+          "Name": "LSASS Bellek Dökümü (Mimikatz Teşebbüsü)",
+          "Mitre": "T1003.001 (OS Credential Dumping)",
+          "Scope": "Yönetici & Saha Cihazları",
+          "Detections": 0,
+          "Status": "Engellendi & İzole"
+        }
+      ],
+      "DonanimHijyeni": [
+        {
+          "Layer": "TPM 2.0 & SecureBoot Devrede",
+          "Rate": "%96.0",
+          "Status": "Sertleşmiş"
+        },
+        {
+          "Layer": "BitLocker XTS-AES 256 Şifreleme",
+          "Rate": "%96.0",
+          "Status": "Tam Korumada"
+        },
+        {
+          "Layer": "VBS & Credential Guard",
+          "Rate": "%96.0",
+          "Status": "Devrede"
+        },
+        {
+          "Layer": "Eksik / Gecikmeli BitLocker Yedeği",
+          "Rate": "0 Cihaz",
+          "Status": "Sıfır Hata"
+        }
+      ]
+    }
+  },
+  "SVC-PURVIEW": {
+    "availabilityState": "SupportedManagementActivityAPI",
+    "kpis": {
+      "TotalMatches": 48,
+      "BlockedEvents": 36,
+      "OverrideEvents": 6,
+      "EndpointEvents": 12,
+      "ProtectionRatePct": 98.2,
+      "KazanilanZamanSaat": 27.0,
+      "ManuelAnalistEforu": 6,
+      "ExchangeBlocks": 18,
+      "SharePointBlocks": 6,
+      "CopilotBlocks": 0,
+      "SensitiveDataRiskMapping": [
+        {
+          "Category": "TC Kimlik No (TCKN)",
+          "RegulatoryBasis": "KVKK md. 6 Özel Nitelikli",
+          "Matches": 24,
+          "Blocked": 24,
+          "ProtectionRate": 100.0
+        },
+        {
+          "Category": "Banka Hesap / IBAN",
+          "RegulatoryBasis": "KVKK & BDDK Finansal Veri",
+          "Matches": 14,
+          "Blocked": 12,
+          "ProtectionRate": 95.0
+        },
+        {
+          "Category": "Kredi Kartı Verisi (PCI-DSS)",
+          "RegulatoryBasis": "PCI-DSS v4.0 Standart",
+          "Matches": 10,
+          "Blocked": 10,
+          "ProtectionRate": 100.0
+        }
+      ],
+      "UserOverrideBreakdown": [
+        {
+          "Category": "İş Süreçleri / Acil Müşteri Mutabakatı",
+          "Count": 4,
+          "RatePct": 66.7,
+          "Assessment": "Hukuk & Uyum Onayında"
+        },
+        {
+          "Category": "Yanlış Pozitif / Şablon Benzerliği",
+          "Count": 2,
+          "RatePct": 33.3,
+          "Assessment": "Kural Regex İyileştirmesi Planlandı"
+        }
+      ]
+    }
+  }
+}

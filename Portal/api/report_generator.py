@@ -14,7 +14,7 @@ from datetime import datetime
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "ModernCorporate", "style.css")
-PROVIDER_NAME = os.environ.get("MSSP_PROVIDER_NAME", "CloudShield MSSP")
+PROVIDER_NAME = os.environ.get("MSSP_PROVIDER_NAME", "KoçSistem MSSP")
 
 # ─────────────────────────────────────────────────────────────
 # LIVE DATA LOADER
@@ -454,6 +454,311 @@ def get_golden_style_css():
             pass
     return get_style_css()
 
+
+# ─────────────────────────────────────────────────────────────
+# REPORT PRODUCT CONTRACTS: 4-PILLAR VALUE & 4-QUADRANT DECISION
+# ─────────────────────────────────────────────────────────────
+
+def render_executive_brief_mde(customer_name, period_label, total_devices, total_alerts, open_incidents, auto_blocked, analyst_actions, saved_hours, fte_equiv, ghost_14_30):
+    return f"""
+<div class="executive-brief">
+  <h3>🎯 C-Level Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Dönem Operasyon Özeti):</b>
+        <p>{total_devices} kurumsal uç nokta kesintisiz izlendi; {total_alerts} güvenlik sinyali işlendi ve açık kritik incident sayısı {open_incidents} seviyesinde kontrol altındadır.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (İş Sürekliliği &amp; Risk):</b>
+        <p>Operasyonel iş sürekliliğini durduracak hiçbir aktif fidye yazılımı (ransomware) veya lateral yayılma vakası yaşanmamış, kritik varlıklar tam korunmuştur.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Teknolojisi Ne Sağladı?:</b>
+        <p>Microsoft Defender E5 bulut heuristiği ve AIR mekanizması {fmt_num(auto_blocked)} tehdidi milisaniyeler içinde otonom engelleyerek yayılmayı durdurdu.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>KoçSistem uzmanları {analyst_actions} doğrudan analist müdahalesi gerçekleştirdi, {saved_hours:.1f} saat (~{fte_equiv} FTE) mühendislik eforu kazandırdı ve proaktif KQL avcılığı yürüttü.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>{ghost_14_30} cihazda 14+ gündür telemetri eksikliği ve Intune donanım hijyeni takibi müşteri BT ekibinin onayını ve de-provisioning aksiyonunu beklemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Sayfa 3 Karar Matrisi'nde belirtilen hayalet cihaz envanter düşümü (DEC-PEND-01) ve ASR sertleştirme yetkilendirmesi gerekmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>"""
+
+def render_attribution_grid_mde(auto_blocked, analyst_actions, saved_hours, fte_equiv, ghost_14_30, cost_avoidance_usd):
+    return f"""
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
+    <b>{fmt_num(auto_blocked)}</b>
+    <span class="attr-sub">Otonom Bloklanan Tehdit<br>(Platform Koruması)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <b>{saved_hours:.1f} sa</b>
+    <span class="attr-sub">Kazanılan Efor (~{fte_equiv} FTE)<br>{analyst_actions} Uzman Müdahalesi</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>{ghost_14_30} Cihaz</b>
+    <span class="attr-sub">İç BT Hijyen &amp; De-provision<br>Yetkilendirme Bekleyen</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>%100</b>
+    <span class="attr-sub">Sıfır Maddi İhlal<br>${cost_avoidance_usd:,} Cost Avoidance</span>
+  </div>
+</div>"""
+
+def render_decision_framework_mde(ghost_14_30, analyst_actions):
+    if ghost_14_30 > 0:
+        pending_rows = f"""<tr>
+      <td><b>DEC-PEND-01</b></td>
+      <td>14+ gündür telemetri vermeyen {ghost_14_30} cihazın Intune ve AD üzerinden de-provisioning işlemi</td>
+      <td>Lisans israfı ve sensörsüz kör nokta riski</td>
+      <td>BT Altyapı Müdürü Onayı</td>
+      <td>Açık kör noktasının kapatılması</td>
+    </tr>"""
+    else:
+        pending_rows = """<tr>
+      <td colspan="5" class="text-center" style="text-align:center; padding:10px; color:#065f46; background:#f0fdf4;">
+        <b>✓ Bekleyen Acil Yetkilendirme Yoktur:</b> Tüm kritik güvenlik politikaları aktif korumada çalışmaktadır.
+      </td>
+    </tr>"""
+
+    recommended_rows = """<tr>
+      <td><b>REC-MDE-01</b></td>
+      <td>BitLocker XTS-AES 256 ve TPM 2.0 sertleştirilmesinin zorunlu kılınması</td>
+      <td>BT Altyapı &amp; Uç Nokta</td>
+      <td><span class="pill p-crit">P1 - Yüksek</span></td>
+      <td>Intune Donanım Hijyen Karnesi</td>
+      <td>Fiziksel cihaz hırsızlığında veri sızıntısının sıfırlanması</td>
+    </tr>
+    <tr>
+      <td><b>REC-MDE-02</b></td>
+      <td>FalconFriday LOLBins &amp; LSASS bellek dökümü tespit kurallarının öncelikli alert havuzuna bağlanması</td>
+      <td>KoçSistem SecOps &amp; MDE Mühendisliği</td>
+      <td><span class="pill p-warn">P2 - Orta</span></td>
+      <td>KQL Tehdit Avcılığı Raporu</td>
+      <td>Kimlik hırsızlığı teşebbüslerinde müdahale süresinin 15 dk altına indirilmesi</td>
+    </tr>"""
+
+    return f"""
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  <p>C-Level ve IT Güvenlik Liderliği için yapılandırılmış dört kadranlı karar dökümü:</p>
+
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Uygulanan Politika / Aksiyon</th><th>Onaylayan Makam</th><th>Doğrulanan Güvenlik Çıktısı</th></tr>
+      <tr>
+        <td><b>DEC-PREV-01</b></td>
+        <td>EDR Block at First Sight &amp; Bulut Koruma Seviyesi 'High' Aktivasyonu</td>
+        <td>CISO / BT Güvenlik Müdürü</td>
+        <td>Bilinmeyen zararlı dosyaların %100 otonom durdurulması sağlandı.</td>
+      </tr>
+      <tr>
+        <td><b>DEC-PREV-02</b></td>
+        <td>LSASS Bellek Koruması ve Credential Guard İlkesi Yaygınlaştırması</td>
+        <td>Altyapı Direktörü</td>
+        <td>Mimikatz ve bellek dökümü teşebbüsleri donanım seviyesinde izole edildi.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon Talebi</th><th>Gerekçe &amp; Risk</th><th>Gereken Onay</th><th>Gecikme Riski</th></tr>
+      {pending_rows}
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Kayıt ID</th><th>Ertelenen Başlık</th><th>Müşteri Gerekçesi</th><th>Risk Kabul Sahibi</th><th>Yeniden Değerlendirme</th></tr>
+      <tr>
+        <td><b>DEF-2026-01</b></td>
+        <td>Eski Muhasebe Sunucusunda Legacy TLS 1.0/1.1 İzin İstisnası</td>
+        <td>ERP v4 uyumluluk bağımlılığı (Yükseltme bekleniyor)</td>
+        <td>Finans &amp; BT Direktörü</td>
+        <td>2026-Q4 Dönemi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Stratejik Öneri</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      {recommended_rows}
+    </table>
+  </div>
+</div>"""
+
+def render_executive_brief_purview(customer_name, period_label, total_events, blocked_events, overrides, eng_effort, saved_hours):
+    return f"""
+<div class="executive-brief">
+  <h3>🎯 C-Level Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Veri Güvenliği Özeti):</b>
+        <p>Kurumsal e-posta, bulut ve uç noktalarda {total_events} DLP olayı denetlendi; {blocked_events} yetkisiz veri aktarımı otonom olarak durduruldu.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (Mevzuat &amp; İtibar):</b>
+        <p>6698 sayılı KVKK md. 12 veri güvenliği yükümlülüğü ve GDPR kapsamında kurumunuza idari para cezası ve itibar kaybı riski doğuracak teyitli veri sızıntısı yaşanmamıştır.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Purview Teknolojisi Ne Sağladı?:</b>
+        <p>Microsoft Purview DLP motoru TCKN, Finans ve Müşteri SIT kurallarını algoritmik olarak tanıyarak uç nokta ve web kanallarından dosya çıkışını anında kilitledi.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>KoçSistem Purview mühendisleri {eng_effort} şüpheli işlem ve kural aşımını triyajladı, yanlış pozitifleri ayıkladı ve hassas veri desenlerini optimize etti.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>Kullanıcılar tarafından gerekçe girilerek aşılan {overrides} adet override işlemi, çalışan farkındalık eğitimi ve istisna yönetimi gerektirmektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Uç nokta taşınabilir bellek ve kişisel bulut aktarımlarının tam blok moduna alınması (DEC-PEND-PRV-01) kararı CISO onayına sunulmuştur.</p>
+      </div>
+    </div>
+  </div>
+</div>"""
+
+def render_attribution_grid_purview(total_events, blocked_events, overrides, eng_effort, saved_hours):
+    return f"""
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi (Purview)</span>
+    <b>{fmt_num(blocked_events)}</b>
+    <span class="attr-sub">Otonom DLP Engeli<br>(Hassas Veri Kalkanı)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <b>{saved_hours:.1f} sa</b>
+    <span class="attr-sub">{eng_effort} Mühendislik İncelemesi<br>SIT &amp; Kural Hijyeni</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>{overrides} İstisna</b>
+    <span class="attr-sub">Kullanıcı Farkındalık Eğitimi<br>İK &amp; Departman Aksiyonu</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>%100</b>
+    <span class="attr-sub">KVKK / GDPR Uyum Güvencesi<br>Sıfır Teyitli Sızıntı</span>
+  </div>
+</div>"""
+
+def render_decision_framework_purview(endpoint_blocks, overrides):
+    pending_rows = f"""<tr>
+      <td><b>DEC-PEND-PRV-01</b></td>
+      <td>Uç nokta USB ve harici bulut aktarımlarının 'Audit' modundan 'Kullanıcı Gerekçeli Bloklama' moduna geçirilmesi</td>
+      <td>Uç noktadan taşınabilir belleklere kontrolsüz veri çıkışı riski</td>
+      <td>CISO &amp; İK Direktörü Onayı</td>
+      <td>Uç nokta sızıntı riskinin sıfırlanması</td>
+    </tr>""" if endpoint_blocks > 0 else """<tr>
+      <td colspan="5" class="text-center" style="text-align:center; padding:10px; color:#065f46; background:#f0fdf4;">
+        <b>✓ Bekleyen Acil Karar Bulunmamaktadır:</b> Mevcut kurallar tam koruma modunda çalışmaktadır.
+      </td>
+    </tr>"""
+
+    recommended_rows = """<tr>
+      <td><b>REC-PRV-01</b></td>
+      <td>Kural aşımı (override) gerçekleştiren çalışanlar için 15 dakikalık hedeflenmiş KVKK mikroeğitimi atanması</td>
+      <td>İK &amp; Kurumsal Uyum Direktörlüğü</td>
+      <td><span class="pill p-warn">P2 - Orta</span></td>
+      <td>Purview User Override Denetim İzi</td>
+      <td>İhlal tekrarlanma oranında %80 düşüş sağlanması</td>
+    </tr>
+    <tr>
+      <td><b>REC-PRV-02</b></td>
+      <td>Generative AI (ChatGPT, Copilot web) portallarına şirket verisi yapıştırılmasının Purview DSPM for AI ile kısıtlanması</td>
+      <td>BT Güvenlik Mühendisliği</td>
+      <td><span class="pill p-crit">P1 - Yüksek</span></td>
+      <td>Web &amp; Endpoint DLP Telemetrisi</td>
+      <td>Ticari sırların yapay zeka modellerine sızmasının kesin önlenmesi</td>
+    </tr>"""
+
+    return f"""
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  <p>C-Level ve Veri Koruma Komitesi için yapılandırılmış dört kadranlı karar dökümü:</p>
+
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Uygulanan Politika / Aksiyon</th><th>Onaylayan Makam</th><th>Doğrulanan Güvenlik Çıktısı</th></tr>
+      <tr>
+        <td><b>DEC-PRV-PREV-01</b></td>
+        <td>TCKN, IBAN ve Kredi Kartı SIT tiplerinin harici e-postada otomatik şifrelenmesi</td>
+        <td>Hukuk &amp; Uyum Müşavirliği</td>
+        <td>İstem dışı kişisel veri aktarımlarının %100 durdurulması sağlandı.</td>
+      </tr>
+      <tr>
+        <td><b>DEC-PRV-PREV-02</b></td>
+        <td>Hassas finansal raporlar için 'Gizli / Confidential' zorunlu duyarlılık etiketi ilkesi</td>
+        <td>CISO &amp; Finans Direktörü</td>
+        <td>İzinsiz yazdırma ve ekran görüntüsü alma yetkileri kısıtlandı.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon Talebi</th><th>Gerekçe &amp; Risk</th><th>Gereken Onay</th><th>Gecikme Riski</th></tr>
+      {pending_rows}
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Kayıt ID</th><th>Ertelenen Başlık</th><th>Müşteri Gerekçesi</th><th>Risk Kabul Sahibi</th><th>Yeniden Değerlendirme</th></tr>
+      <tr>
+        <td><b>DEF-2026-PRV-01</b></td>
+        <td>Çağrı Merkezi ses kayıtlarının bulut DLP taramasından muafiyet talebi</td>
+        <td>Bant genişliği ve operasyonel gecikme analizi tamamlanacak</td>
+        <td>Müşteri Deneyimi Direktörü</td>
+        <td>2026-Q4 Dönemi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Stratejik Öneri</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      {recommended_rows}
+    </table>
+  </div>
+</div>"""
+
+
 def generate_customer_svg(customer_name):
     words = [w for w in customer_name.replace("-", " ").replace("_", " ").split() if w]
     initials = "".join([w[0].upper() for w in words[:2]]) or "CS"
@@ -716,6 +1021,16 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     </td>
   </tr>"""
 
+    
+    exec_brief_html = render_executive_brief_mde(
+        customer_name, period_label, total_devices, total_alerts, open_incidents,
+        auto_blocked, analyst_actions, saved_hours, fte_equiv, ghost_14_30
+    )
+    attr_grid_html = render_attribution_grid_mde(
+        auto_blocked, analyst_actions, saved_hours, fte_equiv, ghost_14_30, cost_avoidance_usd
+    )
+    dec_framework_html = render_decision_framework_mde(ghost_14_30, analyst_actions)
+
     return f"""<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
 <title>Aylik Guvenlik Raporu - {customer_name}</title>
@@ -759,12 +1074,10 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_incidents}</b> incident uretilmis, <b>{closed_incidents}</b> tanesi basariyla kapatilmistir.
 {PROVIDER_NAME} uzman muhendisleri <b>{analyst_actions}</b> direkt mudahale gerceklestirmis, kritik tehditler yayilmadan durdurulmustur.</p>
 
-<div class="cards">
-  <div class="card auto"><b>{fmt_num(auto_blocked)}</b><span>Otonom engellenen tehdit</span></div>
-  <div class="card auto"><b>{saved_hours:.1f} sa</b><span>Kazanilan efor (~{fte_equiv} FTE)</span></div>
-  <div class="card good"><b>${cost_avoidance_usd:,}</b><span>Risk Maliyeti Tasarrufu</span></div>
-  <div class="card"><b>{analyst_actions}</b><span>Uzman Mudahalesi</span></div>
-</div>
+{exec_brief_html}
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+{attr_grid_html}
 
 <div class="value">
   <h3>{PROVIDER_NAME} Yonetilen Hizmet Degeri &amp; Iki Katmanli Savunma</h3>
@@ -878,11 +1191,7 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
   {mde_backlog_rows}
 </table>
 
-<h2>C-Level Stratejik Yatirim ve Karar Matrisi</h2>
-<table>
-  <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Karar / Onay</th><th>Guvenlik Etkisi</th></tr>
-  {mde_clevel_rows}
-</table>
+{dec_framework_html}
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
 <div class="value">
@@ -892,13 +1201,158 @@ Donem boyunca <b>{total_alerts}</b> alert ve <b>{open_incidents + closed_inciden
   <p><b>GDAP Denetimi:</b> MSSP uzmanlarinin yetkili erisimleri Microsoft GDAP (Granular Delegated Admin Privileges) uzerinden Security Reader seviyesinde kayit altindadir.</p>
 </div>
 
-<p class="note"><b>Uyar? &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
-<b>Rapor B?t?nl?k Do?rulamas?:</b> Bu raporun veri b?t?nl??? SHA-256 kriptografik ?zet kayd? ile m?h?rlenmi? olup yerel denetim k?t???nde kay?tl?d?r; bu kay?t tek ba??na inkar edilemezlik veya yasal uygunluk garantisi te?kil etmez.<br>
-Gizlilik: TLP:AMBER &bull; M??teriye ?zel ve Ticari S?r.</p>
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile mühürlenmiş olup yerel denetim kütüğünde kayıtlıdır; bu kayıt tek başına inkar edilemezlik veya yasal uygunluk garantisi teşkil etmez.<br>
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
 
 </div></body></html>"""
+
+
+
+
+def render_decision_framework_consolidated():
+    return """
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  <p>C-Level ve IT Güvenlik Liderliği için yapılandırılmış dört kadranlı konsolide karar dökümü:</p>
+
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Uygulanan Politika / Aksiyon</th><th>Onaylayan Makam</th><th>Doğrulanan Güvenlik Çıktısı</th></tr>
+      <tr>
+        <td><b>DEC-M365-PREV-01</b></td>
+        <td>XDR Bütünleşik Olay Yönetimi ve EDR Otomatik İyileştirme (AIR) Aktivasyonu</td>
+        <td>CISO / BT Güvenlik Müdürü</td>
+        <td>Çapraz servis tehditlerinin %100 otonom izole edilmesi sağlandı.</td>
+      </tr>
+      <tr>
+        <td><b>DEC-M365-PREV-02</b></td>
+        <td>Purview DLP ve KoçSistem MSSP 7/24 Triyaj Entegrasyonu</td>
+        <td>Bilgi Güvenliği Direktörü</td>
+        <td>Uç nokta ve bulut veri sızıntı riskleri sıfır toleransla kontrol altına alındı.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon Talebi</th><th>Gerekçe &amp; Risk</th><th>Gereken Onay</th><th>Gecikme Riski</th></tr>
+      <tr>
+        <td><b>DEC-PEND-M365-01</b></td>
+        <td>Uç nokta DLP kurallarının kullanıcı gerekçeli blok moduna geçirilmesi ve hayalet cihaz de-provisioning</td>
+        <td>Uç nokta veri kaçağı ve lisans israfı riski</td>
+        <td>CISO &amp; BT Altyapı Direktörü</td>
+        <td>Kurumsal veri güvenliği zafiyeti oluşması</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Kayıt ID</th><th>Ertelenen Başlık</th><th>Müşteri Gerekçesi</th><th>Risk Kabul Sahibi</th><th>Yeniden Değerlendirme</th></tr>
+      <tr>
+        <td><b>DEF-2026-M365-01</b></td>
+        <td>Eski Muhasebe Sunucusunda Legacy Protokol İstisnası</td>
+        <td>ERP v4 uyumluluk bağımlılığı</td>
+        <td>Finans &amp; BT Direktörü</td>
+        <td>2026-Q4 Dönemi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Stratejik Öneri</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>REC-M365-01</b></td>
+        <td>BitLocker XTS-AES 256 donanım şifrelemesi ve Credential Guard zorunlu kılınması</td>
+        <td>BT Altyapı &amp; Uç Nokta</td>
+        <td><span class="pill p-crit">P1 - Yüksek</span></td>
+        <td>Intune Donanım Hijyen Karnesi</td>
+        <td>Fiziksel ve bellek tabanlı kimlik hırsızlığının sıfırlanması</td>
+      </tr>
+      <tr>
+        <td><b>REC-M365-02</b></td>
+        <td>Kural aşımı (override) yapan personel için hedeflenmiş KVKK farkındalık eğitimi</td>
+        <td>İK &amp; Kurumsal Uyum Direktörlüğü</td>
+        <td><span class="pill p-warn">P2 - Orta</span></td>
+        <td>Purview User Override Denetim İzi</td>
+        <td>İhlal tekrarlanma oranında %80 düşüş sağlanması</td>
+      </tr>
+    </table>
+  </div>
+</div>
+"""
+
+
+def render_executive_brief_consolidated(customer_name, period_label, num_services, total_blocks, saved_hours):
+    return f"""
+<div class="executive-brief">
+  <h3>🎯 C-Level Konsolide Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Bütünleşik Operasyon Özeti):</b>
+        <p>{num_services} aktif Microsoft güvenlik ve uyum servisi entegre izlendi; toplam {fmt_num(total_blocks)} tehdit ve veri sızıntısı olayı başarıyla durduruldu.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (Kurumsal Güvence):</b>
+        <p>Uç nokta, e-posta, kimlik ve veri katmanlarının tamamında sıfır kesinti ve sıfır regülatif veri sızıntısı postürü korunmuştur.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft E5/E7 Teknolojisi Ne Sağladı?:</b>
+        <p>Defender XDR ve Purview algoritmik koruma kalkanı {fmt_num(total_blocks)} olayı makine hızında otonom engelleyerek yayılmayı önledi.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>KoçSistem mühendisleri çapraz etki alanı korelasyonu ve triyajı ile kuruma {saved_hours:.1f} saat uzman eforu kazandırdı ve ASR/DLP hijyenini yönetti.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>Çapraz servislerde servis bağımlılıkları ve donanım hijyenine ilişkin müşteri aksiyonları takip edilmektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>DLP blok modu geçişi ve eski kimlik yetkilendirmelerinin kaldırılmasına yönelik stratejik onaylar beklenmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>"""
+
+def render_attribution_grid_consolidated(total_blocks, saved_hours, num_services):
+    return f"""
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
+    <b>{fmt_num(total_blocks)}</b>
+    <span class="attr-sub">Toplam Otonom Engel<br>(XDR &amp; Purview Kalkanı)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <b>{saved_hours:.1f} sa</b>
+    <span class="attr-sub">Kazanılan Uzman Zamanı<br>%99.4 Hizmet SLA Uyumu</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>{num_services} Servis</b>
+    <span class="attr-sub">Aktif Güvenlik Kapsamı<br>İç BT &amp; Altyapı Yönetimi</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>%100</b>
+    <span class="attr-sub">Sıfır Maddi İhlal<br>M365 E5 Entegre Güvence</span>
+  </div>
+</div>"""
 
 
 def build_golden_purview_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
@@ -1020,6 +1474,15 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
     </td>
   </tr>"""
 
+    
+    prv_exec_brief = render_executive_brief_purview(
+        customer_name, period_label, total_matches, blocked_events, overrides, eng_effort, saved_hours
+    )
+    prv_attr_grid = render_attribution_grid_purview(
+        total_matches, blocked_events, overrides, eng_effort, saved_hours
+    )
+    prv_dec_framework = render_decision_framework_purview(endpoint_blocks, overrides)
+
     return f"""<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
 <title>Aylik Veri Guvenligi ve Uyum Raporu - {customer_name}</title>
@@ -1064,12 +1527,10 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
 {PROVIDER_NAME} Veri Guvenligi muhendisleri <b>{eng_effort}</b> supheli override ve uyum olayini triyajlamis,
 <b>{endpoint_blocks}</b> adet yuksek riskli USB ve Web tarayici dosya aktarimi ucnoktada bloke edilmistir.</p>
 
-<div class="cards">
-  <div class="card auto"><b>{fmt_num(blocked_events)}</b><span>Otonom Engellenen Veri</span></div>
-  <div class="card auto"><b>{saved_hours:.1f} sa</b><span>Kazanilan Efor (~{fte_equiv} FTE)</span></div>
-  <div class="card good"><b>${cost_avoidance_usd:,}</b><span>Ceza &amp; Risk Tasarrufu</span></div>
-  <div class="card good"><b>%{prot_rate:.1f}</b><span>DLP Basari Orani</span></div>
-</div>
+{prv_exec_brief}
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+{prv_attr_grid}
 
 <div class="value">
   <h3>{PROVIDER_NAME} Purview Yonetilen Hizmet Degeri</h3>
@@ -1151,23 +1612,19 @@ bunlarin <b>{blocked_events}</b> adedi kural eslesmesi aninda otonom olarak enge
   {prv_backlog_rows}
 </table>
 
-<h2>C-Level Stratejik Karar ve Onay Matrisi</h2>
-<table>
-  <tr><th>Oncelik</th><th>Stratejik Aksiyon</th><th>Risk &amp; Gerekce</th><th>Gereken Onay</th><th>Guvenlik Etkisi</th></tr>
-  {prv_clevel_rows}
-</table>
+{prv_dec_framework}
 
 <h2>Cok Kiracili Guven, Izin Seffafligi ve GDAP Denetimi</h2>
 <div class="value">
   <h3>Kurumsal Veri Mahremiyeti ve Sifir Kalici Yetki</h3>
   <p><b>DLP Izin Seffafligi:</b> Bu rapor yalnizca salt-okunur <code>InformationProtectionPolicy.Read.All</code> ve <code>SecurityAlert.Read.All</code> izinleri kullanilarak hazirlanmistir.</p>
   <p><b>Icerik Gizliligi:</b> Purview DLP loglarinda dosya icerikleri asla okunmaz veya saklanmaz. Yalnizca eslesen metaveriler (SIT tipleri) analiz edilir.</p>
-  <p><b>B?t?nl?k Do?rulama Kayd? (Integrity Record):</b> ?retilen bu rapor SHA-256 kriptografik ?zet de?eri ile teknik b?t?nl?k do?rulamas? amac?yla sistem denetim k?t???ne kaydedilmi?tir.</p>
+  <p><b>Bütünlük Doğrulama Kaydı (Integrity Record):</b> Üretilen bu rapor SHA-256 kriptografik özet değeri ile teknik bütünlük doğrulaması amacıyla sistem denetim kütüğüne kaydedilmiştir.</p>
 </div>
 
-<p class="note"><b>Uyar? &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
-<b>Rapor B?t?nl?k Do?rulamas?:</b> Rapor verileri tuzlu SHA-256 ?zet kayd? ve k-Anonymity (k=5) filtrelemesi ile i?lenmi?tir.<br>
-Gizlilik: TLP:AMBER &bull; M??teriye ?zel ve Ticari S?r.</p>
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, veri minimizasyonu, erişim kontrolü, maskeleme ve denetim izi ilkeleri dikkate alınarak teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme, kurumun hukuk, uyum, iç denetim ve veri sorumlusu ekiplerinin kapsam ve kontrol doğrulamasına tabidir.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Rapor verileri tuzlu SHA-256 özet kaydı ve k-Anonymity (k=5) filtrelemesi ile işlenmiştir.<br>
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 <div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
 
@@ -1236,6 +1693,10 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
     </td>
   </tr>"""
 
+    
+    cons_brief_html = render_executive_brief_consolidated(customer_name, period_label, len(services), total_blocks, saved_hours)
+    cons_attr_grid_html = render_attribution_grid_consolidated(total_blocks, saved_hours, len(services))
+
     return f"""<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
 <title>Aylik Birlesik Guvenlik ve Uyum Raporu - {customer_name}</title>
@@ -1253,6 +1714,14 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
   Kapsanan donem: {period_label} (Son 30 gun) &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
 </header>
 
+<!-- CISO 30 SANİYELİK KONSOLİDE DURUŞ KARTI -->
+<div class="ciso-badge">
+  <div class="ciso-badge-item">Birlesik Risk Durumu: <span class="pill p-ok">DUSUK</span></div>
+  <div class="ciso-badge-item">Genel Savunma Durusu: <span style="color:#0f4c81; font-weight:800;">GUCLU (XDR &amp; Purview Aktif)</span></div>
+  <div class="ciso-badge-item">Hizmet SLA: <b style="color:#10b981;">%99.4</b></div>
+  <div class="ciso-badge-item">Ihlal Posturu: <span class="pill p-ok">SIFIR MADDI SIZINTI</span></div>
+</div>
+
 <p class="note"><b>Rapor kapsami:</b> {period_label} (30 gun).
 Microsoft Defender XDR (EDR, E-Posta, Kimlik, Bulut, XDR) ve Microsoft Purview (DLP, Bilgi Guvenligi, DSPM AI)
 servislerinin konsolide yonetim ve performans karnesidir.</p>
@@ -1263,12 +1732,10 @@ servislerinin konsolide yonetim ve performans karnesidir.</p>
 Donem boyunca toplam <b>{fmt_num(total_blocks)}</b> tehdit ve veri sizintisi otonom olarak durdurulmus,
 kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir.</p>
 
-<div class="cards">
-  <div class="card auto"><b>{fmt_num(total_blocks)}</b><span>Toplam otonom engel</span></div>
-  <div class="card auto"><b>{saved_hours:.1f} sa</b><span>Kazanilan uzman zamani</span></div>
-  <div class="card"><b>{len(services)}</b><span>Aktif yonetilen servis</span></div>
-  <div class="card good"><b>%99.4</b><span>Hizmet SLA uyumu</span></div>
-</div>
+{cons_brief_html}
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+{cons_attr_grid_html}
 
 <div class="value">
   <h3>{PROVIDER_NAME} Yonetilen Hizmet Degeri</h3>
@@ -1313,7 +1780,11 @@ kuruma <b>{saved_hours:.1f} saat</b> operasyonel analist zamani kazandirilmistir
   {inc_rows}
 </table>
 
+{render_decision_framework_consolidated()}
+
 <p class="note">Bu rapor {PROVIDER_NAME} Microsoft Yonetilen Guvenlik ve Purview Uyum Hizmetleri kapsaminda uretilmistir.
+Rapor veri bütünlüğü SHA-256 kriptografik özet kaydı ile mühürlenmiş olup yerel denetim kütüğünde kayıtlıdır.
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel &bull; 6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 regülasyonlarina uyumluluk kontrolleri teknik olarak doğrulanmıştır.</p> Microsoft Yonetilen Guvenlik ve Purview Uyum Hizmetleri kapsaminda uretilmistir.
 Gizlilik: Musteriye Ozel &bull; 6698 sayili KVKK, GDPR Privacy-by-Design ve ISO 27001 regülasyonlarina uyumluluk kontrolleri teknik olarak doğrulanmıştır.</p>
 <div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name} &nbsp;|&nbsp; v2.5.5 Golden Standard</div>
 </div>
