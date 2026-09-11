@@ -10,9 +10,10 @@
 
 CloudShield Enterprise MSSP operates in multi-tenant enterprise environments requiring robust federated identity, zero trust authentication, and backward-compatible operational agility.
 
-This architecture transitions the platform from basic in-memory sessions toward a **Dual-Stack Authentication Engine**:
-1. **Primary Enterprise Provider:** Microsoft Entra ID via OpenID Connect (OIDC) with Authorization Code Flow + Proof Key for Code Exchange (PKCE).
-2. **Local Fallback / Pilot Provider:** PBKDF2-HMAC-SHA256 salted credentials stored in the encrypted relational database for air-gapped lab testing and local development.
+This architecture implements a strict Zero Trust identity model:
+1. **Primary Enterprise Provider (Pilot & Production):** Microsoft Entra ID via OpenID Connect (OIDC) with Authorization Code Flow + Proof Key for Code Exchange (PKCE) and federated SSO token exchange (`POST /api/auth/sso`).
+2. **Pilot Mode Local Auth Lockout:** When operating in Pilot channel (`CLOUDSHIELD_RELEASE_CHANNEL=pilot`), local password authentication (`POST /api/auth/login`) is strictly disabled at the server level, returning `403 Forbidden` with `"ssoRequired": true`. Local authentication is permitted only in isolated developer environments when explicitly configured via `CLOUDSHIELD_ALLOW_LOCAL_AUTH=true`.
+3. **Local Dev / Lab Fallback:** PBKDF2-HMAC-SHA256 salted credentials stored in the relational database, available solely in development environments.
 
 ---
 

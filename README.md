@@ -224,7 +224,7 @@ python test_report_quality_gate.py
 # Run Independent Post-Remediation Gate Suite (21 tests)
 python test_post_remediation_independent_gate.py
 
-# Run Enterprise RBAC & Authorization Suite (9 tests)
+# Run Enterprise RBAC & Authorization Suite (10 security assertions)
 python test_rbac_authorization.py
 ```
 
@@ -234,7 +234,7 @@ python test_rbac_authorization.py
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
-| **v2.5.13-PILOT** | 2026.09.11.1 | 2026-09-11 | feat(rbac): enterprise rbac, customer-service matrix, authorization decision chain, and 11 admin portal views |
+| **v2.5.13-PILOT** | 2026.09.11.1 | 2026-09-11 | feat(pilot): controlled pilot finalization, entra id sso enforcement, local auth lockout, admin customer-content restriction, and comprehensive qa pass |
 | **v2.5.12-PILOT** | 2026.09.10.12 | 2026-09-10 | feat(quality-gate): blocking report-product remediation and 14 semantic quality gates |
 | **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |
 | **v2.5.10-PILOT** | 2026.09.10.10 | 2026-09-10 | refactor(release): establish single-source version manifest and dynamic azure deployment discovery |
@@ -246,6 +246,8 @@ python test_rbac_authorization.py
 - **Active Release:** `v2.5.13-PILOT` (Managed via Single-Source `version.json`)
 - **Release Channel:** `pilot` (`productionReady: false`)
 - **Version Endpoint:** `GET /api/version`
+- **Authentication Mode:** Microsoft Entra ID OIDC SSO Enforced (`POST /api/auth/sso`), Local password auth disabled in Pilot (`403 Forbidden: ssoRequired`).
+- **Authorization & Isolation:** 8-Stage Authorization Decision Chain; Zero Trust Least Privilege (Administrative roles cannot access customer confidential reports without explicit customer assignment or CloudShield JIT Temporary Access Elevation compatible with Entra PIM principles); Separation of Duties (SoD) enforced.
 
 ---
 

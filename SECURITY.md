@@ -26,9 +26,13 @@ CloudShield MSSP Platform adheres to strict enterprise DevSecOps standards and M
 * **In-Memory Credential Lifecycle:** Tenant authentication tokens retrieved from Entra ID / Microsoft Graph are scoped in memory and destroyed upon report compilation. No tokens or decrypted private keys are persisted to disk.
 
 ### C. Server-Side RBAC & Session Security
-* **Deny-by-Default Authorization:** Enforced exclusively at the server level via `Portal/api/rbac_engine.py` across 6 discrete roles and 13 granular permissions.
-* **Two-Dimensional Scoping:** Platform isolates access strictly by Customer ID and Subscribed Service ID, preventing cross-tenant data leakage.
-* **Cookie & Credential Hardening:** Session tokens (`CS_SESSION`) use cryptographically secure 256-bit entropy, enforced with `HttpOnly; SameSite=Strict; Secure` flags. Stored passwords use PBKDF2-HMAC-SHA256 with dynamic salts.
+* **Mandatory Entra ID SSO in Pilot:** In the Pilot channel (`CLOUDSHIELD_RELEASE_CHANNEL=pilot`), local password authentication (`/api/auth/login`) is strictly disabled (returns `403 Forbidden` with `"ssoRequired": true`). All portal authentication requires Microsoft Entra ID OIDC SSO (`/api/auth/sso`).
+* **8-Stage Authorization Decision Chain:** Every incoming API request passes an 8-stage authorization pipeline evaluating identity active state, permission checks, customer scope, service scope, time bounds, separation of duties, and audit emissions (`Portal/api/rbac_engine.py`).
+* **Zero Trust Least Privilege for Administrators:** Administrative roles (`PlatformAdmin`) are strictly prohibited from automatic access to customer confidential data (reports). Platform administrators do not inherit customer-level content visibility without an explicit customer assignment or approved CloudShield JIT Temporary Access Elevation.
+* **CloudShield JIT Temporary Access Elevation:** Operators require time-bounded, approval-gated Just-In-Time access elevation (compatible with Microsoft Entra PIM zero standing privileges principles) to perform customer-specific investigations.
+* **Separation of Duties (SoD):** The engineer who creates or triggers a report cannot approve that report. Approvals require independent customer or lead engineer ratification.
+* **Multi-Dimensional Scoping:** Access is strictly bounded by Customer ID and Subscribed Service ID, preventing cross-tenant and cross-service data leakage.
+* **Session Security & Cookie Hardening:** Session tokens (`CS_SESSION`) use cryptographically secure 256-bit entropy, enforced with `HttpOnly; SameSite=Strict; Path=/` flags.
 
 ### D. Data Privacy & KVKK / GDPR Compliance
 * **Zero Raw Data Persistence:** No raw customer payloads, email bodies, file contents, or personal records are stored on disk.

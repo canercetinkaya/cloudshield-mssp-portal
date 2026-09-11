@@ -15,7 +15,9 @@ The CloudShield Authorization Engine utilizes a relational data model designed t
 1. **Server-Side Exclusivity:** All role, permission, customer, and service assignments are stored and evaluated in the relational database layer.
 2. **Multi-Tenant Boundary:** Access assignments explicitly delineate between `ALL` customers (global administrative scope) and specific tenant identifiers.
 3. **Service Scoping:** Users are assigned explicit service scopes (`ALL` or specific `ServiceId`), ensuring an EDR engineer cannot access Purview DLP or Insider Risk records.
-4. **Time-Bounded & PIM Ready:** Every assignment supports optional `valid_from` and `valid_to` timestamps with approval workflow tracking.
+4. **Time-Bounded & JIT Ready:** Every assignment supports optional `valid_from` and `valid_to` timestamps with CloudShield JIT Temporary Access Elevation workflow tracking (compatible with Microsoft Entra PIM zero standing access principles).
+5. **Least Privilege for Administrative Roles:** Administrative roles (`PlatformAdmin`) are strictly restricted from automatic access to customer confidential data (reports). Platform administrators must hold explicit customer assignments or approved CloudShield JIT Temporary Access Elevation to view or generate customer reports.
+6. **Separation of Duties (SoD):** The engineer who creates/triggers a report is cryptographically prohibited from approving that report.
 
 ---
 
@@ -115,12 +117,12 @@ The core binding entity for authorization decisions.
 - `service_id` (TEXT, NULLABLE): Target service code/id when `Specific`.
 - `valid_from` (TEXT): Effective start time.
 - `valid_to` (TEXT, NULLABLE): Expiry time (if temporary).
-- `is_temporary` (INTEGER): PIM indicator.
+- `is_temporary` (INTEGER): JIT temporary elevation indicator (`1` for time-bounded elevation, `0` for standing assignment).
 - `is_active` (INTEGER): Administrative enable/disable switch.
-- `approval_id` (TEXT, NULLABLE): Linked PIM approval record.
+- `approval_id` (TEXT, NULLABLE): Linked CloudShield JIT approval record.
 
 ### 3.8 `access_approvals`
-PIM-style access requests and approvals.
+CloudShield JIT Temporary Access Elevation requests and approvals (compatible with Microsoft Entra PIM principles).
 - `requester_id`, `approver_id`, `requested_role_id`, `customer_id`, `service_id`, `duration_hours`, `reason`, `status` (`Pending`, `Approved`, `Rejected`, `Expired`), `decision_reason`, `created_at`, `decided_at`.
 
 ### 3.9 `audit_events`

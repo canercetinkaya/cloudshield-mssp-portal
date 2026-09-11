@@ -29,8 +29,11 @@ python test_report_quality_gate.py
 # 3. Independent Post-Remediation Verification Gate (21 tests)
 python test_post_remediation_independent_gate.py
 
-# 4. Enterprise RBAC & Authorization Suite (9 security tests)
+# 4. Enterprise RBAC & Authorization Suite (10 security assertions)
 python test_rbac_authorization.py
+
+# 5. Comprehensive Platform End-to-End QA Suite (65 automated tests)
+python test_comprehensive_qa.py
 ```
 
 ---
