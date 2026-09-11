@@ -1,0 +1,12 @@
+# CloudShield MSSP Platform - Runtime Python Dependencies
+# Python Runtime: >= 3.10 (Python 3.11 recommended)
+#
+# NOTE ON ARCHITECTURE:
+# The CloudShield core API, server, and RBAC engine are strictly built using
+# the Python Standard Library (http.server, sqlite3, hashlib, hmac, secrets,
+# json, urllib, subprocess, uuid, datetime) to guarantee:
+# 1. Zero external pip supply-chain risks
+# 2. Instant container startup with zero pip install overhead
+# 3. Complete portability across Windows, Linux, and Azure Container Apps
+#
+# No external pip packages are strictly required to run the portal and API.

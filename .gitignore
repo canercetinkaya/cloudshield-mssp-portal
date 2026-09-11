@@ -8,6 +8,7 @@
 # ------------------------------------------------------------------------------
 *.env
 *.env.*
+!.env.example
 *.env.local
 *.env.production
 *.env.development
@@ -80,6 +81,7 @@ dist/
 build/
 eggs/
 *.egg
+*.zip
 
 # ------------------------------------------------------------------------------
 # 4. PowerShell Runtime & Transcripts

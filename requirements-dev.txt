@@ -1,0 +1,13 @@
+# CloudShield MSSP Platform - Development and Testing Dependencies
+# Optional dependencies for development, linting, and extended test automation
+
+# Testing frameworks
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code quality & formatting
+flake8>=6.1.0
+black>=23.9.0
+
+# HTTP client for test scripts (optional - standard urllib is used in tests by default)
+requests>=2.31.0
