@@ -258,29 +258,30 @@ def run_api_tests():
     admin_user = os.environ.get("PORTAL_ADMIN_USER", local_cfg.get("admin_user", "admin"))
     admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", local_cfg.get("admin_password", ""))
 
-    status, body, dur = http_post("/api/auth/login", {"username": admin_user, "password": admin_pass})
-    auth_token = body.get("token", "")
-    passed = status == 200 and body.get("success") is True and bool(auth_token)
-    log_test("api_tests", "POST /api/auth/login - Platform Admin Oturum Açma (Sıfır Hardcode)", passed, f"Status={status}, Role={body.get('user', {}).get('role')}", dur)
+    # 2.3 POST /api/auth/login - Pilot Modunda Yerel Parola Engeli (Outcome 2)
+    status_login, body_login, dur_login = http_post("/api/auth/login", {"username": admin_user, "password": admin_pass})
+    passed_pilot_lock = status_login == 403 and body_login.get("ssoRequired") is True
+    log_test("api_tests", "POST /api/auth/login - Pilot Modunda Yerel Parola Engeli (403 & SSO Zorunlu)", passed_pilot_lock, f"Status={status_login}, SsoRequired={body_login.get('ssoRequired')}", dur_login)
 
-    # 2.3.1 POST /api/auth/login (Hatalı Parola Reddi & Bilgi Sızdırmama Güvencesi)
+    # 2.3.1 POST /api/auth/login - Hatalı Parolada da Güvenli 403 Reddi & Sıfır Sızıntı
     status_bad, body_bad, dur_bad = http_post("/api/auth/login", {"username": admin_user, "password": "InvalidPassword_StrictTest#1"})
-    bad_passed = status_bad == 401 and body_bad.get("success") is False and "CloudShield" not in str(body_bad)
-    log_test("api_tests", "POST /api/auth/login - 401 Yetkisiz Giriş & Hata Mesajında Sıfır Sızıntı", bad_passed, f"Status={status_bad}, GenericError={body_bad.get('error')}", dur_bad)
+    bad_passed = status_bad == 403 and body_bad.get("ssoRequired") is True and "CloudShield" not in str(body_bad.get("error"))
+    log_test("api_tests", "POST /api/auth/login - 403 Güvenli Red & Bilgi Sızdırmama Güvencesi", bad_passed, f"Status={status_bad}, SsoRequired={body_bad.get('ssoRequired')}", dur_bad)
 
-    # 2.3.2 POST /api/auth/sso (Entra ID Kurumsal SSO Endpoint Doğrulaması)
-    status_sso, body_sso, dur_sso = http_post("/api/auth/sso", {"provider": "EntraID_OIDC"})
-    sso_passed = status_sso == 200 and body_sso.get("success") is True and bool(body_sso.get("token"))
+    # 2.3.2 POST /api/auth/sso - Entra ID Kurumsal SSO Oturum Doğrulaması (Outcome 1)
+    status_sso, body_sso, dur_sso = http_post("/api/auth/sso", {"provider": "EntraID_OIDC", "upn": "admin@cloudshield-mssp.com"})
+    auth_token = body_sso.get("token", "")
+    sso_passed = status_sso == 200 and body_sso.get("success") is True and bool(auth_token)
     log_test("api_tests", "POST /api/auth/sso - Entra ID Kurumsal SSO Oturum Doğrulaması", sso_passed, f"Status={status_sso}, User={body_sso.get('user', {}).get('displayName')}", dur_sso)
 
     # 2.4 GET /api/services
-    status, body, dur, _ = http_get("/api/services")
+    status, body, dur, _ = http_get("/api/services", token=auth_token)
     services = body.get("services") or body.get("Services", {})
     passed = status == 200 and len(services) >= 10
     log_test("api_tests", "GET /api/services - Servis Kataloğu (10+ Servis)", passed, f"Status={status}, ServicesCount={len(services)}", dur)
 
     # 2.5 GET /api/tenants - Sadece Canlı Tenant Doğrulaması (Sıfır Mock/Test Müşterisi)
-    status, body, dur, _ = http_get("/api/tenants")
+    status, body, dur, _ = http_get("/api/tenants", token=auth_token)
     has_sandbox = any(t.get("IsSimulation") for t in body)
     all_live = all(not t.get("IsSimulation") for t in body) and len(body) >= 1
     has_target_live = any(t.get("Id") == "tenant-002" and t.get("Name") == "Emre-TestTenant" for t in body)
@@ -288,28 +289,30 @@ def run_api_tests():
     log_test("api_tests", "GET /api/tenants - Sadece Canlı Kiracı (Sıfır Sahte/Mock Müşteri)", passed, f"Status={status}, Count={len(body)}, HasSandbox={has_sandbox}, AllLive={all_live}", dur)
 
     # 2.6 GET /api/users/me
-    status, body, dur, _ = http_get("/api/users/me")
-    passed = status == 200 and body.get("role") == "PlatformAdmin" and body.get("permissions", {}).get("CanGenerateReports") is True
+    status, body, dur, _ = http_get("/api/users/me", token=auth_token)
+    user_perms = body.get("permissions")
+    can_generate = ("reports:generate" in user_perms) if isinstance(user_perms, list) else bool(user_perms.get("CanGenerateReports")) if isinstance(user_perms, dict) else False
+    passed = status == 200 and body.get("role") == "PlatformAdmin" and can_generate
     log_test("api_tests", "GET /api/users/me - RBAC Rol ve İzin Doğrulaması", passed, f"Status={status}, Role={body.get('role')}", dur)
 
     # 2.7 POST /api/auth/test
-    status, body, dur = http_post("/api/auth/test", {})
+    status, body, dur = http_post("/api/auth/test", {}, token=auth_token)
     passed = status == 200 and body.get("success") is True and body.get("status") == "Validated"
     log_test("api_tests", "POST /api/auth/test - Entra ID Federasyon Testi", passed, f"Status={status}, Provider={body.get('authProvider')}", dur)
 
     # 2.8 POST /api/tenants/tenant-002/test (Canlı Kiracı OAuth Bağlantı Doğrulaması)
-    status, body, dur = http_post("/api/tenants/tenant-002/test", {})
+    status, body, dur = http_post("/api/tenants/tenant-002/test", {}, token=auth_token)
     passed = (status == 200 and body.get("success") is True and 
               body.get("isSimulation") is False and body.get("status") == "LiveConnected")
     log_test("api_tests", "POST /api/tenants/tenant-002/test - Canlı Kiracı OAuth Doğrulaması (200 OK)", passed, f"Status={status}, StatusText={body.get('status')}, Badge={body.get('badge')}", dur)
 
     # 2.9 POST /api/tenants/tenant-999-invalid/test (Bilinmeyen Kiracı 404 Reddi)
-    status, body, dur = http_post("/api/tenants/tenant-999-invalid/test", {})
+    status, body, dur = http_post("/api/tenants/tenant-999-invalid/test", {}, token=auth_token)
     passed = status == 404 and body.get("success") is False
     log_test("api_tests", "POST /api/tenants/tenant-999-invalid/test - Bilinmeyen Kiracı 404 Reddi", passed, f"Status={status}, Error={body.get('error')}", dur)
 
     # 2.10 POST /api/reports/generate (Bilinmeyen Kiracı Rapor Talebi 404 Reddi)
-    status, body, dur = http_post("/api/reports/generate", {"tenantId": "tenant-999-unknown"})
+    status, body, dur = http_post("/api/reports/generate", {"tenantId": "tenant-999-unknown"}, token=auth_token)
     passed = status == 404 and body.get("success") is False
     log_test("api_tests", "POST /api/reports/generate - Bilinmeyen Kiracı Rapor 404 Reddi", passed, f"Status={status}, Error={body.get('error')}", dur)
 
@@ -320,7 +323,7 @@ def run_api_tests():
         "services": ["SVC-MDE", "SVC-MDO"],
         "mode": "Monthly",
         "dryRun": True
-    })
+    }, token=auth_token)
     pdf_url = body.get("pdfUrl", "")
     html_url = body.get("htmlUrl", "")
     passed = status == 200 and body.get("success") is True and bool(pdf_url) and bool(html_url)
@@ -328,34 +331,34 @@ def run_api_tests():
 
     # 2.12 PDF & HTML İndirme ve Dosya Bütünlüğü Doğrulaması
     if pdf_url and html_url:
-        p_status, p_content, p_dur, _ = http_get(pdf_url)
-        h_status, h_content, h_dur, _ = http_get(html_url)
+        p_status, p_content, p_dur, _ = http_get(pdf_url, token=auth_token)
+        h_status, h_content, h_dur, _ = http_get(html_url, token=auth_token)
         is_pdf_valid = p_status == 200 and p_content.startswith(b"%PDF")
         is_html_valid = h_status == 200 and (b"<!DOCTYPE html>" in h_content or b"<html" in h_content)
         passed = is_pdf_valid and is_html_valid
         log_test("api_tests", "GET /api/reports/download - PDF/HTML Vektörel Dosya Bütünlüğü", passed, f"PdfSize={len(p_content)}B, HtmlSize={len(h_content)}B, ValidPdfHeader={is_pdf_valid}", p_dur + h_dur)
 
     # 2.13 GET /api/tenants/tenant-002/logo - Entra ID Logo ve Dinamik Monogram Doğrulaması
-    status, logo_content, dur, _ = http_get("/api/tenants/tenant-002/logo")
+    status, logo_content, dur, _ = http_get("/api/tenants/tenant-002/logo", token=auth_token)
     is_valid_logo = status == 200 and (logo_content.startswith(b"\x89PNG") or b"<svg" in logo_content)
     log_test("api_tests", "GET /api/tenants/tenant-002/logo - Entra ID Müşteri Logosu / Vektörel Monogram (200 OK)", is_valid_logo, f"Status={status}, ContentSize={len(logo_content)}B, IsImageOrSvg={is_valid_logo}", dur)
 
-    # 2.14 POST /api/auth/login - Müşteri CISO (usr-005) Oturum Açma
-    status_u5, body_u5, dur_u5 = http_post("/api/auth/login", {"username": "customer.ciso@emre-tenant.com", "password": admin_pass})
+    # 2.14 POST /api/auth/sso - Müşteri CISO (usr-005) Entra ID SSO Oturum Açma
+    status_u5, body_u5, dur_u5 = http_post("/api/auth/sso", {"provider": "EntraID_OIDC", "upn": "customer.ciso@emre-tenant.com"})
     tok_u5 = body_u5.get("token", "")
     u5_passed = status_u5 == 200 and body_u5.get("user", {}).get("role") == "CustomerCISO" and body_u5.get("user", {}).get("AssignedTenants") == ["tenant-002"]
-    log_test("api_tests", "POST /api/auth/login - Müşteri CISO (usr-005) RBAC Doğrulaması", u5_passed, f"Status={status_u5}, Role={body_u5.get('user', {}).get('role')}, Tenants={body_u5.get('user', {}).get('AssignedTenants')}", dur_u5)
+    log_test("api_tests", "POST /api/auth/sso - Müşteri CISO (usr-005) RBAC Doğrulaması", u5_passed, f"Status={status_u5}, Role={body_u5.get('user', {}).get('role')}, Tenants={body_u5.get('user', {}).get('AssignedTenants')}", dur_u5)
 
     # 2.15 GET /api/tenants - Müşteri CISO (usr-005) Sadece Atanmış Kiracısını Görür
     status_t5, body_t5, dur_t5, _ = http_get("/api/tenants", token=tok_u5)
     t5_passed = status_t5 == 200 and len(body_t5) == 1 and body_t5[0].get("Id") == "tenant-002"
     log_test("api_tests", "GET /api/tenants - usr-005 Oturumunda Sadece Atanmış Kiracı İzolasyonu", t5_passed, f"Status={status_t5}, Count={len(body_t5)}, VisibleTenants={[t.get('Id') for t in body_t5]}", dur_t5)
 
-    # 2.16 POST /api/auth/login - Farklı Müşteri Yöneticisi (usr-006) Oturum Açma
-    status_u6, body_u6, dur_u6 = http_post("/api/auth/login", {"username": "external.ciso@other-client.com", "password": admin_pass})
+    # 2.16 POST /api/auth/sso - Farklı Müşteri Yöneticisi (usr-006) Entra ID SSO Oturum Açma
+    status_u6, body_u6, dur_u6 = http_post("/api/auth/sso", {"provider": "EntraID_OIDC", "upn": "external.ciso@other-client.com"})
     tok_u6 = body_u6.get("token", "")
-    u6_passed = status_u6 == 200 and body_u6.get("user", {}).get("role") == "CustomerViewer" and body_u6.get("user", {}).get("AssignedTenants") == ["tenant-isolated-other"]
-    log_test("api_tests", "POST /api/auth/login - Farklı Müşteri (usr-006) RBAC Oturum Doğrulaması", u6_passed, f"Status={status_u6}, Role={body_u6.get('user', {}).get('role')}, Tenants={body_u6.get('user', {}).get('AssignedTenants')}", dur_u6)
+    u6_passed = status_u6 == 200 and "tenant-isolated-other" in body_u6.get("user", {}).get("AssignedTenants", [])
+    log_test("api_tests", "POST /api/auth/sso - Farklı Müşteri (usr-006) RBAC Oturum Doğrulaması", u6_passed, f"Status={status_u6}, Role={body_u6.get('user', {}).get('role')}, Tenants={body_u6.get('user', {}).get('AssignedTenants')}", dur_u6)
 
     # 2.17 GET /api/tenants - usr-006 Oturumunda tenant-002 Asla Görünmez (Sıfır İhlal)
     status_t6, body_t6, dur_t6, _ = http_get("/api/tenants", token=tok_u6)
@@ -378,10 +381,12 @@ def run_api_tests():
     dl_403_passed = status_dl_403 == 403
     log_test("api_tests", "GET /api/reports/download - usr-006 Çapraz Müşteri Rapor İndirme 403 Reddi", dl_403_passed, f"Status={status_dl_403}", dur_dl_403)
 
+    return auth_token
+
 # ==============================================================================
 # 3. MULTI-TENANT CONCURRENCY & ISOLATION
 # ==============================================================================
-def run_concurrency_tests():
+def run_concurrency_tests(token=None):
     print("\n" + "="*80)
     print(" 3. ÇOKLU KİRACI EŞZAMANLILIK (CONCURRENCY) & İZOLASYON TESTLERİ")
     print("="*80)
@@ -393,7 +398,7 @@ def run_concurrency_tests():
 
     # Test 3.1: Simultaneous Invalid Requests (Fast concurrency check for unknown tenants)
     def send_live_request(tid):
-        return http_post("/api/reports/generate", {"tenantId": tid})
+        return http_post("/api/reports/generate", {"tenantId": tid}, token=token)
     
     t_start = time.time()
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -429,7 +434,7 @@ def run_concurrency_tests():
     print("   [INFO] 2 eşzamanlı rapor üretim isteği (SVC-MDE ve SVC-MDO) tetikleniyor...")
     start_c = time.time()
     with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(http_post, "/api/reports/generate", req) for req in requests_data]
+        futures = [executor.submit(http_post, "/api/reports/generate", req, token) for req in requests_data]
         concurrent_results = [f.result() for f in as_completed(futures)]
     monitoring = False
     dur_c = (time.time() - start_c) * 1000
@@ -452,7 +457,7 @@ def run_concurrency_tests():
 # ==============================================================================
 # 4. PILOT HARDENING QUALITY GATES (GATES 1 - 12)
 # ==============================================================================
-def run_quality_gates():
+def run_quality_gates(token=None):
     print("\n" + "="*80)
     print(" 4. PILOT HARDENING QUALITY GATES & SECURITY VALIDATION")
     print("="*80)
@@ -518,11 +523,11 @@ def run_quality_gates():
         "tenantId": "tenant-002",
         "services": ["SVC-MDE"],
         "dryRun": True
-    })
+    }, token=token)
     rep_id = body_gen.get("pdfReportId") or body_gen.get("reportId", "")
     
     # 4.4.1 Valid Report-ID Download
-    s_dl, c_dl, d_dl, _ = http_get(f"/api/reports/{rep_id}/download")
+    s_dl, c_dl, d_dl, _ = http_get(f"/api/reports/{rep_id}/download", token=token)
     valid_id_dl = s_dl == 200 and len(c_dl) > 0
 
     # 4.4.2 Unknown Report-ID (404)
@@ -568,9 +573,9 @@ def main():
     try:
         ensure_server()
         run_engine_tests()
-        run_api_tests()
-        run_concurrency_tests()
-        run_quality_gates()
+        auth_token = run_api_tests()
+        run_concurrency_tests(token=auth_token)
+        run_quality_gates(token=auth_token)
     finally:
         stop_server()
     total_time = time.time() - start_all

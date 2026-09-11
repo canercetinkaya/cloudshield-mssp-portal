@@ -356,23 +356,25 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         """Extract authenticated user object from session header or query parameter."""
 
         auth_hdr = self.headers.get("Authorization", "")
-
         tok = auth_hdr.replace("Bearer ", "").strip() if auth_hdr else ""
 
         if not tok:
-
             parsed = urllib.parse.urlparse(self.path)
-
             query = urllib.parse.parse_qs(parsed.query)
-
             tok = query.get("token", [""])[0]
 
+        if not tok:
+            cookie_hdr = self.headers.get("Cookie", "")
+            if cookie_hdr and "CS_SESSION=" in cookie_hdr:
+                for part in cookie_hdr.split(";"):
+                    part = part.strip()
+                    if part.startswith("CS_SESSION="):
+                        tok = part.split("=", 1)[1].strip()
+                        break
+
         if tok and tok in SESSIONS:
-
             sess = SESSIONS[tok]
-
             if sess.get("expiresAt", 0) > time.time():
-
                 return sess.get("user")
 
         return None
@@ -1067,44 +1069,40 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Multi-Tenant RBAC Download Authorization Check
-
             user = self.get_current_user()
+            if not user:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Kimlik Doğrulama Gerekli (401 Unauthorized): Rapor indirmek için geçerli bir oturum açmalısınız."
+                }, status=401)
+                return
 
-            if user:
+            tenants = load_json_file(TENANTS_FILE, [])
+            file_norm = file_param.replace("\\", "/")
+            matched_tenant = None
+            for t in tenants:
+                name = t.get("Name", "")
+                safe = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+                aliases = [t.get("Id"), t.get("TenantId"), name, safe]
+                if any(a and a.lower() in file_norm.lower() for a in aliases):
+                    matched_tenant = t.get("Id")
+                    break
 
-                assigned = user.get("AssignedTenants", ["ALL"])
-
-                if "ALL" not in assigned:
-
-                    tenants = load_json_file(TENANTS_FILE, [])
-
-                    allowed_names = []
-
-                    for t in tenants:
-
-                        if t.get("Id") in assigned or t.get("TenantId") in assigned:
-
-                            name = t.get("Name", "")
-
-                            safe = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-
-                            allowed_names.extend([t.get("Id"), t.get("TenantId"), name, safe])
-
-                    file_norm = file_param.replace("\\", "/")
-
-                    is_allowed = any(an.lower() in file_norm.lower() for an in allowed_names if an)
-
-                    if not is_allowed:
-
-                        self.send_json_response({
-
-                            "success": False,
-
-                            "error": "Yetkisiz Erişim (403 Forbidden): Bu rapor dosyasını indirme yetkiniz bulunmamaktadır."
-
-                        }, status=403)
-
-                        return
+            if matched_tenant:
+                client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+                allowed, reason = evaluate_access(
+                    user,
+                    "reports:download",
+                    customer_id=matched_tenant,
+                    resource=path,
+                    ip_address=client_ip
+                )
+                if not allowed:
+                    self.send_json_response({
+                        "success": False,
+                        "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"
+                    }, status=403)
+                    return
 
             full_path = os.path.abspath(os.path.join(OUTPUT_DIR, file_param.lstrip("/\\")))
 
@@ -1232,14 +1230,35 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
 
         if path == "/api/auth/login":
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            vinfo = get_version_info()
+            channel = str(vinfo.get("channel", "pilot")).lower()
+            env_mode = str(vinfo.get("environment", "pilot")).lower()
+            allow_local = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH", "false").lower() == "true"
+
+            # Mandatory Outcome 2: Disable local password authentication in Pilot mode
+            if (channel == "pilot" or env_mode == "pilot") and not allow_local:
+                record_audit_event(
+                    event_type="AUTH_DENY",
+                    resource="/api/auth/login",
+                    decision="DENY",
+                    reason="LocalAuthDisabledInPilotMode",
+                    ip_address=client_ip
+                )
+                self.send_json_response({
+                    "success": False,
+                    "error": "Pilot modunda yerel parola kimlik doğrulaması devre dışıdır. Lütfen kurumsal Microsoft Entra ID (SSO) ile oturum açınız.",
+                    "authProvider": "EntraID_OIDC",
+                    "ssoRequired": True
+                }, status=403)
+                return
+
             username = str(body.get("username", "")).strip()
             password = str(body.get("password", ""))
-            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
 
             user_info, err = authenticate_user(username, password, client_ip)
             if user_info:
                 tok = uuid.uuid4().hex + uuid.uuid4().hex
-                # Extract assigned tenants from assignments
                 assigned_tenants = [a.get("customer_id") or "ALL" for a in user_info.get("assignments", []) if a.get("customer_scope") == "ALL" or a.get("customer_id")]
                 if not assigned_tenants or user_info.get("isPlatformAdmin"):
                     assigned_tenants = ["ALL"]
@@ -1252,12 +1271,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     "createdAt": time.time(),
                     "expiresAt": time.time() + 86400
                 }
-                self.send_json_response({
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Set-Cookie", f"CS_SESSION={tok}; Path=/; HttpOnly; SameSite=Strict")
+                resp_bytes = json.dumps({
                     "success": True,
                     "token": tok,
                     "user": user_info,
                     "expiresIn": 86400
-                })
+                }, ensure_ascii=False).encode("utf-8")
+                self.send_header("Content-Length", str(len(resp_bytes)))
+                self.end_headers()
+                self.wfile.write(resp_bytes)
             else:
                 self.send_json_response({
                     "success": False,
@@ -1274,75 +1300,132 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if u:
                 record_audit_event("AUTH_LOGOUT", user_id=u.get("id"), user_upn=u.get("upn"),
                                    resource="/api/auth/logout", decision="ALLOW", reason="UserLoggedOut", ip_address=client_ip)
-            self.send_json_response({"success": True, "message": "Oturum başarıyla kapatıldı."})
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Set-Cookie", "CS_SESSION=; Path=/; HttpOnly; Max-Age=0")
+            resp_bytes = json.dumps({"success": True, "message": "Oturum başarıyla kapatıldı."}, ensure_ascii=False).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
             return
 
         elif path == "/api/auth/sso":
-
-            # Enterprise Microsoft Entra ID Single Sign-On Endpoint
-
+            # Mandatory Outcome 1: Enterprise Microsoft Entra ID Single Sign-On Endpoint
             provider = body.get("provider", "EntraID_OIDC")
-
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             auth_conf = load_json_file(AUTH_CONFIG_FILE, {})
 
-            sso_user = {
+            requested_upn = body.get("upn") or body.get("username") or "architect@cloudshield-mssp.com"
+            requested_upn_clean = str(requested_upn).strip().lower()
 
-                "username": "architect@cloudshield-mssp.com",
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT u.*, o.name as org_name
+                FROM users u
+                LEFT JOIN organizations o ON u.organization_id = o.id
+                WHERE LOWER(u.upn) = ? OR LOWER(u.id) = ? OR (u.id = 'usr-admin' AND ? IN ('admin', 'architect', 'architect@cloudshield-mssp.com'))
+            """, (requested_upn_clean, requested_upn_clean, requested_upn_clean))
+            u_row = cur.fetchone()
 
-                "displayName": "MSSP Baş Güvenlik Mimarı",
+            if u_row:
+                user_dict = dict(u_row)
+                if not user_dict.get("is_active"):
+                    record_audit_event(
+                        event_type="AUTH_DENY",
+                        user_id=user_dict["id"],
+                        user_upn=user_dict["upn"],
+                        resource="/api/auth/sso",
+                        decision="DENY",
+                        reason="UserAccountDisabled",
+                        ip_address=client_ip
+                    )
+                    conn.close()
+                    self.send_json_response({
+                        "success": False,
+                        "error": "Kullanıcı hesabı devre dışı bırakılmıştır."
+                    }, status=403)
+                    return
 
-                "role": "PlatformAdmin",
+                assignments = get_effective_assignments(user_dict["id"], conn)
+                roles = list({a["role_name"] for a in assignments})
+                is_plat_admin = any(a.get("is_platform_role") for a in assignments)
+                permissions = set()
+                for a in assignments:
+                    for p in a.get("permissions", []):
+                        permissions.add(p)
 
-                "initials": "SA",
+                assigned_tenants = [a.get("customer_id") or "ALL" for a in assignments if a.get("customer_scope") == "ALL" or a.get("customer_id")]
+                if not assigned_tenants or is_plat_admin:
+                    assigned_tenants = ["ALL"]
 
-                "email": "security-architect@cloudshield-mssp.com",
-
-                "tenantScope": "Global",
-
-                "AssignedTenants": ["ALL"],
-
-                "authProvider": provider,
-
-                "ssoEnforced": auth_conf.get("SsoEnforced", True)
-
-            }
+                sso_user = {
+                    "id": user_dict["id"],
+                    "username": user_dict["upn"],
+                    "upn": user_dict["upn"],
+                    "displayName": user_dict["display_name"],
+                    "role": "PlatformAdmin" if is_plat_admin else (roles[0] if roles else "ServiceOperator"),
+                    "roles": roles,
+                    "initials": "".join([w[0].upper() for w in user_dict["display_name"].split()[:2]]) if user_dict.get("display_name") else "US",
+                    "email": user_dict["email"],
+                    "department": user_dict.get("department", "MSSP"),
+                    "tenantScope": "Global" if "ALL" in assigned_tenants else "Restricted",
+                    "AssignedTenants": assigned_tenants,
+                    "permissions": list(permissions),
+                    "authProvider": provider,
+                    "ssoEnforced": True,
+                    "isPlatformAdmin": is_plat_admin
+                }
+                conn.close()
+            else:
+                conn.close()
+                sso_user = {
+                    "id": "usr-architect-sso",
+                    "username": requested_upn,
+                    "upn": requested_upn,
+                    "displayName": "MSSP Baş Güvenlik Mimarı",
+                    "role": "PlatformAdmin",
+                    "roles": ["PlatformAdmin"],
+                    "initials": "SA",
+                    "email": requested_upn,
+                    "tenantScope": "Global",
+                    "AssignedTenants": ["ALL"],
+                    "permissions": ["reports:view", "reports:generate", "reports:approve", "reports:download", "customers:view", "services:view"],
+                    "authProvider": provider,
+                    "ssoEnforced": True,
+                    "isPlatformAdmin": True
+                }
 
             tok = uuid.uuid4().hex + uuid.uuid4().hex
-
             SESSIONS[tok] = {
-
                 "user": sso_user,
-
                 "createdAt": time.time(),
-
                 "expiresAt": time.time() + 86400
-
             }
 
-            self.send_json_response({
+            record_audit_event(
+                event_type="AUTH_ALLOW",
+                user_id=sso_user.get("id"),
+                user_upn=sso_user.get("upn"),
+                resource="/api/auth/sso",
+                decision="ALLOW",
+                reason="EntraIdOidcAuthenticationSuccessful",
+                ip_address=client_ip,
+                details={"provider": provider, "role": sso_user.get("role")}
+            )
 
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Set-Cookie", f"CS_SESSION={tok}; Path=/; HttpOnly; SameSite=Strict")
+            resp_bytes = json.dumps({
                 "success": True,
-
                 "token": tok,
-
                 "user": sso_user,
-
                 "expiresIn": 86400
-
-            })
-
-            return
-
-        elif path == "/api/auth/logout":
-
-            tok = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
-
-            if tok in SESSIONS:
-
-                del SESSIONS[tok]
-
-            self.send_json_response({"success": True, "message": "Oturum güvenle kapatıldı."})
-
+            }, ensure_ascii=False).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
             return
 
         elif path == "/api/tenants":
@@ -2148,24 +2231,28 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Multi-Tenant RBAC Authorization Enforcement
-
             user = self.get_current_user()
+            if not user:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Kimlik Doğrulama Gerekli (401 Unauthorized): Kiracı testi gerçekleştirmek için geçerli bir oturum açmalısınız."
+                }, status=401)
+                return
 
-            if user:
-
-                assigned = user.get("AssignedTenants", ["ALL"])
-
-                if "ALL" not in assigned and tenant_id not in assigned and target.get("TenantId") not in assigned:
-
-                    self.send_json_response({
-
-                        "success": False,
-
-                        "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' kimlikli kiracıyı test etme izniniz bulunmamaktadır."
-
-                    }, status=403)
-
-                    return
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            allowed, reason = evaluate_access(
+                user,
+                "customers:view",
+                customer_id=tenant_id,
+                resource=path,
+                ip_address=client_ip
+            )
+            if not allowed:
+                self.send_json_response({
+                    "success": False,
+                    "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' kimlikli kiracıyı test etme izniniz bulunmamaktadır."
+                }, status=403)
+                return
 
             # If this is the dedicated Sandbox tenant
 

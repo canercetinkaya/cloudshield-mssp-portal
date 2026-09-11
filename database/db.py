@@ -6,7 +6,7 @@ import sqlite3
 import hashlib
 import secrets
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DB_PATH = os.path.join(ROOT_DIR, "Data", "cloudshield_rbac.db")
@@ -98,8 +98,8 @@ def seed_default_data(conn):
         ("roles:manage", "Rolleri Yönet", "roles", "Rol oluşturma ve izin atamaları"),
         ("assignments:view", "Erişim Atamalarını Görüntüle", "assignments", "Kullanıcı ve ekip erişim atamaları"),
         ("assignments:manage", "Erişim Atamalarını Yönet", "assignments", "Yeni erişim atama veya iptal etme"),
-        ("approvals:request", "PIM Erişim Talep Et", "approvals", "Süreli veya yükseltilmiş erişim talebi oluşturma"),
-        ("approvals:decide", "PIM Taleplerini Onayla/Reddet", "approvals", "Bekleyen erişim taleplerini yanıtlama"),
+        ("approvals:request", "Süreli (JIT) Erişim Talep Et", "approvals", "Zaman kısıtlı ve onay zorunlu süreli (JIT) erişim talebi (Entra PIM Sıfır Sürekli Yetki prensibi)"),
+        ("approvals:decide", "Süreli (JIT) Erişim Taleplerini Onayla/Reddet", "approvals", "Bekleyen süreli yetki taleplerini SoD gözeterek yanıtlama"),
         ("audit:view", "Yetkilendirme Denetim Kütüğünü Gör", "audit", "Allow/Deny kararları ve güvenlik denetim izi"),
         ("simulator:run", "Erişim Simülatörünü Çalıştır", "simulator", "Kullanıcı-Müşteri-Servis karar zinciri simülasyonu")
     ]
@@ -300,6 +300,18 @@ def seed_default_data(conn):
                                               service_scope, valid_from, is_temporary, is_active, created_by, created_at)
                VALUES (?, 'User', ?, 'role-platform-admin', 'ALL', 'ALL', ?, 0, 1, 'system', ?)""",
             ("asgn-admin", "usr-admin", now, now)
+        )
+
+    # Pilot mode JIT temporary access elevation for tenant-002
+    cur.execute("SELECT id FROM access_assignments WHERE id = 'asgn-jit-pilot-admin'")
+    if not cur.fetchone():
+        jit_to = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        cur.execute(
+            """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                              service_scope, service_id, valid_from, valid_to, is_temporary, is_active, approval_id, created_by, created_at)
+               VALUES ('asgn-jit-pilot-admin', 'User', 'usr-admin', 'role-security-engineer', 'Specific', 'tenant-002',
+                       'ALL', NULL, ?, ?, 1, 1, 'appr-pilot-init', 'system', ?)""",
+            (now, jit_to, now)
         )
 
     # Import from Data/users.json

@@ -302,5 +302,49 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         self.cur.execute("SELECT status FROM customer_services WHERE id = ?", (cs_id,))
         self.assertEqual(self.cur.fetchone()[0], "Disabled")
 
+    # --------------------------------------------------------------------------
+    # Assertion 10: Administrative Roles Restricted from Customer Content (Outcome 4)
+    # --------------------------------------------------------------------------
+    def test_10_admin_customer_content_access_restricted(self):
+        """Validate that PlatformAdmin cannot arbitrarily access customer confidential reports without assignment/JIT elevation."""
+        self.cur.execute("DELETE FROM access_assignments WHERE subject_id = 'usr-001' AND is_temporary = 1")
+        self.conn.commit()
+        admin, err = authenticate_user("caner.cetinkaya@cloudshield-mssp.com", "SecurePass2026!*")
+        self.assertIsNotNone(admin)
+
+        # 1. Platform administration action (roles:manage) -> ALLOW
+        allowed_admin, reason_admin = evaluate_access(admin, "roles:manage")
+        self.assertTrue(allowed_admin, f"PlatformAdmin should manage system roles: {reason_admin}")
+
+        # 2. Customer confidential content action (reports:view on specific customer) without customer assignment -> DENY
+        allowed_report, reason_report = evaluate_access(admin, "reports:view", customer_id="tenant-002")
+        self.assertFalse(allowed_report, "CRITICAL: PlatformAdmin accessed customer confidential content without assignment!")
+        self.assertIn("İdari roller müşteri gizli verilerine ve rapor içeriklerine otomatik erişim hakkına sahip değildir", reason_report)
+
+        # 3. Request and approve temporary JIT access for tenant-002
+        req_id = f"appr-jit-{uuid.uuid4().hex[:6]}"
+        now = datetime.now(timezone.utc).isoformat()
+        self.cur.execute("""
+            INSERT INTO access_approvals (id, requester_id, approver_id, requested_role_id, customer_id, service_id, duration_hours, reason, status, created_at, decided_at)
+            VALUES (?, 'usr-001', 'usr-admin', 'role-security-engineer', 'tenant-002', 'svc-mde', 4, 'Audit verification', 'Approved', ?, ?)
+        """, (req_id, now, now))
+
+        jit_asgn_id = f"asgn-jit-{uuid.uuid4().hex[:6]}"
+        valid_to = (datetime.now(timezone.utc) + timedelta(hours=4)).isoformat()
+        self.cur.execute("""
+            INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id, service_scope, service_id, valid_from, valid_to, is_temporary, is_active, approval_id, created_by, created_at)
+            VALUES (?, 'User', 'usr-001', 'role-security-engineer', 'Specific', 'tenant-002', 'Specific', 'svc-mde', ?, ?, 1, 1, ?, 'usr-admin', ?)
+        """, (jit_asgn_id, now, valid_to, req_id, now))
+        self.conn.commit()
+
+        # 4. Access with approved JIT elevation -> ALLOW
+        allowed_jit, reason_jit = evaluate_access(admin, "reports:view", customer_id="tenant-002", service_ids=["SVC-MDE"])
+        self.assertTrue(allowed_jit, f"Approved JIT elevation must grant customer report access: {reason_jit}")
+
+        # 5. Clean up fixture
+        self.cur.execute("DELETE FROM access_assignments WHERE id = ?", (jit_asgn_id,))
+        self.conn.commit()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

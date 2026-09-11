@@ -46,13 +46,13 @@ def authenticate_user(username, password, ip_address="127.0.0.1"):
     cur = conn.cursor()
     username_clean = str(username).strip().lower()
 
-    # 1. Check database users by UPN or ID
+    # 1. Check database users by UPN or ID (support 'admin' alias for usr-admin)
     cur.execute(
         """SELECT u.*, o.name as org_name
            FROM users u
            LEFT JOIN organizations o ON u.organization_id = o.id
-           WHERE LOWER(u.upn) = ? OR LOWER(u.id) = ?""",
-        (username_clean, username_clean)
+           WHERE LOWER(u.upn) = ? OR LOWER(u.id) = ? OR (u.id = 'usr-admin' AND ? IN ('admin', 'administrator'))""",
+        (username_clean, username_clean, username_clean)
     )
     user_row = cur.fetchone()
 
@@ -275,9 +275,13 @@ def evaluate_access(user, required_permission, customer_id=None, service_ids=Non
             )
             return False, "Görevler Ayrılığı İhlali (Separation of Duties): Raporu oluşturan mühendis kendi raporunu onaylayamaz."
 
-    # Stage 2: Platform Admin Global Scope
+    # Stage 2: Platform Admin Scope (Restricted: No automatic customer-content access)
+    CUSTOMER_CONTENT_PERMISSIONS = {
+        "reports:view", "reports:download", "reports:create", "reports:generate",
+        "reports:review", "reports:approve"
+    }
     is_plat_admin = any(a.get("is_platform_role") for a in assignments)
-    if is_plat_admin:
+    if is_plat_admin and required_permission not in CUSTOMER_CONTENT_PERMISSIONS:
         record_audit_event(
             event_type="AUTH_ALLOW",
             user_id=user_id,
@@ -286,10 +290,10 @@ def evaluate_access(user, required_permission, customer_id=None, service_ids=Non
             service_id=",".join(target_services) if target_services else None,
             resource=resource,
             decision="ALLOW",
-            reason="PlatformAdminGlobalScope",
+            reason="PlatformAdminManagementScope",
             ip_address=ip_address
         )
-        return True, "Erişim Onaylandı (PlatformAdmin Global Kapsam)"
+        return True, "Erişim Onaylandı (PlatformAdmin Yönetim Kapsamı)"
 
     # Stage 3: Permission Verification
     matching_perm_assignments = [a for a in assignments if required_permission in a.get("permissions", [])]
@@ -312,8 +316,15 @@ def evaluate_access(user, required_permission, customer_id=None, service_ids=Non
         for a in matching_perm_assignments:
             c_scope = a.get("customer_scope", "Specific")
             a_cid = a.get("customer_id")
-            if c_scope == "ALL" or a_cid == customer_id or a.get("customer_name") == customer_id:
-                matching_cust_assignments.append(a)
+            is_temp = bool(a.get("is_temporary", 0))
+
+            # For customer confidential content, administrative roles without explicit customer scope or JIT grant are restricted
+            if required_permission in CUSTOMER_CONTENT_PERMISSIONS and a.get("is_platform_role"):
+                if a_cid == customer_id or a.get("customer_name") == customer_id or is_temp:
+                    matching_cust_assignments.append(a)
+            else:
+                if c_scope == "ALL" or a_cid == customer_id or a.get("customer_name") == customer_id:
+                    matching_cust_assignments.append(a)
 
         if not matching_cust_assignments:
             record_audit_event(
@@ -326,6 +337,8 @@ def evaluate_access(user, required_permission, customer_id=None, service_ids=Non
                 reason=f"CustomerScopeMismatch: No access to tenant '{customer_id}'",
                 ip_address=ip_address
             )
+            if is_plat_admin and required_permission in CUSTOMER_CONTENT_PERMISSIONS:
+                return False, f"Erişim Reddedildi (403 Forbidden): İdari roller müşteri gizli verilerine ve rapor içeriklerine otomatik erişim hakkına sahip değildir (En Az Yetki / Zero Trust). '{customer_id}' için süreli (JIT) erişim ataması gereklidir."
             return False, f"Müşteri Kapsam Hatası (403 Forbidden): '{customer_id}' müşterisine erişim yetkiniz bulunmamaktadır."
     else:
         matching_cust_assignments = matching_perm_assignments
