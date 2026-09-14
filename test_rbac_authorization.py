@@ -13,6 +13,15 @@ Tests all security assertions required by Phase 11 & Phase 10:
 8. Comprehensive Audit Trail (ALLOW and DENY persistence)
 9. Platform Admin Global Scope with SoD boundaries
 10. Customer Service Matrix Lifecycle (Onboard, Suspend, Disable)
+0.  (Stage 1A / W7) Legacy hard-coded literal passwords MUST be rejected
+
+Stage 1A remediation note:
+This suite is credential-deterministic. It is backed by a TEMPORARY SQLite
+database created at runtime by the shared isolated-fixture helpers, and it
+provisions RANDOMLY-GENERATED passwords via the UNCHANGED `hash_password()`
+helper. It never opens the development/production database and never depends on
+stale password hashes. The RBAC engine (`authenticate_user`, `evaluate_access`)
+is exercised as-is; authorization is never bypassed.
 """
 
 import os
@@ -26,6 +35,9 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
+# Stage 1A (test-only): shared isolated-fixture helpers.
+from tests.helpers.stage1a_fixtures import isolated_database
+
 from database.db import get_db, init_db, hash_password
 from Portal.api.rbac_engine import (
     authenticate_user,
@@ -34,11 +46,47 @@ from Portal.api.rbac_engine import (
     get_effective_assignments
 )
 
+# Identities exercised by this suite. Credentials are provisioned (randomly) at
+# runtime into the isolated temp DB by `setUpClass`; nothing is hard-coded here.
+_IDENTITY_UPNS = [
+    "customer.ciso@emre-tenant.com",          # usr-005 CustomerCISO -> tenant-002
+    "edr.analyst@cloudshield-mssp.com",       # usr-002 EdrEngineer -> SVC-MDE
+    "compliance.lead@cloudshield-mssp.com",   # usr-003 ComplianceSpecialist
+    "caner.cetinkaya@cloudshield-mssp.com",   # usr-001 PlatformAdmin
+    "admin@cloudshield-mssp.com",             # usr-admin bootstrap PlatformAdmin
+]
+
+# Legacy literal passwords that MUST be rejected after W7/W8.
+_LEGACY_LITERAL_PASSWORDS = ("CloudShield2026!*", "SecurePass2026!*")
+
+
 class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
+    _idb_ctx = None
+    _idb = None
+
     @classmethod
     def setUpClass(cls):
-        """Initialize and seed the database prior to running test suite."""
-        init_db()
+        """
+        Initialize/seed an ISOLATED temporary database, then provision randomly
+        generated credentials for the identities used by this suite. The
+        development/production database is never opened.
+        """
+        cls._idb_ctx = isolated_database()
+        cls._idb = cls._idb_ctx.__enter__()
+        init_db()  # seeds into the temp DB (W8: users are passwordless)
+        for upn in _IDENTITY_UPNS:
+            cls._idb.provision_credential(upn)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._idb_ctx is not None:
+            cls._idb_ctx.__exit__(None, None, None)
+            cls._idb_ctx = None
+            cls._idb = None
+
+    def _auth(self, upn):
+        """Authenticate a provisioned identity using its random runtime password."""
+        return self._idb.authenticate(upn)
 
     def setUp(self):
         self.conn = get_db()
@@ -48,12 +96,23 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         self.conn.close()
 
     # --------------------------------------------------------------------------
+    # Assertion 0 (W7): Hard-coded legacy literal passwords must be rejected
+    # --------------------------------------------------------------------------
+    def test_00_legacy_literal_passwords_rejected(self):
+        """W7: the removed fallback literals no longer authenticate any identity."""
+        for upn in _IDENTITY_UPNS:
+            for literal in _LEGACY_LITERAL_PASSWORDS:
+                user, err = self._idb.authenticate_with_password(upn, literal)
+                self.assertIsNone(user, f"Legacy literal '{literal}' must be rejected for {upn}")
+                self.assertIsNotNone(err)
+
+    # --------------------------------------------------------------------------
     # Assertion 1: Customer A cannot access Customer B
     # --------------------------------------------------------------------------
     def test_01_cross_customer_isolation(self):
         """Validate that a user assigned to Customer A is strictly denied access to Customer B."""
         # customer.ciso@emre-tenant.com is assigned strictly to 'tenant-002'
-        user, err = authenticate_user("customer.ciso@emre-tenant.com", "SecurePass2026!*")
+        user, err = self._auth("customer.ciso@emre-tenant.com")
         self.assertIsNotNone(user, f"User authentication failed: {err}")
 
         # Access Customer A (tenant-002) -> ALLOW
@@ -81,7 +140,7 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
     def test_02_cross_service_isolation(self):
         """Validate that an MDE/EDR operator is strictly denied access to Purview DLP telemetry."""
         # edr.analyst@cloudshield-mssp.com is assigned to SVC-MDE
-        user, err = authenticate_user("edr.analyst@cloudshield-mssp.com", "SecurePass2026!*")
+        user, err = self._auth("edr.analyst@cloudshield-mssp.com")
         self.assertIsNotNone(user, f"EDR user auth failed: {err}")
 
         # Access MDE report -> ALLOW
@@ -106,7 +165,9 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         now = datetime.now(timezone.utc)
         past_start = (now - timedelta(hours=5)).isoformat()
         past_end = (now - timedelta(hours=1)).isoformat()
-        h, s = hash_password("TestPass2026!*")
+        # Randomly generated test credential (never a fixed literal).
+        pw = self._idb.new_password()
+        h, s = hash_password(pw)
 
         self.cur.execute("""
             INSERT INTO users (id, organization_id, upn, display_name, email, password_hash, password_salt, is_active, created_at)
@@ -122,8 +183,8 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         """, (asgn_id, uid, past_start, past_end, now.isoformat()))
         self.conn.commit()
 
-        user, err = authenticate_user(f"{uid}@test.local", "TestPass2026!*")
-        self.assertIsNotNone(user)
+        user, err = authenticate_user(f"{uid}@test.local", pw)
+        self.assertIsNotNone(user, f"Provisioned expired-user login failed: {err}")
 
         # Attempt action -> DENY because assignment has expired
         allowed, reason = evaluate_access(user, "reports:view")
@@ -136,7 +197,9 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         """Validate that a user with is_active = 0 is blocked immediately from login and evaluation."""
         uid = f"usr-dis-{uuid.uuid4().hex[:6]}"
         now = datetime.now(timezone.utc).isoformat()
-        h, s = hash_password("TestPass2026!*")
+        # Randomly generated credential (never a fixed literal).
+        pw = self._idb.new_password()
+        h, s = hash_password(pw)
 
         self.cur.execute("""
             INSERT INTO users (id, organization_id, upn, display_name, email, password_hash, password_salt, is_active, created_at)
@@ -145,7 +208,7 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         self.conn.commit()
 
         # Login must fail
-        user, err = authenticate_user(f"{uid}@test.local", "TestPass2026!*")
+        user, err = authenticate_user(f"{uid}@test.local", pw)
         self.assertIsNone(user, "Disabled user should fail login.")
         self.assertIn("devre dışı", err)
 
@@ -160,7 +223,8 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
     # --------------------------------------------------------------------------
     def test_05_consolidated_report_multi_service_leakage_prevention(self):
         """Validate that consolidated reports require active access to ALL constituent services."""
-        user, _ = authenticate_user("edr.analyst@cloudshield-mssp.com", "SecurePass2026!*")
+        user, err = self._auth("edr.analyst@cloudshield-mssp.com")
+        self.assertIsNotNone(user, f"EDR user auth failed: {err}")
 
         # Consolidated bundle requesting MDE + MDO + Purview
         services_bundle = ["SVC-MDE", "SVC-MDO", "SVC-PRV-DLP"]
@@ -176,7 +240,8 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
     # --------------------------------------------------------------------------
     def test_06_separation_of_duties_report_approval(self):
         """Validate that the engineer who triggered/created a report CANNOT approve it."""
-        ciso_user, _ = authenticate_user("customer.ciso@emre-tenant.com", "SecurePass2026!*")
+        ciso_user, err = self._auth("customer.ciso@emre-tenant.com")
+        self.assertIsNotNone(ciso_user, f"CISO auth failed: {err}")
 
         # Scenario A: CISO created the report and attempts to approve it -> DENY
         sod_context_self = {"report_creator": ciso_user["upn"]}
@@ -200,8 +265,10 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
     # --------------------------------------------------------------------------
     def test_07_pim_approval_workflow(self):
         """Validate PIM request, self-approval blockage, and approver grant."""
-        analyst, _ = authenticate_user("compliance.lead@cloudshield-mssp.com", "SecurePass2026!*")
-        approver, _ = authenticate_user("admin@cloudshield-mssp.com", "CloudShield2026!*")
+        analyst, err_a = self._auth("compliance.lead@cloudshield-mssp.com")
+        self.assertIsNotNone(analyst, f"Analyst auth failed: {err_a}")
+        approver, err_b = self._auth("admin@cloudshield-mssp.com")
+        self.assertIsNotNone(approver, f"Approver auth failed: {err_b}")
 
         # 1. Analyst creates PIM request
         apr_id = f"apr-test-{uuid.uuid4().hex[:6]}"
@@ -213,7 +280,6 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         self.conn.commit()
 
         # 2. Analyst attempts self-approval -> Must be prevented
-        # We simulate the handler check
         self.cur.execute("SELECT requester_id FROM access_approvals WHERE id = ?", (apr_id,))
         req_id = self.cur.fetchone()[0]
         self.assertEqual(req_id, analyst["id"])
@@ -309,8 +375,8 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         """Validate that PlatformAdmin cannot arbitrarily access customer confidential reports without assignment/JIT elevation."""
         self.cur.execute("DELETE FROM access_assignments WHERE subject_id = 'usr-001' AND is_temporary = 1")
         self.conn.commit()
-        admin, err = authenticate_user("caner.cetinkaya@cloudshield-mssp.com", "SecurePass2026!*")
-        self.assertIsNotNone(admin)
+        admin, err = self._auth("caner.cetinkaya@cloudshield-mssp.com")
+        self.assertIsNotNone(admin, f"PlatformAdmin auth failed: {err}")
 
         # 1. Platform administration action (roles:manage) -> ALLOW
         allowed_admin, reason_admin = evaluate_access(admin, "roles:manage")

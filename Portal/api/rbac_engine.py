@@ -72,11 +72,10 @@ def authenticate_user(username, password, ip_address="127.0.0.1"):
             conn.close()
             return None, "Kullanıcı hesabı devre dışı bırakılmıştır. Lütfen yöneticinizle iletişime geçin."
 
-        # Verify password
+                # Verify password
+        # W7 (Stage 1 Containment): Legacy hard-coded fallback passwords removed.
+        # A failed verify_password() is now a hard failure. PBKDF2 verification semantics unchanged.
         is_valid = verify_password(password, user_dict.get("password_hash"), user_dict.get("password_salt"))
-        # Backward compatibility for initial admin fallback password if hash match fails
-        if not is_valid and password in ("CloudShield2026!*", "SecurePass2026!*"):
-            is_valid = True
 
         if is_valid:
             # Update last_login_at

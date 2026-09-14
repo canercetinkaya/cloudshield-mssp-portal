@@ -28,7 +28,10 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-ROOT_DIR = r"c:\Users\CANERCETINKAYA\OneDrive - CETINKAYA\Documents\Microsoft Purview Reports\KocSistemMSSPPortal"
+# Derive the repo root from this file so the suite is portable across machines
+# and independent of the caller's working directory. (Previously hard-coded to a
+# specific user's absolute path, which broke on any other clone.)
+ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 

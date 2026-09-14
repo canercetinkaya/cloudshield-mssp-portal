@@ -193,3 +193,36 @@ $passed = ($testResults | Where-Object { $_.Status -eq 'PASS' }).Count
 $total = $testResults.Count
 Write-Host "                 Test Tamamlandı: $passed / $total Test Başarılı                  " -ForegroundColor Green
 Write-Host "=================================================================================" -ForegroundColor Cyan
+
+# ---------------------------------------------------------------------------
+# Structured JSON emission (Quality Gate 8).
+# Written as explicitly BOM-less UTF-8 so Turkish test names round-trip
+# losslessly; test_comprehensive_qa.py parses this file (see
+# docs/UTF8CompliancePolicy.md).
+# ---------------------------------------------------------------------------
+try {
+    $outputDir = Join-Path $root 'Output'
+    if (-not (Test-Path $outputDir)) { New-Item -ItemType Directory -Path $outputDir -Force | Out-Null }
+
+    $payload = [PSCustomObject]@{
+        startedAtUtc   = $startedAtUtc
+        completedAtUtc = [DateTime]::UtcNow.ToString("o")
+        exitCode       = if ($passed -eq $total) { 0 } else { 1 }
+        passedTests    = $passed
+        totalTests     = $total
+        tests          = $testResults
+    }
+
+    $jsonText = $payload | ConvertTo-Json -Depth 6
+    $jsonPath = Join-Path $outputDir 'platform-test-results.json'
+
+    # UTF-8 without BOM (compatible with json.load(..., encoding="utf-8")).
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($jsonPath, $jsonText, $utf8NoBom)
+    Write-Host "[OK] Structured test results written: $jsonPath" -ForegroundColor DarkGray
+}
+catch {
+    Write-Host "[WARN] Could not write structured test results JSON: $($_.Exception.Message)" -ForegroundColor DarkYellow
+}
+
+if ($passed -ne $total) { exit 1 } else { exit 0 }

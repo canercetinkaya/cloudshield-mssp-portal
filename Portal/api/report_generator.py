@@ -1139,66 +1139,439 @@ def find_pdf_engine():
             return c
     return None
 
-def to_ascii_safe(text):
-    if not text:
-        return ""
-    trans = str.maketrans("çğıöşüÇĞİÖŞÜâîûÂÎÛ", "cgiosuCGIOSUaiuAIU")
-    return text.translate(trans).encode("ascii", "replace").decode("ascii")
+# NOTE (UTF-8 Compliance Policy - see docs/UTF8CompliancePolicy.md):
+# Lossy ASCII transliteration is PROHIBITED repository-wide. The former
+# `to_ascii_safe()` helper (which silently mangled Turkish diacritics such as
+# I/i/c/s/g/o/u into ASCII lookalikes and is unreadable to a Turkish reader) has
+# been REMOVED. When no embeddable Unicode TrueType font can be located, the
+# pure-Python PDF fallback now FAILS CLOSED (Utf8ComplianceError) instead of
+# emitting a degraded, customer-visible ASCII document.
+class Utf8ComplianceError(RuntimeError):
+    """Raised when an encoding-safe output cannot be produced without data loss.
 
-def create_executive_pdf(customer_name, services, output_path, period_label="Agustos 2026"):
-    y = 700
-    stream_lines = [
-        "BT /F1 18 Tf 50 740 Td (CloudShield MSSP Yonetilen Guvenlik Raporu) Tj ET",
-        f"BT /F1 11 Tf 50 718 Td (Musteri: {to_ascii_safe(customer_name)} | Donem: {to_ascii_safe(period_label)}) Tj ET",
-        "0.06 0.3 0.51 rg",
-        "50 705 512 2 re f",
-        "0 g"
-    ]
-    y = 670
-    for s in services:
-        stream_lines.extend([
-            "0.1 0.15 0.2 rg",
-            f"BT /F1 10 Tf 50 {y} Td ([+] {to_ascii_safe(str(s))}) Tj ET",
-            "0.06 0.72 0.51 rg",
-            f"BT /F1 9 Tf 350 {y} Td (Aktif - CloudShield MSSP) Tj ET"
-        ])
-        y -= 24
+    This is a hard fail-closed signal: producing a PDF that silently degrades
+    Turkish characters to ASCII is a Turkish-language compliance defect and must
+    never be treated as a successful render.
+    """
 
-    stream_lines.extend([
-        "0.06 0.09 0.16 rg",
-        "0 0 612 50 re f",
-        "0.7 0.75 0.8 rg",
-        "BT /F1 8 Tf 40 30 Td (Teknik Guvenlik Raporu - Veri Minimizasyonu ve Erisim Denetimi Ilkelerine Uygun Olarak Uretilmistir) Tj ET",
-        "BT /F1 8 Tf 40 18 Td (Kullanici verileri tuzlu SHA-256 ve k-Anonymity ile maskelenmistir.) Tj ET",
-        "Q"
+
+# ---------------------------------------------------------------------------
+# UNICODE FONT EMBEDDING (Option A) - dependency-free TrueType parsing and a
+# Type0 / Identity-H composite font so Turkish diacritics survive in the pure
+# Python PDF fallback.
+# ---------------------------------------------------------------------------
+
+_UNICODE_FONT_CACHE = {}
+
+
+def _u8(b, o):
+    return b[o]
+
+
+def _u16(b, o):
+    return (b[o] << 8) | b[o + 1]
+
+
+def _i16(b, o):
+    v = (b[o] << 8) | b[o + 1]
+    return v - 0x10000 if v >= 0x8000 else v
+
+
+def _u32(b, o):
+    return (b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]
+
+
+class TrueTypeFont:
+    """Minimal, dependency-free TrueType parser sufficient for embedding a
+    font program into a PDF Type0 / Identity-H composite font. Parses head,
+    hhea, maxp, cmap (formats 4/6/12) and hmtx."""
+
+    def __init__(self, path):
+        with open(path, "rb") as f:
+            self.data = f.read()
+        td = self.data
+        if td[:4] in (b"ttcf", b"OTTO"):
+            raise ValueError("Unsupported font container (TTC/CFF)")
+        num_tables = _u16(td, 4)
+        self.tables = {}
+        off = 12
+        for _ in range(num_tables):
+            tag = td[off:off + 4].decode("latin1")
+            toff = _u32(td, off + 8)
+            self.tables[tag] = toff
+            off += 16
+        if "head" not in self.tables or "cmap" not in self.tables:
+            raise ValueError("Not a parsable TrueType font (missing head/cmap)")
+
+        head = self.tables["head"]
+        self.units_per_em = _u16(td, head + 18) or 1000
+        self.xmin = _i16(td, head + 36)
+        self.ymin = _i16(td, head + 38)
+        self.xmax = _i16(td, head + 40)
+        self.ymax = _i16(td, head + 42)
+
+        hhea = self.tables.get("hhea")
+        if hhea is not None:
+            self.ascent = _i16(td, hhea + 4)
+            self.descent = _i16(td, hhea + 6)
+            self.num_hmetrics = _u16(td, hhea + 34)
+        else:
+            self.ascent, self.descent, self.num_hmetrics = 800, -200, 0
+
+        maxp = self.tables.get("maxp")
+        self.num_glyphs = _u16(td, maxp + 4) if maxp else 0
+
+        self.cmap = self._parse_cmap()
+        self.advances = self._parse_hmtx()
+
+    def _parse_cmap(self):
+        td = self.data
+        cmap_off = self.tables["cmap"]
+        num = _u16(td, cmap_off + 2)
+        best = None
+        best_score = -1
+        for i in range(num):
+            rec = cmap_off + 4 + i * 8
+            pid = _u16(td, rec)
+            eid = _u16(td, rec + 2)
+            sub_off = cmap_off + _u32(td, rec + 4)
+            if sub_off + 2 > len(td):
+                continue
+            fmt = _u16(td, sub_off)
+            if fmt == 4:
+                score = 100 if (pid, eid) == (3, 1) else (90 if (pid, eid) == (0, 3) else 50)
+            elif fmt == 12:
+                score = 80 if pid == 3 else 40
+            elif fmt == 6:
+                score = 20
+            else:
+                continue
+            if score > best_score:
+                best_score = score
+                best = (fmt, sub_off)
+        if not best:
+            return {}
+        fmt, sub_off = best
+        if fmt == 4:
+            return self._parse_cmap_format4(sub_off)
+        if fmt == 6:
+            return self._parse_cmap_format6(sub_off)
+        return self._parse_cmap_format12(sub_off)
+
+    def _parse_cmap_format4(self, off):
+        td = self.data
+        seg_x2 = _u16(td, off + 6)
+        seg = seg_x2 // 2
+        end_o = off + 14
+        start_o = end_o + seg_x2 + 2
+        delta_o = start_o + seg_x2
+        range_o = delta_o + seg_x2
+        lookup = {}
+        for i in range(seg):
+            end = _u16(td, end_o + i * 2)
+            start = _u16(td, start_o + i * 2)
+            delta = _i16(td, delta_o + i * 2)
+            ro = _u16(td, range_o + i * 2)
+            if start == 0xFFFF:
+                continue
+            for c in range(start, end + 1):
+                if c == 0xFFFF:
+                    continue
+                if ro == 0:
+                    g = (c + delta) & 0xFFFF
+                else:
+                    gi = range_o + i * 2 + ro + (c - start) * 2
+                    if gi + 2 > len(td):
+                        continue
+                    g = _u16(td, gi)
+                    if g != 0:
+                        g = (g + delta) & 0xFFFF
+                if g != 0:
+                    lookup[c] = g
+        return lookup
+
+    def _parse_cmap_format6(self, off):
+        td = self.data
+        first = _u16(td, off + 6)
+        count = _u16(td, off + 8)
+        lookup = {}
+        for i in range(count):
+            g = _u16(td, off + 10 + i * 2)
+            if g != 0:
+                lookup[first + i] = g
+        return lookup
+
+    def _parse_cmap_format12(self, off):
+        td = self.data
+        ngroups = _u32(td, off + 12)
+        lookup = {}
+        for i in range(ngroups):
+            g0 = off + 16 + i * 12
+            if g0 + 12 > len(td):
+                break
+            start = _u32(td, g0)
+            end = _u32(td, g0 + 4)
+            gid = _u32(td, g0 + 8)
+            for c in range(start, min(end, 0xFFFF) + 1):
+                lookup[c] = gid + (c - start)
+        return lookup
+
+    def _parse_hmtx(self):
+        td = self.data
+        hmtx_off = self.tables.get("hmtx")
+        if hmtx_off is None:
+            return []
+        advances = []
+        for i in range(self.num_hmetrics):
+            advances.append(_u16(td, hmtx_off + i * 4))
+        return advances
+
+    def has_glyph(self, codepoint):
+        return codepoint in self.cmap
+
+    def gid_for(self, codepoint):
+        return self.cmap.get(codepoint, 0)
+
+    def advance_for_gid(self, gid):
+        if not self.advances:
+            return self.units_per_em
+        if 0 <= gid < len(self.advances):
+            return self.advances[gid]
+        return self.advances[-1]
+
+
+# Required Turkish code points that an embeddable font must cover:
+# İ(0x130) ğ(0x11F) ş(0x15F) ç(0xE7) ö(0xF6) ü(0xFC) ı(0x131) Ş(0x15E) Ğ(0x11E)
+_TURKISH_CODEPOINTS = (0x0130, 0x0131, 0x011E, 0x011F, 0x015E, 0x015F, 0x00C7, 0x00E7, 0x00D6, 0x00F6, 0x00DC, 0x00FC)
+
+
+def _ttf_supports_turkish(path):
+    try:
+        with open(path, "rb") as f:
+            if f.read(4) in (b"ttcf", b"OTTO"):
+                return False
+        parser = TrueTypeFont(path)
+        return all(parser.has_glyph(cp) for cp in _TURKISH_CODEPOINTS)
+    except Exception:
+        return False
+
+
+def find_unicode_font():
+    """Locate an embeddable TrueType font that covers Turkish diacritics.
+    Cross-platform; returns a filesystem path or None."""
+    candidates = []
+    windir = os.environ.get("WINDIR", r"C:\Windows")
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    candidates += [
+        os.path.join(windir, "Fonts", "segoeui.ttf"),
+        os.path.join(windir, "Fonts", "arial.ttf"),
+        os.path.join(windir, "Fonts", "tahoma.ttf"),
+        os.path.join(windir, "Fonts", "verdana.ttf"),
+        os.path.join(local_app, "Microsoft", "Windows", "Fonts", "segoeui.ttf"),
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
     ]
+    try:
+        out = subprocess.run(["fc-match", "-f", "%{file}", "sans:lang=tr"], capture_output=True, text=True, timeout=10)
+        p = (out.stdout or "").strip()
+        if p and os.path.exists(p):
+            candidates.append(p)
+    except Exception:
+        pass
+
+    for root in ("/usr/share/fonts", "/usr/local/share/fonts", os.path.join(windir, "Fonts")):
+        if not os.path.isdir(root):
+            continue
+        try:
+            for dirpath, _dirs, files in os.walk(root):
+                for fn in files:
+                    low = fn.lower()
+                    if low.endswith(".ttf") and ("dejavu" in low or "liberation" in low or "noto" in low):
+                        candidates.append(os.path.join(dirpath, fn))
+        except Exception:
+            pass
+
+    seen = set()
+    for c in candidates:
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        if os.path.exists(c) and _ttf_supports_turkish(c):
+            return c
+    return None
+
+
+def _load_unicode_font():
+    """Return a cached (path, TrueTypeFont, raw_bytes) tuple, or None."""
+    if "result" in _UNICODE_FONT_CACHE:
+        return _UNICODE_FONT_CACHE["result"]
+    result = None
+    path = find_unicode_font()
+    if path:
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+            result = (path, TrueTypeFont(path), raw)
+        except Exception:
+            result = None
+    _UNICODE_FONT_CACHE["result"] = result
+    return result
+
+
+def _pdf_utf16be_hex(text):
+    """Encode text as a PDF UTF-16BE hex string (Identity-H two-byte CIDs)."""
+    out = []
+    for ch in text:
+        cp = ord(ch)
+        if cp > 0xFFFF:
+            cp -= 0x10000
+            out.append(f"{0xD800 + (cp >> 10):04X}")
+            out.append(f"{0xDC00 + (cp & 0x3FF):04X}")
+        else:
+            out.append(f"{cp:04X}")
+    return "<" + "".join(out) + ">"
+
+
+def _build_tounicode_cmap(codepoints):
+    items = sorted(set(cp for cp in codepoints if cp <= 0xFFFF))
+    header = (
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"
+        "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+        "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n"
+        "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n"
     )
+    body = ""
+    if items:
+        body = f"{len(items)} beginbfchar\n" + "\n".join(f"{cp:04X} <{cp:04X}>" for cp in items) + "\nendbfchar\n"
+    footer = "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n"
+    return (header + body + footer).encode("latin1")
 
-    stream_content = "\n".join(stream_lines).encode("latin1")
-    stream_len = len(stream_content)
 
-    objects = [
-        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
-        "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj",
-        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj",
-        f"4 0 obj\n<< /Length {stream_len} >>\nstream\n".encode("latin1") + stream_content + b"\nendstream\nendobj",
-        "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj"
-    ]
+def create_executive_pdf(customer_name, services, output_path, period_label="A\u011fustos 2026"):
+    """
+    Minimal single-page executive PDF used as a fallback when no headless
+    Chromium/Edge engine is available.
+
+    Option A (Unicode font embedding): when an embeddable Unicode TrueType font
+    is found, it is embedded as a Type0 / Identity-H composite font so Turkish
+    characters are preserved verbatim. If no such font exists the renderer FAILS
+    CLOSED with Utf8ComplianceError - it never degrades to lossy ASCII
+    transliteration (see UTF-8 Compliance Policy, docs/UTF8CompliancePolicy.md).
+    """
+    import zlib
+
+    title = "CloudShield MSSP Y\u00f6netilen G\u00fcvenlik Raporu"
+    subtitle = f"M\u00fc\u015fteri: {customer_name}  |  D\u00f6nem: {period_label}"
+    status_text = "Aktif - CloudShield MSSP"
+    footer1 = ("Teknik G\u00fcvenlik Raporu - Veri Minimizasyonu ve Eri\u015fim Denetimi "
+               "\u0130lkelerine Uygun Olarak \u00dcretilmi\u015ftir")
+    footer2 = "Kullan\u0131c\u0131 verileri tuzlu SHA-256 ve k-Anonymity ile maskelenmi\u015ftir."
+    service_lines = [f"[+] {s}" for s in services]
+
+    font = _load_unicode_font()
+
+    if font:
+        ttf = font[1]
+        raw = font[2]
+        code_points = set()
+        for s in [title, subtitle, status_text, footer1, footer2] + service_lines:
+            code_points.update(ord(c) for c in s)
+
+        scale = 1000.0 / max(ttf.units_per_em, 1)
+        w_entries = []
+        for cp in sorted(code_points):
+            gid = ttf.gid_for(cp)
+            w_entries.append(f"{gid} [{int(round(ttf.advance_for_gid(gid) * scale))}]")
+
+        def t(size, x, y, s):
+            return f"BT /F1 {size} Tf {x} {y} Td {_pdf_utf16be_hex(s)} Tj ET"
+
+        stream_lines = [
+            t(18, 50, 740, title),
+            t(11, 50, 718, subtitle),
+            "0.06 0.3 0.51 rg", "50 705 512 2 re f", "0 g",
+        ]
+        y = 670
+        for s in service_lines:
+            stream_lines += ["0.1 0.15 0.2 rg", t(10, 50, y, s),
+                             "0.06 0.72 0.51 rg", t(9, 350, y, status_text)]
+            y -= 24
+        stream_lines += [
+            "0.06 0.09 0.16 rg", "0 0 612 50 re f", "0.7 0.75 0.8 rg",
+            t(8, 40, 30, footer1), t(8, 40, 18, footer2), "Q",
+        ]
+
+        font_file = zlib.compress(raw, 9)
+        to_unicode = _build_tounicode_cmap(code_points)
+        max_cid = max(code_points)
+        cid_map = zlib.compress(b"\x00\x00" * (max_cid + 1), 9)
+
+        base_font = "CloudShieldUni" + os.path.splitext(os.path.basename(font[0]))[0].replace(" ", "")
+        objects = {}
+        objects[1] = "<< /Type /Catalog /Pages 2 0 R >>"
+        objects[2] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"
+        objects[3] = ("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+                      "/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>")
+        objects[4] = ("stream", "\n".join(stream_lines).encode("latin1"))
+        objects[5] = (f"<< /Type /Font /Subtype /Type0 /BaseFont /{base_font} /Encoding /Identity-H "
+                      f"/DescendantFonts [9 0 R] /ToUnicode 7 0 R >>")
+        objects[6] = (f"<< /Type /FontDescriptor /FontName /{base_font} /Flags 32 "
+                      f"/FontBBox [{ttf.xmin} {ttf.ymin} {ttf.xmax} {ttf.ymax}] /ItalicAngle 0 "
+                      f"/Ascent {ttf.ascent} /Descent {ttf.descent} /CapHeight {ttf.ascent} "
+                      f"/StemV 80 /FontFile2 8 0 R >>")
+        objects[7] = ("stream", to_unicode)
+        objects[8] = ("stream", font_file)
+        objects[9] = (f"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /{base_font} "
+                      f"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> "
+                      f"/FontDescriptor 6 0 R /DW 1000 /W [{' '.join(w_entries)}] "
+                      f"/CIDToGIDMap 10 0 R >>")
+        objects[10] = ("stream", cid_map)
+        max_obj = 10
+    else:
+        # FAIL CLOSED. No embeddable Unicode TrueType font was located, so the
+        # pure-Python PDF fallback cannot render Turkish diacritics without loss.
+        # Per the UTF-8 Compliance Policy (docs/UTF8CompliancePolicy.md) we MUST
+        # NOT silently degrade Turkish characters to ASCII. We raise instead, so
+        # the caller surfaces an explicit, actionable error rather than emitting a
+        # customer-visible document that misrepresents Turkish text.
+        raise Utf8ComplianceError(
+            "UTF-8 uyumluluk hatası: Türkçe karakterleri (İ, ı, ç, ş, ğ, ö, ü) "
+            "kayıpsız temsil edebilen gömülebilir bir Unicode TrueType yazı tipi "
+            "bulunamadı. ASCII'ye dönüştürme (transliterasyon) politika gereği "
+            "yasaktır; PDF üretimi bu nedenle durduruldu. Lütfen sunucuya uygun bir "
+            "Unicode yazı tipi (ör. DejaVuSans.ttf, Segoe UI, Arial) kurun veya "
+            "headless Chromium/Edge motorunun mevcut olduğundan emin olun."
+        )
 
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-    offsets = []
-    for obj in objects:
-        offsets.append(len(out))
-        if isinstance(obj, str):
-            out.extend(obj.encode("latin1") + b"\n")
+    offsets = {}
+    for num in range(1, max_obj + 1):
+        if num not in objects:
+            continue
+        offsets[num] = len(out)
+        val = objects[num]
+        if isinstance(val, tuple) and val[0] == "stream":
+            payload = val[1]
+            out.extend(f"{num} 0 obj\n<< /Length {len(payload)} >>\nstream\n".encode("latin1"))
+            out.extend(payload)
+            out.extend(b"\nendstream\nendobj\n")
         else:
-            out.extend(obj + b"\n")
+            out.extend(f"{num} 0 obj\n{val}\nendobj\n".encode("latin1"))
 
     xref_offset = len(out)
-    out.extend(f"xref\n0 {len(offsets) + 1}\n0000000000 65535 f \n".encode("latin1"))
-    for off in offsets:
-        out.extend(f"{off:010d} 00000 n \n".encode("latin1"))
-    out.extend(f"trailer\n<< /Size {len(offsets) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("latin1"))
+    out.extend(f"xref\n0 {max_obj + 1}\n".encode("latin1"))
+    out.extend(b"0000000000 65535 f \n")
+    for num in range(1, max_obj + 1):
+        if num in offsets:
+            out.extend(f"{offsets[num]:010d} 00000 n \n".encode("latin1"))
+        else:
+            out.extend(b"0000000000 65535 f \n")
+    out.extend(f"trailer\n<< /Size {max_obj + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("latin1"))
 
     with open(output_path, "wb") as f:
         f.write(out)

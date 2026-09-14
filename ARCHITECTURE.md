@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform — Master Architecture Specification
 
-**Current Release Version:** `v2.5.13-PILOT`  
+**Current Release Version:** `v2.5.14-PILOT`  
 **Classification:** Enterprise System Architecture  
 **Runtime Architecture:** Dual-Engine (Python 3.11 Standard Library REST API + PowerShell 7.4 Telemetry Engine)  
 **Host Architecture:** Azure Container Apps (Serverless Linux Container)  

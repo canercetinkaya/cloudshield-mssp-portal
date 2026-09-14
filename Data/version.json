@@ -1,15 +1,32 @@
 {
-  "version": "2.5.13",
-  "release": "v2.5.13-PILOT",
-  "build": "2026.09.11.1",
+  "version": "2.5.14",
+  "release": "v2.5.14-PILOT",
+  "build": "2026.09.14.1",
   "channel": "pilot",
-  "build_number": 13,
-  "last_updated": "2026-09-11T00:01:26+03:00",
+  "build_number": 14,
+  "last_updated": "2026-09-14T20:25:51+03:00",
   "environment": "pilot",
   "productionReady": false,
   "commit": "2121704",
   "agent_name": "CloudShield DevSecOps Autonomous Agent",
   "changelog": [
+    {
+      "version": "2.5.14",
+      "release": "v2.5.14-PILOT",
+      "build": "2026.09.14.1",
+      "timestamp": "2026-09-14T20:25:51+03:00",
+      "commit": "auto",
+      "author": "CloudShield Autonomous Agent",
+      "summary": "fix(utf8): fail-closed Turkish PDF rendering and UTF-8 test/console integrity",
+      "details": [
+        "Güncellenen dosya: AI_PROJECT_RULES.md",
+        "Güncellenen dosya: AuthenticationGapAnalysis.md",
+        "Güncellenen dosya: AuthenticationImplementationPlan.md",
+        "Güncellenen dosya: AuthenticationRemediationDesign.md",
+        "Güncellenen dosya: Engine/Tests/Test-Platform.ps1",
+        "Güncellenen dosya: FinalCommitPlan.md"
+      ]
+    },
     {
       "version": "2.5.13",
       "release": "v2.5.13-PILOT",

@@ -34,6 +34,16 @@ import secrets
 
 from datetime import datetime, timedelta, timezone
 
+# --- UTF-8 console compliance (see docs/governance/encoding-standard.md) ------
+# Force UTF-8 stdout/stderr so Turkish characters in startup and request logs
+# are never mojibake'd when the server is launched from a legacy console.
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+    except Exception:
+        pass
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
@@ -160,6 +170,48 @@ ACTIVITIES_FILE = os.path.join(DATA_DIR, "manual-service-activities.json")
 VERSION_FILE = os.path.join(DATA_DIR, "version.json")
 
 SESSIONS = {}  # in-memory token -> session data
+
+# ==============================================================================
+# W9 (Stage 1B - Coverage): Authentication gate public allow-list
+# ------------------------------------------------------------------------------
+# The ONLY unauthenticated API endpoints. Everything else under /api/* is
+# protected by default: an unauthenticated request is rejected with 401 before
+# any route handler runs. Authorization (permission/scope) remains the sole
+# responsibility of `evaluate_access()` at each route (W10 adds its call sites).
+#
+# Public by design:
+#   * /api/health                - liveness probe (no data)
+#   * /api/version               - version manifest (no data; used by login screen)
+#   * /api/auth/login            - dev-only local login (already pilot-gated -> 403)
+#   * /api/auth/logout           - idempotent session teardown (safe without a session)
+#   * /api/auth/sso              - RETIRED identity-assertion stub (W5): always
+#                                  returns 410 Gone and issues NO session/token
+#   * /api/tenants/{id}/logo     - non-sensitive customer branding asset, loaded by
+#                                  <img src> which cannot send an Authorization header
+#
+# NOTE: OIDC start/callback routes (W1/W2) are NOT implemented in Stage 1B; when
+# they are added they must be appended here as public. No OIDC is implemented now.
+# ==============================================================================
+PUBLIC_ROUTES = frozenset({
+    "/api/health",
+    "/api/version",
+    "/api/auth/logout",
+})
+
+def _is_public_api_route(method, path):
+    """Return True if (method, path) is an unauthenticated, public API route (W9)."""
+    if not path.startswith("/api/"):
+        # Non-API paths are static assets / SPA routes, gated by the web layer.
+        return True
+    if path in PUBLIC_ROUTES:
+        return True
+    # Dev-only local login (pilot-gated -> 403) and the retired SSO stub (-> 410).
+    if path in ("/api/auth/login", "/api/auth/sso"):
+        return True
+    # Customer logo is a non-sensitive branding asset consumed via <img src>.
+    if method == "GET" and path.startswith("/api/tenants/") and path.endswith("/logo"):
+        return True
+    return False
 
 def load_json_file(path, default=None):
 
@@ -379,6 +431,39 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         return None
 
+    def _enforce_auth_gate(self, method, path):
+        """
+        W9 (Stage 1B - Coverage): single authentication gate at the dispatch
+        boundary. Proves *authentication* only; per-route authorization is
+        unchanged and remains with `evaluate_access()`.
+
+        Returns True when the request may proceed. When the route is protected
+        and no valid session exists, emits an AUTH_DENY audit event, writes a
+        401 response, and returns False.
+        """
+        if _is_public_api_route(method, path):
+            return True
+        user = self.get_current_user()
+        if user is not None:
+            return True
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+        try:
+            record_audit_event(
+                event_type="AUTH_DENY",
+                resource=path,
+                decision="DENY",
+                reason="AuthenticationGate: AnonymousOrInvalidSession",
+                ip_address=client_ip,
+                details={"method": method, "route": path},
+            )
+        except Exception:
+            pass
+        self.send_json_response({
+            "success": False,
+            "error": "Kimlik Doğrulama Gerekli (401 Unauthorized): Bu uç noktaya erişmek için geçerli bir oturum gereklidir."
+        }, status=401)
+        return False
+
     def handle_tenant_logo(self, tenant_id):
 
         """
@@ -483,6 +568,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
+
+        # W9 (Stage 1B): authentication gate before any route dispatch.
+        if not self._enforce_auth_gate("GET", path):
+            return
 
         if path.startswith("/api/rbac/"):
             handle_rbac_get(self, path, query)
@@ -625,6 +714,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/users":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:view", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "assignments:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kullanıcı listesini görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             users = load_json_file(USERS_FILE, [])
 
             self.send_json_response(users)
@@ -641,6 +743,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/services":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "services:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Servis kataloğunu görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             catalog = load_json_file(CATALOG_FILE, {})
 
             self.send_json_response(catalog)
@@ -648,6 +761,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/activities":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Operasyonel faaliyetleri görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             activities = load_json_file(ACTIVITIES_FILE, [])
 
@@ -739,6 +863,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/stats/global":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Global istatistikleri görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             # Daily Cache Mechanism - Run once daily to protect API throttling limits
 
             cache = load_json_file(CACHE_FILE, None)
@@ -827,6 +962,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/dispatch":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Gönderim yapılandırmasını görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             tenants = load_json_file(TENANTS_FILE, [])
 
             configs = []
@@ -871,6 +1019,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/dispatch/history":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Gönderim geçmişini görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             history = load_json_file(DISPATCH_LOGS_FILE, [])
 
             self.send_json_response(history)
@@ -878,6 +1039,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/kql/catalog":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "services:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): KQL sorgu kataloğunu görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             kql_index_file = os.path.join(ROOT_DIR, "Engine", "KQL", "query-metadata", "catalog-index.json")
 
@@ -936,6 +1108,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/kql/packages":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "services:view", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): KQL paketlerini görüntüleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             pkg_base = os.path.join(ROOT_DIR, "Engine", "KQL", "query-packages")
 
@@ -1224,6 +1407,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         except Exception:
             body = {}
 
+        # W9 (Stage 1B): authentication gate before any route dispatch.
+        if not self._enforce_auth_gate("POST", path):
+            return
+
         if path.startswith("/api/rbac/"):
             handle_rbac_post(self, path, body)
             return
@@ -1309,126 +1496,52 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(resp_bytes)
             return
 
+                
         elif path == "/api/auth/sso":
-            # Mandatory Outcome 1: Enterprise Microsoft Entra ID Single Sign-On Endpoint
-            provider = body.get("provider", "EntraID_OIDC")
+            # W5 (Stage 1A Containment): the former identity-assertion stub is RETIRED.
+            #
+            # Security rationale: the previous handler minted a session from a
+            # caller-supplied body `upn`, and when no database user matched it
+            # FABRICATED a PlatformAdmin identity (usr-architect-sso) granting
+            # global scope. That is an authentication bypass: any anonymous caller
+            # could obtain a valid session for an arbitrary identity.
+            #
+            # This endpoint now fails closed. It issues NO token, creates NO
+            # session, resolves NO identity, and returns 410 Gone unconditionally.
+            # A real Entra ID OIDC token exchange (authorization-code + JWKS
+            # signature validation) is future work (W1/W2) and is intentionally
+            # NOT implemented here.
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
-            auth_conf = load_json_file(AUTH_CONFIG_FILE, {})
-
-            requested_upn = body.get("upn") or body.get("username") or "architect@cloudshield-mssp.com"
-            requested_upn_clean = str(requested_upn).strip().lower()
-
-            conn = get_db()
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT u.*, o.name as org_name
-                FROM users u
-                LEFT JOIN organizations o ON u.organization_id = o.id
-                WHERE LOWER(u.upn) = ? OR LOWER(u.id) = ? OR (u.id = 'usr-admin' AND ? IN ('admin', 'architect', 'architect@cloudshield-mssp.com'))
-            """, (requested_upn_clean, requested_upn_clean, requested_upn_clean))
-            u_row = cur.fetchone()
-
-            if u_row:
-                user_dict = dict(u_row)
-                if not user_dict.get("is_active"):
-                    record_audit_event(
-                        event_type="AUTH_DENY",
-                        user_id=user_dict["id"],
-                        user_upn=user_dict["upn"],
-                        resource="/api/auth/sso",
-                        decision="DENY",
-                        reason="UserAccountDisabled",
-                        ip_address=client_ip
-                    )
-                    conn.close()
-                    self.send_json_response({
-                        "success": False,
-                        "error": "Kullanıcı hesabı devre dışı bırakılmıştır."
-                    }, status=403)
-                    return
-
-                assignments = get_effective_assignments(user_dict["id"], conn)
-                roles = list({a["role_name"] for a in assignments})
-                is_plat_admin = any(a.get("is_platform_role") for a in assignments)
-                permissions = set()
-                for a in assignments:
-                    for p in a.get("permissions", []):
-                        permissions.add(p)
-
-                assigned_tenants = [a.get("customer_id") or "ALL" for a in assignments if a.get("customer_scope") == "ALL" or a.get("customer_id")]
-                if not assigned_tenants or is_plat_admin:
-                    assigned_tenants = ["ALL"]
-
-                sso_user = {
-                    "id": user_dict["id"],
-                    "username": user_dict["upn"],
-                    "upn": user_dict["upn"],
-                    "displayName": user_dict["display_name"],
-                    "role": "PlatformAdmin" if is_plat_admin else (roles[0] if roles else "ServiceOperator"),
-                    "roles": roles,
-                    "initials": "".join([w[0].upper() for w in user_dict["display_name"].split()[:2]]) if user_dict.get("display_name") else "US",
-                    "email": user_dict["email"],
-                    "department": user_dict.get("department", "MSSP"),
-                    "tenantScope": "Global" if "ALL" in assigned_tenants else "Restricted",
-                    "AssignedTenants": assigned_tenants,
-                    "permissions": list(permissions),
-                    "authProvider": provider,
-                    "ssoEnforced": True,
-                    "isPlatformAdmin": is_plat_admin
-                }
-                conn.close()
-            else:
-                conn.close()
-                sso_user = {
-                    "id": "usr-architect-sso",
-                    "username": requested_upn,
-                    "upn": requested_upn,
-                    "displayName": "MSSP Baş Güvenlik Mimarı",
-                    "role": "PlatformAdmin",
-                    "roles": ["PlatformAdmin"],
-                    "initials": "SA",
-                    "email": requested_upn,
-                    "tenantScope": "Global",
-                    "AssignedTenants": ["ALL"],
-                    "permissions": ["reports:view", "reports:generate", "reports:approve", "reports:download", "customers:view", "services:view"],
-                    "authProvider": provider,
-                    "ssoEnforced": True,
-                    "isPlatformAdmin": True
-                }
-
-            tok = uuid.uuid4().hex + uuid.uuid4().hex
-            SESSIONS[tok] = {
-                "user": sso_user,
-                "createdAt": time.time(),
-                "expiresAt": time.time() + 86400
-            }
-
-            record_audit_event(
-                event_type="AUTH_ALLOW",
-                user_id=sso_user.get("id"),
-                user_upn=sso_user.get("upn"),
-                resource="/api/auth/sso",
-                decision="ALLOW",
-                reason="EntraIdOidcAuthenticationSuccessful",
-                ip_address=client_ip,
-                details={"provider": provider, "role": sso_user.get("role")}
-            )
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Set-Cookie", f"CS_SESSION={tok}; Path=/; HttpOnly; SameSite=Strict")
-            resp_bytes = json.dumps({
-                "success": True,
-                "token": tok,
-                "user": sso_user,
-                "expiresIn": 86400
-            }, ensure_ascii=False).encode("utf-8")
-            self.send_header("Content-Length", str(len(resp_bytes)))
-            self.end_headers()
-            self.wfile.write(resp_bytes)
+            try:
+                record_audit_event(
+                    event_type="AUTH_DENY",
+                    resource="/api/auth/sso",
+                    decision="DENY",
+                    reason="SsoStubRetiredW5",
+                    ip_address=client_ip,
+                    details={"note": "identity-assertion stub retired; no session issued"}
+                )
+            except Exception:
+                pass
+            self.send_json_response({
+                "success": False,
+                "error": "Bu uç nokta devre dışı bırakılmıştır (410 Gone): Kimlik doğrulama sağlayıcısı devre dışıdır. Kurumsal Microsoft Entra ID (SSO) entegrasyonu henüz etkin değildir.",
+                "ssoRequired": True
+            }, status=410)
             return
 
         elif path == "/api/tenants":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Müşteri/kiracı oluşturma yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             tenants = load_json_file(TENANTS_FILE, [])
 
@@ -1500,6 +1613,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/dispatch/schedule":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Gönderim zamanlamasını değiştirme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             tenant_id = body.get("tenantId")
 
             tenants = load_json_file(TENANTS_FILE, [])
@@ -1547,6 +1673,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/dispatch/send":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Rapor gönderimi başlatma yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             tenant_id = body.get("tenantId")
 
@@ -1634,6 +1773,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/users":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "assignments:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kullanıcı oluşturma yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             users = load_json_file(USERS_FILE, [])
 
             new_id = f"usr-{len(users)+1:03d}"
@@ -1651,6 +1803,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/stats/sync":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): İstatistik senkronizasyonu tetikleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             # Force immediate recalculation and cache refresh
 
@@ -1708,6 +1873,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/auth/test":
 
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kimlik doğrulama federasyon testini çalıştırma yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             cfg = load_json_file(AUTH_CONFIG_FILE, {})
 
             self.send_json_response({
@@ -1733,6 +1909,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/activities":
+
+            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "matrix:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Manuel faaliyet kaydı oluşturma yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             activities = load_json_file(ACTIVITIES_FILE, [])
 
@@ -2538,7 +2727,22 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             body = {}
 
+        # W9 (Stage 1B): authentication gate before any route dispatch.
+        if not self._enforce_auth_gate("PUT", path):
+            return
+
         if path.startswith("/api/tenants/"):
+
+            # W10 (Stage 1B): tenant modification is an administrative mutation.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Müşteri/kiracı güncelleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             tenant_id = path.replace("/api/tenants/", "").strip()
 
@@ -2562,6 +2766,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path.startswith("/api/users/"):
 
+            # W10 (Stage 1B): user modification is an administrative lifecycle mutation.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "assignments:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kullanıcı güncelleme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
             user_id = path.replace("/api/users/", "").strip()
 
             users = load_json_file(USERS_FILE, [])
@@ -2583,6 +2800,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/auth/config":
+            # W10 (Stage 1B): auth configuration write is admin-only.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kimlik doğrulama yapılandırmasını değiştirme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             save_json_file(AUTH_CONFIG_FILE, body)
 
@@ -2596,11 +2823,26 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
+        # W9 (Stage 1B): authentication gate before any route dispatch.
+        if not self._enforce_auth_gate("DELETE", path):
+            return
+
         if path.startswith("/api/rbac/"):
             handle_rbac_delete(self, path)
             return
 
         if path.startswith("/api/tenants/"):
+
+            # W10 (Stage 1B): tenant deletion is an administrative mutation.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Müşteri/kiracı silme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             tenant_id = path.replace("/api/tenants/", "").strip()
 
@@ -2621,6 +2863,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path.startswith("/api/users/"):
+
+            # W10 (Stage 1B): user deletion is an administrative lifecycle mutation.
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "assignments:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kullanıcı silme yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
 
             user_id = path.replace("/api/users/", "").strip()
 

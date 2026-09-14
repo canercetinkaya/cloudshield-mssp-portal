@@ -22,6 +22,19 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ServerScript = Join-Path $ScriptDir "Portal\api\server.py"
 
+# --- UTF-8 console compliance (see docs/UTF8CompliancePolicy.md) --------------
+# Ensure the host console and child Python process use UTF-8 so Turkish
+# characters in startup/log output are never mojibake'd.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+try {
+    $null = & chcp.com 65001
+} catch {
+    # chcp is optional; ignore if unavailable.
+}
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Cyan
 Write-Host "  CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)" -ForegroundColor White
