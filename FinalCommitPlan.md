@@ -1,7 +1,7 @@
 # Final Commit Plan
 
 **Branch:** `pilot/controlled-pilot-finalization`
-**Version manifest (both `version.json` and `Data/version.json`):** `2.5.13` / `v2.5.13-PILOT` / build `2026.09.11.1`
+**Version manifest (both `version.json` and `Data/version.json`):** `2.5.15` / `v2.5.15-PILOT` / build `2026.09.16.1`
 **Release discipline (per AI_PROJECT_RULES.md §3):** `channel = pilot`, `productionReady = false` (unchanged)
 **Prepared from:** `git status` + the two version manifests. No code, docs, tests, or validations were run.
 
@@ -99,10 +99,10 @@ Channel: pilot | productionReady: false
 
 ---
 
-## 5. Recommended Next Version
-
-- **Current:** `2.5.13` / `v2.5.13-PILOT` (build `2026.09.11.1`)
-- **Recommended next:** `2.5.14` / `v2.5.14-PILOT` (build `2026.09.12.1`)
+## 5. Current & Recommended Next Version
+ 
+- **Current:** `2.5.15` / `v2.5.15-PILOT` (build `2026.09.16.1`)
+- **Recommended next:** `2.5.16` / `v2.5.16-PILOT` (build `2026.09.17.1`)
 - **Channel:** `pilot` (unchanged) — **`productionReady` must remain `false`**
 - **Sync requirement (AI_PROJECT_RULES.md / PROJECT_HANDOFF.md §8):** update `version.json`, `Data/version.json`, `Docker/Dockerfile`, and `ARCHITECTURE.md` in the same commit when bumping.
 

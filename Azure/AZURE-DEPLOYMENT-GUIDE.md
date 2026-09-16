@@ -160,7 +160,7 @@ Dağıtım tamamlandıktan sonra sistemin sağlıklı çalıştığını doğrul
    ```bash
    curl -i https://<ContainerApp-FQDN>/api/health
    ```
-   Dönen yanıt: `{"status": "Healthy", "version": "2.0.0"}`
+   Dönen yanıt: `{"status": "Healthy", "version": "2.5.15"}`
 2. **Managed Identity RBAC Doğrulaması**:
    Azure CLI ile Container App'e atanan rolleri denetleyin:
    ```bash

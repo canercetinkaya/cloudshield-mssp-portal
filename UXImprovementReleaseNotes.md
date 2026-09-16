@@ -11,7 +11,7 @@ Version bumped from 2.5.14-PILOT to **2.5.15-PILOT** (Build: 2026.09.16.1).
 
 | ID | Category / Component | Severity | Description | Status in v2.5.15 |
 | :--- | :--- | :--- | :--- | :--- |
-| **F-01** | Dashboard Usability | **HIGH** | Multi-tenant vs single-tenant view confusion. Selecting a tenant showed global fleet tiles without customer-specific context. | **Resolved**: Single-tenant executive cockpit (#singleTenantCockpit) dynamically activates upon selecting any specific tenant, displaying the 4-Pillar Service Value Attribution Model. |
+| **F-01** | Dashboard Usability | **HIGH** | Multi-tenant vs single-tenant view confusion. Selecting a tenant showed global fleet tiles without customer-specific context. | **Resolved**: Single-tenant executive cockpit (singleTenantCockpit) dynamically activates upon selecting any specific tenant, displaying the 4-Pillar Service Value Attribution Model. |
 | **F-02** | Executive Experience | **HIGH** | Static executive decision framework lacking interactivity and operational triage actions. | **Resolved**: Interactive 4-quadrant Customer Decision Framework with real-time approval buttons (pproveDecision) that log actions and update UI state. |
 | **F-03** | Dashboard Usability | **MEDIUM** | Misleading zero-state indicators (e.g. green '0' incidents without positive confirmation; poor icon contrast). | **Resolved**: Semantic indicators with positive reinforcement badges ('Zero Incident Verified') and high-contrast shield iconography (a-shield-halved). |
 | **F-04** | Tenant Onboarding | **HIGH** | Rudimentary tenant table lacking search/filtering; basic modal missing ID guidance and consent links. | **Resolved**: Dual view toggle (Cards vs Table), instant search bar, status filter pills, and a 3-step Tenant Onboarding Wizard with live GUID regex validation and Entra ID consent URL generator. |
@@ -48,7 +48,7 @@ Version bumped from 2.5.14-PILOT to **2.5.15-PILOT** (Build: 2026.09.16.1).
    - Scheduled Dispatch auto-sync with active tenant.
    - In-portal interactive report preview modal.
    - Bearer token fetch interceptor for authenticated API communication.
-2. **ersion.json & Data/version.json**: Bumped to 2.5.15 / 2.5.15-PILOT.
+2. **ersion.json & Data/version.json**: Bumped to 2.5.15 / 2.5.15-PILOT.
 3. **README.md**: Updated documentation to reflect v2.5.15-PILOT.
 4. **ARCHITECTURE.md**: Version bump and changelog alignment.
 5. **Docker/Dockerfile**: Environment and metadata updated to v2.5.15.

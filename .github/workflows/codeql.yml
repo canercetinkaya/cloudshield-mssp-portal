@@ -2,9 +2,9 @@ name: CodeQL Static Security Analysis
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "pilot/*", "pilot/controlled-pilot-finalization" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "pilot/*" ]
   schedule:
     - cron: '0 4 * * 1' # Every Monday at 04:00 UTC
 

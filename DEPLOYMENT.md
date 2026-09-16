@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform — Deployment Guide
 
-**Current Release Version:** `v2.5.13-PILOT`  
+**Current Release Version:** `v2.5.15-PILOT`  
 **Target Environment:** Azure Container Apps & On-Premises Docker  
 
 ---

@@ -5,7 +5,7 @@ Security updates, vulnerability patches, and zero-day remediations are actively 
 
 | Version | Release Tag | Status | Supported |
 | :--- | :--- | :--- | :---: |
-| **v2.5.x** | `v2.5.13-PILOT` | Active Pilot Release | ✅ Supported |
+| **v2.5.x** | `v2.5.15-PILOT` | Active Pilot Release | ✅ Supported |
 | **v2.4.x** | `v2.4.x` | Deprecated | ❌ End of Life |
 | **< v2.4** | Legacy | Deprecated | ❌ Unsupported |
 

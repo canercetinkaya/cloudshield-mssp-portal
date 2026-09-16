@@ -2,9 +2,9 @@ name: CloudShield MSSP Portal CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "pilot/*", "pilot/controlled-pilot-finalization" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "pilot/*" ]
   workflow_dispatch:
 
 permissions:

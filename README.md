@@ -234,7 +234,8 @@ python test_rbac_authorization.py
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
-| **v2.5.15-PILOT** | 2026.09.14.1 | 2026-09-14 | fix(utf8): fail-closed Turkish PDF rendering and UTF-8 test/console integrity |
+| **v2.5.15-PILOT** | 2026.09.16.1 | 2026-09-16 | feat(ux): pilot experience improvements from PortalExperienceReview (F-01 to F-08) |
+| **v2.5.14-PILOT** | 2026.09.14.1 | 2026-09-14 | fix(utf8): fail-closed Turkish PDF rendering and UTF-8 test/console integrity |
 | **v2.5.13-PILOT** | 2026.09.11.1 | 2026-09-11 | feat(rbac): enterprise rbac, customer-service matrix, authorization decision chain, and 11 admin portal views |
 | **v2.5.12-PILOT** | 2026.09.10.12 | 2026-09-10 | feat(quality-gate): blocking report-product remediation and 14 semantic quality gates |
 | **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |

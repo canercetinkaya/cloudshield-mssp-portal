@@ -11,11 +11,11 @@ To prevent version drift across microservices and documentation, platform versio
 
 ```json
 {
-  "version": "2.5.13",
-  "release": "v2.5.13-PILOT",
-  "build": "2026.09.11.1",
+  "version": "2.5.15",
+  "release": "v2.5.15-PILOT",
+  "build": "2026.09.16.1",
   "channel": "pilot",
-  "build_number": 13,
+  "build_number": 15,
   "environment": "pilot",
   "productionReady": false,
   "commit": "auto"

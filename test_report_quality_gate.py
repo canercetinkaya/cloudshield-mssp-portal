@@ -72,7 +72,10 @@ def check_semantic_rules(html_content, live_data=None, requested_services=None):
     # Rule 3: Sum of child counts not equal to total
     if live_data:
         for svc in ["SVC-PURVIEW", "SVC-PRV-DLP"]:
-            prv_kpis = live_data.get(svc, {}).get("kpis", {})
+            svc_dict = live_data.get(svc) or {}
+            prv_kpis = svc_dict.get("kpis") if isinstance(svc_dict, dict) else {}
+            if not isinstance(prv_kpis, dict):
+                prv_kpis = {}
             ovr_total = int(prv_kpis.get("OverrideEvents") or prv_kpis.get("UserOverrides") or 0)
             breakdown = prv_kpis.get("UserOverrideBreakdown") or []
             if breakdown and ovr_total > 0:

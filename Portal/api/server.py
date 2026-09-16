@@ -273,17 +273,17 @@ def get_version_info():
 
     default_info = {
 
-        "version": "2.5.10",
+        "version": "2.5.15",
 
-        "release": "v2.5.10-PILOT",
+        "release": "v2.5.15-PILOT",
 
-        "build": "2026.09.10.10",
+        "build": "2026.09.16.1",
 
         "channel": "pilot",
 
-        "build_number": 10,
+        "build_number": 15,
 
-        "last_updated": "2026-09-10T12:54:45+03:00",
+        "last_updated": "2026-09-16T12:50:00+03:00",
 
         "environment": "pilot",
 
