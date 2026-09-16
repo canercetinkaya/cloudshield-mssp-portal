@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform: Enterprise Managed Security & Compliance Portal
 
-[![Release](https://img.shields.io/badge/Release-v2.5.14-PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.14-PILOT)
+[![Release](https://img.shields.io/badge/Release-v2.5.15-PILOT-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/releases/tag/v2.5.15-PILOT)
 [![Channel](https://img.shields.io/badge/Channel-Pilot%20Validation-yellow.svg)](#release-channels)
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 [![DevSecOps Secret Scanning](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/secret-scanning.yml)
@@ -234,7 +234,7 @@ python test_rbac_authorization.py
 
 | Release Tag | Build | Date | Autonomous Agent Summary |
 | :--- | :--- | :--- | :--- |
-| **v2.5.14-PILOT** | 2026.09.14.1 | 2026-09-14 | fix(utf8): fail-closed Turkish PDF rendering and UTF-8 test/console integrity |
+| **v2.5.15-PILOT** | 2026.09.14.1 | 2026-09-14 | fix(utf8): fail-closed Turkish PDF rendering and UTF-8 test/console integrity |
 | **v2.5.13-PILOT** | 2026.09.11.1 | 2026-09-11 | feat(rbac): enterprise rbac, customer-service matrix, authorization decision chain, and 11 admin portal views |
 | **v2.5.12-PILOT** | 2026.09.10.12 | 2026-09-10 | feat(quality-gate): blocking report-product remediation and 14 semantic quality gates |
 | **v2.5.11-PILOT** | 2026.09.10.11 | 2026-09-10 | fix: pilot hardening, encoding, and report registry |
@@ -244,7 +244,7 @@ python test_rbac_authorization.py
 ## 🌐 Live Pilot Deployment
 
 - **Deployment Host:** [https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-- **Active Release:** `v2.5.14-PILOT` (Managed via Single-Source `version.json`)
+- **Active Release:** `v2.5.15-PILOT` (Managed via Single-Source `version.json`)
 - **Release Channel:** `pilot` (`productionReady: false`)
 - **Version Endpoint:** `GET /api/version`
 - **Authentication Mode:** Microsoft Entra ID OIDC SSO Enforced (`POST /api/auth/sso`), Local password auth disabled in Pilot (`403 Forbidden: ssoRequired`).

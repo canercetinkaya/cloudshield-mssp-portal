@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
 
 LABEL maintainer="CloudShield MSSP Security Engineering Team <security@cloudshield-mssp.com>"
 LABEL description="CloudShield Microsoft Security & Purview Monthly Reporting Engine and MSSP SaaS Portal"
-LABEL version="2.5.14"
+LABEL version="2.5.15"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080
