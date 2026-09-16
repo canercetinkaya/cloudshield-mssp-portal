@@ -1,10 +1,10 @@
-# KoçSistem Microsoft Security Managed Services Reporting Platform
+# CloudShield Microsoft Security Managed Services Reporting Platform
 
 ## Multi-Agent Uygulama ve Doğrulama Ana Promptu
 
 ## 1. Ana Görev
 
-Mevcut PowerShell tabanlı **MDE Monthly Reporting** çözümünü temel alarak, KoçSistem MSSP müşterilerinin satın aldığı Microsoft güvenlik hizmetlerine göre seçilebilir, modüler, en az ayrıcalıklı ve otomatik çalışan bir **KoçSistem Microsoft Security Managed Services Reporting Platform** tasarla, geliştir, test et ve üretime hazır hale getir.
+Mevcut PowerShell tabanlı **MDE Monthly Reporting** çözümünü temel alarak, CloudShield MSSP müşterilerinin satın aldığı Microsoft güvenlik hizmetlerine göre seçilebilir, modüler, en az ayrıcalıklı ve otomatik çalışan bir **CloudShield Microsoft Security Managed Services Reporting Platform** tasarla, geliştir, test et ve üretime hazır hale getir.
 
 Çalışma tek bir agent tarafından yürütülmemelidir. Sistemde bulunan aşağıdaki uzman agentları aktif olarak görevlendir:
 
@@ -35,7 +35,7 @@ Platform aşağıdaki işlevleri sağlamalıdır:
 - App Registration ve sertifika kurulumunu yönlendirmek veya uygunsa otomatikleştirmek
 - API, PowerShell, Advanced Hunting ve Management Activity API collector modüllerini çalıştırmak
 - Hizmete özel KPI ve trendleri üretmek
-- Microsoft teknolojilerinin otomatik koruma aksiyonları ile KoçSistem operasyon faaliyetlerini ayırmak
+- Microsoft teknolojilerinin otomatik koruma aksiyonları ile CloudShield operasyon faaliyetlerini ayırmak
 - Executive PDF, Technical PDF, HTML, CSV ve JSON çıktıları üretmek
 - Test modunda anlık rapor göndermek
 - Üretim modunda aylık Task Scheduler görevi oluşturmak
@@ -180,7 +180,7 @@ Sorumluluklar:
 - Network, proxy, DNS, firewall, certificate store ve outbound gereksinimlerini çıkarmak
 - Müşteri rollerini ve sorumluluklarını tanımlamak
 - GDAP kullanılan ve kullanılmayan senaryoları değerlendirmek
-- Müşteri tenantında ve KoçSistem merkezinde çalışacak bileşenleri ayırmak
+- Müşteri tenantında ve CloudShield merkezinde çalışacak bileşenleri ayırmak
 - Lisans ve özellik farklılıklarını yönetmek
 - Tenant onboarding ve offboarding süreçlerini tasarlamak
 - Customer readiness assessment oluşturmak
@@ -203,13 +203,13 @@ Sorumluluklar:
 
 - Hizmet kodu ve hizmet seviyesi modelini oluşturmak
 - Monitoring, Reporting, Managed, Managed and Response ve Advisory seviyelerini ayırmak
-- Microsoft otomatik aksiyonlarıyla KoçSistem operasyonlarını ayırmak
+- Microsoft otomatik aksiyonlarıyla CloudShield operasyonlarını ayırmak
 - SLA, MTTA, MTTT ve MTTR tanımlarını ve formüllerini oluşturmak
 - Alert, event, incident ve action çift sayımını engellemek
 - Ticket, change, incident ve remediation korelasyonunu tasarlamak
 - Manuel hizmet aktivitesi şemasını oluşturmak
 - Operasyon kanıtı bulunmayan faaliyetin rapora girmesini engellemek
-- Müşteri aksiyonlarıyla KoçSistem aksiyonlarını ayırmak
+- Müşteri aksiyonlarıyla CloudShield aksiyonlarını ayırmak
 - Her KPI'ı hizmet sözleşmesi ve hizmet seviyesiyle eşleştirmek
 
 Artifactlar:
@@ -327,8 +327,8 @@ Sorumluluklar:
 
 - Executive raporun anlaşılabilirliğini ve karar desteğini kontrol etmek
 - Yönetici özetini en fazla beş doğrulanmış bulguyla sınırlandırmak
-- Koruma, risk, KoçSistem aksiyonu ve müşteri aksiyonunu ayırmak
-- Microsoft otomatik koruma aksiyonlarıyla KoçSistem hizmet değerini ayırmak
+- Koruma, risk, CloudShield aksiyonu ve müşteri aksiyonunu ayırmak
+- Microsoft otomatik koruma aksiyonlarıyla CloudShield hizmet değerini ayırmak
 - Kanıtlanmayan başarı, tam koruma veya nedensellik ifadelerini reddetmek
 - Çalışan sıralaması ve kişi bazlı risk değerlendirmesini reddetmek
 - Teknik sınırlamaların açıkça sunulmasını sağlamak
@@ -516,7 +516,7 @@ KPI değeri alınamıyorsa sıfır üretme. Aşağıdaki durumlardan birini dön
 - Kritik, exploit mevcut ve internet-facing risk göstergeleri
 - Automated Investigation ve remediation sonuçları
 - Isolation, scan ve quarantine aksiyonları
-- KoçSistem tarafından incelenen, eskale edilen ve müşteri aksiyonu bekleyen olaylar
+- CloudShield tarafından incelenen, eskale edilen ve müşteri aksiyonu bekleyen olaylar
 
 Öncelikli kaynaklar:
 
@@ -541,7 +541,7 @@ KPI değeri alınamıyorsa sıfır üretme. Aşağıdaki durumlardan birini dön
 - Anti-phishing, Safe Links, Safe Attachments, anti-malware ve anti-spam policy kapsamı
 - Preset Security Policy kullanımı
 - AIR investigation ve remediation durumları
-- KoçSistem inceleme, eskalasyon, tuning ve allow/block değişiklikleri
+- CloudShield inceleme, eskalasyon, tuning ve allow/block değişiklikleri
 
 Öncelikli kaynaklar:
 
@@ -599,7 +599,7 @@ Programatik sensor inventory doğrulanamıyorsa KPI `PortalOnly` veya `ManualExp
 - Automated ve manual response actions
 - Device, account, file, mail ve cloud app containment
 - True positive, benign positive ve false positive oranları
-- KoçSistem atama, inceleme, eskalasyon ve closure faaliyetleri
+- CloudShield atama, inceleme, eskalasyon ve closure faaliyetleri
 
 Zaman KPI'ları yalnızca güvenilir timestamp veya operasyon kanıtı varsa hesaplanmalıdır.
 
@@ -616,7 +616,7 @@ Zaman KPI'ları yalnızca güvenilir timestamp veya operasyon kanıtı varsa hes
 - Application installation başarı ve hata oranları
 - Required application ve MAM coverage
 - Enrollment failure, certificate expiration ve configuration drift
-- KoçSistem policy değişiklikleri ve çözülen compliance sorunları
+- CloudShield policy değişiklikleri ve çözülen compliance sorunları
 
 Öncelikli kaynaklar:
 
@@ -808,9 +808,9 @@ DSPM portal dashboard erişimi programatik olarak doğrulanamazsa `PortalOnly` o
 
 ---
 
-## 10. KoçSistem Yönetilen Hizmet KPI'ları
+## 10. CloudShield Yönetilen Hizmet KPI'ları
 
-Her servis raporunda Microsoft telemetrisi ve KoçSistem operasyonu ayrı gösterilmelidir.
+Her servis raporunda Microsoft telemetrisi ve CloudShield operasyonu ayrı gösterilmelidir.
 
 ### Microsoft teknolojileri tarafından sağlanan koruma
 
@@ -823,7 +823,7 @@ Her servis raporunda Microsoft telemetrisi ve KoçSistem operasyonu ayrı göste
 - Policy enforcement
 - Koruma kapsamındaki cihaz, kullanıcı, uygulama veya veri
 
-### KoçSistem tarafından sağlanan yönetilen hizmet
+### CloudShield tarafından sağlanan yönetilen hizmet
 
 - İncelenen alert
 - Triaged alert
@@ -838,12 +838,12 @@ Her servis raporunda Microsoft telemetrisi ve KoçSistem operasyonu ayrı göste
 - Yapılan health check
 - Açılan ve kapatılan servis talebi
 - SLA içinde ele alınan olay oranı
-- KoçSistem MTTA ve MTTR
+- CloudShield MTTA ve MTTR
 - Müşteri onayı bekleyen aksiyonlar
 - Tamamlanan iyileştirmeler
 - Sonraki dönem planı
 
-KoçSistem faaliyeti aşağıdaki kaynaklardan en az biriyle kanıtlanmalıdır:
+CloudShield faaliyeti aşağıdaki kaynaklardan en az biriyle kanıtlanmalıdır:
 
 - Incident audit history
 - API action history
@@ -853,7 +853,7 @@ KoçSistem faaliyeti aşağıdaki kaynaklardan en az biriyle kanıtlanmalıdır:
 - Change request
 - Müşteri onayı
 
-Microsoft tarafından otomatik engellenen bir olay KoçSistem müdahalesi olarak sayılmamalıdır.
+Microsoft tarafından otomatik engellenen bir olay CloudShield müdahalesi olarak sayılmamalıdır.
 
 ---
 
@@ -902,7 +902,7 @@ Rapor yapısı:
 3. Raporlama dönemi
 4. Yönetici özeti
 5. Microsoft teknolojilerinin sağladığı koruma
-6. KoçSistem yönetilen hizmet faaliyetleri
+6. CloudShield yönetilen hizmet faaliyetleri
 7. Temel KPI kartları
 8. Aylık trend
 9. Önceki ay karşılaştırması
@@ -939,11 +939,11 @@ Ana script aşağıdaki modları desteklemelidir:
 Örnek test komutu:
 
 ```powershell
-.\Invoke-KocSistemSecurityReport.ps1 `
+.\Invoke-CloudShieldSecurityReport.ps1 `
   -Mode Test `
   -CustomerId "CUSTOMER01" `
   -Services DefenderForEndpoint,PurviewDlp `
-  -TestRecipient "test@kocsistem.com.tr" `
+  -TestRecipient "test@cloudshield-mssp.com" `
   -LookbackHours 24 `
   -SendMail `
   -Verbose
@@ -1197,7 +1197,7 @@ Sorumlular:
 - Protection summary
 - Risk summary
 - Customer action summary
-- KoçSistem action summary
+- CloudShield action summary
 - Technical limitation statement
 
 ### Faz 8: Nihai test ve release
@@ -1257,7 +1257,7 @@ Aşağıdaki durumları başarı olarak raporlama:
 - Rapor üretildi fakat KPI formülü doğrulanmadı
 - Mail gönderildi fakat test ve üretim alıcıları ayrıştırılmadı
 - Task oluşturuldu fakat duplicate çalışma kontrolü test edilmedi
-- KoçSistem faaliyeti yazıldı fakat operasyon kanıtı bulunmadı
+- CloudShield faaliyeti yazıldı fakat operasyon kanıtı bulunmadı
 - KPI alınamadı ve sessizce sıfır üretildi
 - Beta API production-ready olarak işaretlendi
 - Delegated access gerekmesine rağmen unattended task güvenli kabul edildi
@@ -1273,7 +1273,7 @@ Amaç çok sayıda dosya veya agent aktivitesi göstermek değil, doğrulanmış
 Aşağıdaki komutu, bu Markdown dosyasını kabul eden agent orkestratörüne ver:
 
 ```text
-KocSistem_MSSP_MultiAgent_Reporting_Master_Prompt.md dosyasını ana görev tanımı olarak kullan.
+CloudShield_MSSP_MultiAgent_Reporting_Master_Prompt.md dosyasını ana görev tanımı olarak kullan.
 
 Dosyada tanımlanan yedi uzman agentı görevlendir ve yalnızca Faz 0 ile Faz 1'i çalıştır.
 İlk çalıştırmada production kodu üretme.
@@ -1313,7 +1313,7 @@ Faz 0 ve Faz 1 onaylandıktan sonra:
 ```text
 Önceki çalışmada üretilen ve onaylanan Faz 0 ve Faz 1 artifactlarını girdi olarak kullan.
 
-KocSistem_MSSP_MultiAgent_Reporting_Master_Prompt.md içindeki Faz 2 ve Faz 3'ü çalıştır.
+CloudShield_MSSP_MultiAgent_Reporting_Master_Prompt.md içindeki Faz 2 ve Faz 3'ü çalıştır.
 Yalnızca doğrulanmış veri kaynakları ve minimum permission matrisiyle ilerle.
 RequiresValidation, PortalOnly, ManualExportOnly, Preview veya Unsupported KPI'lar için production collector üretme.
 

@@ -8,7 +8,7 @@
 
 ## 1. Architectural Overview
 
-CloudShield is an enterprise-grade managed security and compliance reporting product engineered for **KoçSistem Managed Security Service Provider (MSSP)** operations. It interfaces directly with Microsoft Defender XDR and Microsoft Purview across multi-tenant client environments to produce executive-ready C-Level briefings, technical compliance scorecards, and verifiable threat posture reports.
+CloudShield is an enterprise-grade managed security and compliance reporting product engineered for **CloudShield Managed Security Service Provider (MSSP)** operations. It interfaces directly with Microsoft Defender XDR and Microsoft Purview across multi-tenant client environments to produce executive-ready C-Level briefings, technical compliance scorecards, and verifiable threat posture reports.
 
 The platform operates on a **Dual-Engine Architecture**:
 1. **API Gateway & Presentation Engine (Python 3.11):** Lightweight HTTP REST service (`Portal/api/server.py`) and authoritative report generation engine (`Portal/api/report_generator.py`) that constructs responsive HTML and vector A4 PDF reports.

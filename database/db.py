@@ -72,11 +72,11 @@ def seed_default_data(conn):
     now = datetime.now(timezone.utc).isoformat()
 
     # 1. Organization
-    cur.execute("SELECT id FROM organizations WHERE id = ?", ("org-kocsistem",))
+    cur.execute("SELECT id FROM organizations WHERE id = ?", ("org-cloudshield",))
     if not cur.fetchone():
         cur.execute(
             "INSERT INTO organizations (id, name, domain, created_at) VALUES (?, ?, ?, ?)",
-            ("org-kocsistem", "KoçSistem MSSP Platform", "kocsistem.com.tr", now)
+            ("org-cloudshield", "CloudShield MSSP Platform", "cloudshield-mssp.com", now)
         )
 
     # 2. Permissions
@@ -220,9 +220,9 @@ def seed_default_data(conn):
 
     # 5. Teams
     teams_data = [
-        ("team-edr", "org-kocsistem", "Core-MSSP EDR & XDR Mühendisliği", "Defender Endpoint, Office ve XDR operasyonları ekibi"),
-        ("team-compliance", "org-kocsistem", "Veri Güvenliği & Purview Uyum", "DLP, Hassas Veri Sınıflandırma ve İç Tehdit ekibi"),
-        ("team-ciso-board", "org-kocsistem", "Müşteri Yönetici Gözetimi (CISO/Board)", "Müşteri CISO ve yönetim kurulu inceleme delegasyonu")
+        ("team-edr", "org-cloudshield", "Core-MSSP EDR & XDR Mühendisliği", "Defender Endpoint, Office ve XDR operasyonları ekibi"),
+        ("team-compliance", "org-cloudshield", "Veri Güvenliği & Purview Uyum", "DLP, Hassas Veri Sınıflandırma ve İç Tehdit ekibi"),
+        ("team-ciso-board", "org-cloudshield", "Müşteri Yönetici Gözetimi (CISO/Board)", "Müşteri CISO ve yönetim kurulu inceleme delegasyonu")
     ]
     for tid, torg, tname, tdesc in teams_data:
         cur.execute("SELECT id FROM teams WHERE id = ?", (tid,))
@@ -295,7 +295,7 @@ def seed_default_data(conn):
             """INSERT INTO users (id, organization_id, upn, display_name, email, department,
                                 password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'Local', ?)""",
-            ("usr-admin", "org-kocsistem", "admin@cloudshield-mssp.com", "Platform Administrator",
+            ("usr-admin", "org-cloudshield", "admin@cloudshield-mssp.com", "Platform Administrator",
              "admin@cloudshield-mssp.com", "Siber Güvenlik Çözüm Mimarlığı", None, None, now)
         )
         cur.execute(
@@ -341,7 +341,7 @@ def seed_default_data(conn):
                             """INSERT INTO users (id, organization_id, upn, display_name, email, department,
                                                 password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'Local', ?)""",
-                            (uid, "org-kocsistem", upn, dname, upn, dept, None, None, now)
+                            (uid, "org-cloudshield", upn, dname, upn, dept, None, None, now)
                         )
 
                         role_id = "role-service-operator"

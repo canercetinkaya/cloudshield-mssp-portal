@@ -475,7 +475,7 @@ def run_quality_gates(token=None):
     # 4.3 Gate 4: UTF-8 Encoding Round-Trip & Mojibake Absence
     start = time.time()
     turkish_corpus = [
-        "KoçSistem", "Müşteri", "Yönetilen Güvenlik", "Çözüldü", "Şüpheli E-posta",
+        "CloudShield", "Müşteri", "Yönetilen Güvenlik", "Çözüldü", "Şüpheli E-posta",
         "İç Tehdit", "İletişim Uyumu", "Sınıflandırma", "Ağustos", "İstanbul",
         "Çağrı", "Ölçüm", "Uç Nokta", "Yapay Zekâ", "Güvenlik Açığı", "GÜVENLİK", "ÇIĞLIK"
     ]

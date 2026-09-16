@@ -6,7 +6,7 @@
 
 # 1. EXECUTIVE SUMMARY & PLATFORM MISSION
 
-**CloudShield MSSP Platform** (v2.5.15-PILOT) is an enterprise-grade Multi-Tenant Managed Security Service Provider (MSSP) Security & Compliance Reporting Engine and SaaS Web Portal. It was engineered specifically for **KoçSistem Managed Security Services** to deliver executive-level monthly governance reports to C-level executives (CISOs, CIOs, Board Members) and SOC/SecOps teams.
+**CloudShield MSSP Platform** (v2.5.15-PILOT) is an enterprise-grade Multi-Tenant Managed Security Service Provider (MSSP) Security & Compliance Reporting Engine and SaaS Web Portal. It was engineered specifically for **CloudShield Managed Security Services** to deliver executive-level monthly governance reports to C-level executives (CISOs, CIOs, Board Members) and SOC/SecOps teams.
 
 ### Core Value Proposition
 1. **Telemetry Ingestion:** Connects via Microsoft Graph API and Defender XDR APIs to extract telemetry from Microsoft Defender (Endpoint, Office 365, Identity, Cloud Apps), Microsoft Purview (DLP, Risk & Compliance, Information Protection, Governance), and Entra ID.
@@ -96,7 +96,7 @@ The following systems are implemented, tested, and operational in `v2.5.15-PILOT
   * Gate 2: Full provenance lineage (`sourceQueryId` resolved in Query Catalog).
   * Gate 3: Mathematical sum consistency (e.g. Total Incidents = Cleaned + Blocked + Quarantined).
   * Gate 4: Zero Incident Verification limitation disclaimer required when incidents = 0.
-  * Gate 5: Evidence-backed KoçSistem operational activities.
+  * Gate 5: Evidence-backed CloudShield operational activities.
   * Gate 6: Strict k-Anonymity privacy threshold ($k \ge 3$) and deterministic SHA-256 masking.
   * Gate 7: Decision backlog contains only real, actionable items; empty categories render clean zero-states.
   * Gates 8-14: Executive storytelling, visual hierarchy, disclaimer compliance, and PDF print integrity.
@@ -111,7 +111,7 @@ The following systems are implemented, tested, and operational in `v2.5.15-PILOT
 
 ### D. Executive & Operational UI/UX Enhancements (`Portal/web/index.html` - v2.5.15)
 * **Single-Tenant Executive Cockpit (F-01, F-08):** Selecting an individual tenant dynamically scopes the entire dashboard into a dedicated customer executive view featuring:
-  * **4-Pillar Service Value Attribution Model:** Clearly separating Microsoft autonomous prevention from KoçSistem senior engineering hours and business value saved.
+  * **4-Pillar Service Value Attribution Model:** Clearly separating Microsoft autonomous prevention from CloudShield senior engineering hours and business value saved.
   * **6-Question C-Level Executive Briefing:** Directly accessible narrative answers to executive concerns (What Happened, Business Risk, Remaining Residual Risk, Required Decisions).
 * **Interactive Customer Decision Framework (F-02):** In-portal 4-quadrant governance matrix with real-time approval buttons (`[Onayla]`, `[Risk Kabulü]`), audit event logging, and status state persistence.
 * **Semantic Zero-State Clarity (F-03):** Distinct badges for verified zero incidents vs collector synchronization states, with high-contrast icon rendering.
@@ -124,7 +124,7 @@ The following systems are implemented, tested, and operational in `v2.5.15-PILOT
 # 4. DIRECTORY & REPOSITORY MAP
 
 ```
-KocSistemMSSPPortal/
+CloudShieldMSSPPortal/
 |-- ARCHITECTURE.md                  # Master architecture document (19 topics, 5 Mermaid diagrams)
 |-- CONTRIBUTING.md                  # Contributor guide, PR rules, branch standards
 |-- DEPLOYMENT.md                    # Docker container & Azure Container Apps deployment guide
@@ -150,7 +150,7 @@ KocSistemMSSPPortal/
 |   |-- report_registry.json         # Index of generated reports and approval statuses
 |   |-- tenants.json                 # Customer tenant metadata
 |   |-- version.json                 # Synced version manifest copy
-|   +-- manual-service-activities.json # Verified KoçSistem operational evidence records
+|   +-- manual-service-activities.json # Verified CloudShield operational evidence records
 |
 |-- database/                        # Database management layer
 |   |-- db.py                        # SQLite provider, migrations runner, password hasher (PBKDF2)

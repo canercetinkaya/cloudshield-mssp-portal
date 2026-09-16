@@ -1,4 +1,4 @@
-# CloudShield MSSP Platform - Evidence-Backed KoçSistem Activity Model
+# CloudShield MSSP Platform - Evidence-Backed CloudShield Activity Model
 
 **Document Version:** 2.0.0  
 **Classification:** Operational Governance & Value Accounting  
@@ -7,7 +7,7 @@
 
 ## 1. The Activity Evidence Standard
 
-KoçSistem managed service claims must be backed by discrete, verifiable execution records in `Data/manual-service-activities.json`.
+CloudShield managed service claims must be backed by discrete, verifiable execution records in `Data/manual-service-activities.json`.
 
 ### Minimum Required Activity Schema:
 ```json

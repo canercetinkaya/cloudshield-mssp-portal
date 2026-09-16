@@ -7,13 +7,13 @@
 1. **Customer Executive** (CEO / CIO / Board Member)
 2. **Customer CISO** (Chief Information Security Officer)
 3. **SOC Manager** (Security Operations Center Lead)
-4. **MSSP Service Manager** (KoçSistem Managed Services Lead)
+4. **MSSP Service Manager** (CloudShield Managed Services Lead)
 
 ---
 
 ## Executive Summary
 
-CloudShield v2.5.14-PILOT presents a clean, enterprise-ready visual foundation with a cohesive corporate identity (KoçSistem navy `#0b1f3f` and accent red `#d81e05`), responsive layout structures, and high-fidelity reporting engine outputs. The platform successfully conveys an enterprise multi-tenant posture. 
+CloudShield v2.5.14-PILOT presents a clean, enterprise-ready visual foundation with a cohesive corporate identity (CloudShield navy `#0b1f3f` and accent red `#d81e05`), responsive layout structures, and high-fidelity reporting engine outputs. The platform successfully conveys an enterprise multi-tenant posture. 
 
 However, experiencing the portal through the lenses of the four primary customer and operational stakeholders reveals critical usability gaps, workflow disconnects, missing interactive drill-downs, and visual friction points. Addressing these issues will transform the portal from a functional reporting interface into a sticky, high-satisfaction executive decision platform.
 
@@ -22,7 +22,7 @@ However, experiencing the portal through the lenses of the four primary customer
 ## Stakeholder Persona Evaluation
 
 ### 1. Customer Executive (CEO / CIO / Board Member)
-* **Goal:** High-level strategic visibility, business risk status, understanding ROI between Microsoft autonomous capabilities and KoçSistem engineering value.
+* **Goal:** High-level strategic visibility, business risk status, understanding ROI between Microsoft autonomous capabilities and CloudShield engineering value.
 * **Experience Highlights:** The generated PDF/HTML reports contain exceptional conceptual models (the "6-Question Executive Brief" and "4-Pillar Service Value Attribution Model").
 * **Key Frustrations:**
   * The web portal dashboard does not show the executive narrative summary; it only shows raw sensor counts.
@@ -45,7 +45,7 @@ However, experiencing the portal through the lenses of the four primary customer
   * No incident feed or alert triage table directly accessible from the dashboard metric cards.
   * No collector health drill-down when a service reports "Yüklenmedi / Telemetri Eksik".
 
-### 4. MSSP Service Manager (KoçSistem Operations Lead)
+### 4. MSSP Service Manager (CloudShield Operations Lead)
 * **Goal:** Multi-tenant fleet health, automated customer reporting, seamless tenant onboarding, SLA oversight across operational teams.
 * **Experience Highlights:** Rapid report compilation in the Reporting Studio, clear engineering team ownership cards (EDR, Purview, IR) with published reaction SLAs.
 * **Key Frustrations:**
@@ -215,7 +215,7 @@ Journey 5: Modular Report Generation & Scheduled Dispatch
   1. *Ne Oldu?*
   2. *Neden Önemli?*
   3. *Microsoft Teknolojisi Ne Sağladı?*
-  4. *KoçSistem Yönetilen Hizmeti Ne Sağladı?*
+  4. *CloudShield Yönetilen Hizmeti Ne Sağladı?*
   5. *Ortamda Hangi Artık Riskler Kaldı?*
   6. *Liderlikten Hangi Kararlar Bekleniyor?*
   Currently, this brief is only visible if the executive opens an external PDF or HTML report artifact. When viewing the portal on a tablet or laptop, the executive cannot read this executive summary directly on the dashboard.

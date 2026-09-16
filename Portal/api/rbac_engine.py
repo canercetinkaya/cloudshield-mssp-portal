@@ -100,7 +100,7 @@ def authenticate_user(username, password, ip_address="127.0.0.1"):
                 "displayName": user_dict["display_name"],
                 "email": user_dict["email"],
                 "department": user_dict.get("department", ""),
-                "organization": user_dict.get("org_name", "KoçSistem"),
+                "organization": user_dict.get("org_name", "CloudShield"),
                 "roles": roles,
                 "role": "PlatformAdmin" if is_plat_admin else (roles[0] if roles else "ServiceOperator"),
                 "isPlatformAdmin": is_plat_admin,

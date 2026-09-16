@@ -32,46 +32,46 @@ Six independent roles conducted source-level, runtime, and cryptographic audits 
 
 ### Control 1: Defect Inventory & The "15th Defect"
 - **Discrepancy:** Remediation summaries cited "15 defects", but `test_report_quality_gate.py` only contained 14 automated rules.
-- **Resolution:** Defect 15 was identified as *\"Unqualified Zero Incident verification statement without verified complete collection and mandatory disclaimer\"*. Defect 15 is now formally tracked in [DefectTraceabilityMatrix.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/DefectTraceabilityMatrix.md).
+- **Resolution:** Defect 15 was identified as *\"Unqualified Zero Incident verification statement without verified complete collection and mandatory disclaimer\"*. Defect 15 is now formally tracked in [DefectTraceabilityMatrix.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/DefectTraceabilityMatrix.md).
 - **Status:** 12 resolved, 2 flawed source basis, 1 active failure.
 
 ### Control 2 & 3: Independent Test Gate & Zero Denominator Robustness
-- **Harness:** Created [test_post_remediation_independent_gate.py](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/test_post_remediation_independent_gate.py) with independent fixtures.
+- **Harness:** Created [test_post_remediation_independent_gate.py](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/test_post_remediation_independent_gate.py) with independent fixtures.
 - **Results:** 20 Passed, 1 Failed.
 - **Zero Denominator:** All 8 boundary conditions (`0/0`, `None/None`, `5/0`, `5/-10`, `0/"0"`, etc.) rendered strictly `"N/A"`. Zero NaN, Infinity, or 100% outputs produced.
 
 ### Control 4: Parent-Child Arithmetic Consistency
 - Tested 8 boundary scenarios including sum discrepancies, empty child arrays with positive totals, negative child counts, and duplicate categories. The independent oracle verified that when `overrides == 0`, breakdown tables are properly suppressed.
 
-### Control 5 & 6: KoçSistem Operational Evidence, Saved Hours & FTE
+### Control 5 & 6: CloudShield Operational Evidence, Saved Hours & FTE
 - **Disqualification of Runbook IDs:** Reports cited `RB-MDE-2026-08-01` and `RB-DLP-2026-08-02` as proof of 15 completed actions. A runbook is a standard operating procedure, not an execution record.
 - **Database Mismatch:** `Data/manual-service-activities.json` records only **3 customer activities**, contradicting the **15 reported actions**.
 - **Discovery of Synthetic Multiplier:** Analysis of `report_generator.py` (L732, L872) proved that the reported **22.5 saved hours** was calculated via an arbitrary hardcoded formula: `round(actions * 1.5, 1)` (\(9 \times 1.5 + 6 \times 1.5 = 22.5\)). Real logged worklog hours total only **9.5 hours** (a 236% inflation).
-- **Audit Detail:** See [OperationalEvidenceAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview Reports/KocSistemMSSPPortal/OperationalEvidenceAudit.md).
+- **Audit Detail:** See [OperationalEvidenceAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview Reports/CloudShieldMSSPPortal/OperationalEvidenceAudit.md).
 
 ### Control 7: PDF Content Preservation & CSS Overflow Clipping
 - **Critical Flaw in `style.css`:** `.page { max-height: 275mm; overflow: hidden; }` silently truncates all table rows and text that exceed 275mm.
 - **Stress Test Evidence:** A stress fixture with 14 services and 15 recommendations pushed table rows past 275mm, causing silent visual loss in vector PDF exports.
-- **Audit Detail:** See [PDFContentPreservationReport.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/PDFContentPreservationReport.md).
+- **Audit Detail:** See [PDFContentPreservationReport.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/PDFContentPreservationReport.md).
 
 ### Control 8: Portal Workflow Re-Validation
 - Executed live `POST /api/reports/generate` for `tenant-002` on port 8080.
-- Generated [PortalWorkflowEvidence.json](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/PortalWorkflowEvidence.json) recording HTTP 200, duration 7.95s, RunId `ccca294d-8417-4ef5-b9b5-ac09399e707a`, and cryptographic SHA-256 hashes for all output files.
+- Generated [PortalWorkflowEvidence.json](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/PortalWorkflowEvidence.json) recording HTTP 200, duration 7.95s, RunId `ccca294d-8417-4ef5-b9b5-ac09399e707a`, and cryptographic SHA-256 hashes for all output files.
 - **Anomaly:** Output `data.json` recorded `availabilityState: "DryRunMock"`.
 
 ### Control 9: KPI Provenance & Catalog Resolution
 - **Consolidated Cards:** The primary executive report (`Rapor_Emre-TestTenant_2026-08.html`) emitted **zero** `data-kpi-id` or `data-source-query` attributes.
 - **Single-Service Cards:** Emitted ad-hoc query strings (`'DeviceEvents | count'`) rather than formal `catalog-index.json` IDs (`MS-MDE-001`).
-- **Audit Detail:** See [KpiProvenanceAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/KpiProvenanceAudit.md).
+- **Audit Detail:** See [KpiProvenanceAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/KpiProvenanceAudit.md).
 
 ### Control 10: Quality Score Model Audit
 - The author's claimed **10.0 / 10.0** was downgraded to **7.15 / 10.0**. Regex string presence was re-labeled to **Automated Semantic Pattern Assurance**.
-- **Audit Detail:** See [IndependentQualityGateReport.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/IndependentQualityGateReport.md).
+- **Audit Detail:** See [IndependentQualityGateReport.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/IndependentQualityGateReport.md).
 
 ### Control 11: Privacy & Sensitive Data Leakage
 - TCKN, credit cards, and customer UPNs are properly anonymized.
 - **Finding:** External partner email domain `partner-lojistik.com` was found unmasked in `data.json`.
-- **Audit Detail:** See [PrivacyLeakageAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/PrivacyLeakageAudit.md).
+- **Audit Detail:** See [PrivacyLeakageAudit.md](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/PrivacyLeakageAudit.md).
 
 ### Control 12: Customer Report Language
 - **Active Violation:** Customer report disclaimer still contains the prohibited absolute term `'hukuki inkar edilemezlik'`, which caused the independent gate test to fail.
@@ -88,12 +88,12 @@ All six independent reviewer assessments have been generated and committed:
 
 | Reviewer | Role | Decision | Key Blocking Concern | Artifact |
 | :--- | :--- | :---: | :--- | :--- |
-| **Reviewer 1** | QA Automation Engineer | **REJECTED** | Independent gate failure on banned phrasing; CSS overflow clipping risk. | [`AgentReview_QA_Automation_Engineer.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_QA_Automation_Engineer.json) |
-| **Reviewer 2** | Principal Security Architect | **REJECTED** | Missing provenance in consolidated reports; uncataloged query strings. | [`AgentReview_Principal_Security_Architect.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_Principal_Security_Architect.json) |
-| **Reviewer 3** | MSSP Operations Architect | **REJECTED** | 22.5 saved hours based on 1.5x multiplier; Runbooks cited as action proof. | [`AgentReview_MSSP_Operations_Architect.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_MSSP_Operations_Architect.json) |
-| **Reviewer 4** | Purview & Compliance Lead | **REJECTED** | Banned legal assurance phrase; unmasked external partner domain. | [`AgentReview_Compliance_Lead.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_Compliance_Lead.json) |
-| **Reviewer 5** | Customer CISO Executive | **REJECTED** | Unsubstantiated ROI / FTE metrics; risk of truncated PDF reports. | [`AgentReview_Customer_CISO.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_Customer_CISO.json) |
-| **Reviewer 6** | Azure Solutions & DevOps Architect | **REJECTED** | GitHub `ci-cd.yml` workflow failure on push; artifact lifecycle unsegregated. | [`AgentReview_Azure_DevOps.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/KocSistemMSSPPortal/AgentReview_Azure_DevOps.json) |
+| **Reviewer 1** | QA Automation Engineer | **REJECTED** | Independent gate failure on banned phrasing; CSS overflow clipping risk. | [`AgentReview_QA_Automation_Engineer.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_QA_Automation_Engineer.json) |
+| **Reviewer 2** | Principal Security Architect | **REJECTED** | Missing provenance in consolidated reports; uncataloged query strings. | [`AgentReview_Principal_Security_Architect.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_Principal_Security_Architect.json) |
+| **Reviewer 3** | MSSP Operations Architect | **REJECTED** | 22.5 saved hours based on 1.5x multiplier; Runbooks cited as action proof. | [`AgentReview_MSSP_Operations_Architect.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_MSSP_Operations_Architect.json) |
+| **Reviewer 4** | Purview & Compliance Lead | **REJECTED** | Banned legal assurance phrase; unmasked external partner domain. | [`AgentReview_Compliance_Lead.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_Compliance_Lead.json) |
+| **Reviewer 5** | Customer CISO Executive | **REJECTED** | Unsubstantiated ROI / FTE metrics; risk of truncated PDF reports. | [`AgentReview_Customer_CISO.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_Customer_CISO.json) |
+| **Reviewer 6** | Azure Solutions & DevOps Architect | **REJECTED** | GitHub `ci-cd.yml` workflow failure on push; artifact lifecycle unsegregated. | [`AgentReview_Azure_DevOps.json`](file:///c:/Users/CANERCETINKAYA/OneDrive%20-%20CETINKAYA/Documents/Microsoft%20Purview%20Reports/CloudShieldMSSPPortal/AgentReview_Azure_DevOps.json) |
 
 ---
 

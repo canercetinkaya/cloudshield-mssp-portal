@@ -14,7 +14,7 @@ Assume the primary problem is that generated reports are technically correct but
 - **Executive Readability:** Clear narrative that C-Level executives can comprehend without an engineer.
 - **Evidence-Backed Storytelling:** Every metric is contextualized with real telemetry.
 - **Information Architecture:** Seamless flow from executive posture to deep threat hunting and governance.
-- **Microsoft vs. KoçSistem Value Separation:** Rigorous attribution of automated platform protection vs. human engineering operations.
+- **Microsoft vs. CloudShield Value Separation:** Rigorous attribution of automated platform protection vs. human engineering operations.
 - **Customer Decision Support:** Concrete decision tables (Approved, Pending, Deferred, Recommended).
 - **Visual Quality:** Pixel-perfect A4 printing, distinct badges, clear typographic hierarchy.
 - **Actionability:** RACI assignments, SLA commitments, and runbook IDs for all remediation items.
@@ -35,7 +35,7 @@ Every visible KPI must answer: **SO WHAT?**
 ### B. Service Value Attribution Model
 Every reported outcome must belong to exactly one category:
 1. **Microsoft Technology Value:** Native platform protection, automated investigation & response (AIR), ZAP, built-in heuristics, and cloud ML detections.
-2. **KoçSistem Managed Service Value:** Expert analyst triage, custom KQL threat hunting, incident escalation, attack surface reduction (ASR) optimization, false-positive tuning, and proactive architecture hardening.
+2. **CloudShield Managed Service Value:** Expert analyst triage, custom KQL threat hunting, incident escalation, attack surface reduction (ASR) optimization, false-positive tuning, and proactive architecture hardening.
 3. **Customer Action Value:** Policy exception approvals, device hardware refresh (TPM/SecureBoot), BitLocker PIN enforcement, and end-user security awareness training.
 4. **Shared Outcome:** Joint incident response drills, compliance attestations, and architecture review milestones.
 *Do not mix categories. Maintain strict clarity on who achieved what.*
@@ -52,7 +52,7 @@ A customer executive must be able to answer all six questions without engineer a
 1. What happened?
 2. Why does it matter?
 3. What value did Microsoft provide?
-4. What value did KoçSistem provide?
+4. What value did CloudShield provide?
 5. What risks remain?
 6. What decisions are required?
 
@@ -64,7 +64,7 @@ All report artifacts are scored on a scale of 0 to 10 across eight dimensions:
 1. **Data Integrity (Weight: 15%):** Zero mock policy, real telemetry extraction, correct math.
 2. **Privacy & Governance (Weight: 15%):** k-Anonymity masking (UPN, IP, file), KVKK/GDPR compliance, cryptographic hashes.
 3. **Technical Accuracy (Weight: 10%):** Valid KQL queries, correct MITRE ATT&CK mapping, sensor coverage calculations.
-4. **Service Value Evidence (Weight: 15%):** Explicit KoçSistem vs. Microsoft attribution, SLA compliance, saved engineering hours.
+4. **Service Value Evidence (Weight: 15%):** Explicit CloudShield vs. Microsoft attribution, SLA compliance, saved engineering hours.
 5. **Executive Clarity (Weight: 15%):** 30-second posture badge, executive summary narrative, zero jargon ambiguity.
 6. **Visual Quality (Weight: 10%):** A4 page budgeting, no awkward table breaks, corporate branding, professional typography.
 7. **Actionability (Weight: 10%):** RACI assigned runbooks, SLA timeline, prioritized backlog.

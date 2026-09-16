@@ -50,7 +50,7 @@ We take the security of CloudShield MSSP Platform and our customer tenants extre
 ### Vulnerability Reporting Process:
 1. **Contact Security Operations:** Email the DevSecOps Lead directly at:
    * Primary: `security@cloudshield-mssp.com`
-   * Corporate MSSP: `mssp-security@kocsistem.com.tr`
+   * Corporate MSSP: `mssp-security@cloudshield-mssp.com`
    * DevSecOps Team: `devsecops@cloudshield-mssp.com`
 2. **Include Technical Details:**
    * Detailed description of the vulnerability.

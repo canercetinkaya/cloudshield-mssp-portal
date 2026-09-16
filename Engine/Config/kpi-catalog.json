@@ -105,7 +105,7 @@
       "targetThreshold": 60,
       "formula": "Average(ResolvedDateTime - CreatedDateTime) in minutes",
       "availabilityState": "DerivedFromSupportedFields",
-      "description": "Defender XDR olaylarının tespitinden KoçSistem mühendisleri veya otonom aksiyonlarca çözümüne kadar geçen süre."
+      "description": "Defender XDR olaylarının tespitinden CloudShield mühendisleri veya otonom aksiyonlarca çözümüne kadar geçen süre."
     },
     "KPI-INTUNE-001": {
       "id": "KPI-INTUNE-001",

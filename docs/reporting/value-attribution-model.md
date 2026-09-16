@@ -16,7 +16,7 @@ flowchart TD
         M2["Zero Human Intervention Required"]
     end
 
-    subgraph P2 ["Pillar 2: KoçSistem Managed Service Value"]
+    subgraph P2 ["Pillar 2: CloudShield Managed Service Value"]
         K1["Expert Human Engineering & Incident Triage"]
         K2["Policy Tuning & Proactive Threat Hunting"]
         K3["Approved Timesheet Worklogs (Saved Hours)"]
@@ -35,10 +35,10 @@ flowchart TD
 
 ---
 
-## 2. Microsoft vs. KoçSistem Value Separation Rules
+## 2. Microsoft vs. CloudShield Value Separation Rules
 
-1. **Zero Double-Counting:** Automated Microsoft blocks (e.g., 120 Defender AV blocks) are NEVER counted as KoçSistem human actions.
-2. **Evidence-Backed Saved Hours:** KoçSistem saved hours must derive strictly from approved timesheets in `Data/manual-service-activities.json`. Synthetic multipliers (`actions * 1.5`) are prohibited in customer reports.
+1. **Zero Double-Counting:** Automated Microsoft blocks (e.g., 120 Defender AV blocks) are NEVER counted as CloudShield human actions.
+2. **Evidence-Backed Saved Hours:** CloudShield saved hours must derive strictly from approved timesheets in `Data/manual-service-activities.json`. Synthetic multipliers (`actions * 1.5`) are prohibited in customer reports.
 3. **FTE Capacity Formula:**
    $$\text{FTE} = \frac{\text{ApprovedSavedHours}}{160}$$
    If saved hours are unbacked, the FTE metric must render `0.0 FTE` with an explicit notice: *"Doğrulanmış Süre Kaydı Bulunmuyor"*.

@@ -20,7 +20,7 @@
 
 ### Issue 3 — ASCII-stripped Turkish corpus in the encoding quality gate
 - **Location:** `test_comprehensive_qa.py` — Gate 4 (`UTF-8 Encoding Round-Trip & Mojibake Absence`) `turkish_corpus`.
-- **Symptom:** The corpus consisted entirely of ASCII-stripped strings (e.g. `KocSistem`, `Ic Tehdit`, `Siniflandirma`), so the gate could not detect any loss of Turkish diacritics — a false sense of compliance.
+- **Symptom:** The corpus consisted entirely of ASCII-stripped strings (e.g. `CloudShield`, `Ic Tehdit`, `Siniflandirma`), so the gate could not detect any loss of Turkish diacritics — a false sense of compliance.
 - **Classification:** **Internal Only** (test coverage defect; no customer output, but it masked the customer-visible risk).
 
 ### Issue 4 — PowerShell host code page not forced to UTF-8 on entry scripts
@@ -102,7 +102,7 @@
 ## 4. Remaining Work
 
 1. **Regenerate generated artifacts.** Re-run the QA harness and any report generation so that the git-ignored `qa_test_results.json` and any locally produced reports reflect the corrected UTF-8 code paths (no action on the code required; the fix is in place).
-2. **Roll out the console/environment pattern to remaining entry scripts.** Apply the same UTF-8 console + `PYTHONUTF8`/`PYTHONIOENCODING` block to the other `.ps1` entry points that launch Python and do not yet set it (e.g. `setup_project.ps1`, `Publish-ToGitHub.ps1`, `New-CloudShieldRelease.ps1`, `Engine/Create-ScheduledTask.ps1`, `Engine/Install-KocSistemSecurityReporting.ps1`, `Azure/Deploy-ToAzure.ps1`, `Engine/KQL/query-validation/Test-KqlSyntax.ps1`).
+2. **Roll out the console/environment pattern to remaining entry scripts.** Apply the same UTF-8 console + `PYTHONUTF8`/`PYTHONIOENCODING` block to the other `.ps1` entry points that launch Python and do not yet set it (e.g. `setup_project.ps1`, `Publish-ToGitHub.ps1`, `New-CloudShieldRelease.ps1`, `Engine/Create-ScheduledTask.ps1`, `Engine/Install-CloudShieldSecurityReporting.ps1`, `Azure/Deploy-ToAzure.ps1`, `Engine/KQL/query-validation/Test-KqlSyntax.ps1`).
 3. **Operational precondition for the PDF fallback.** Ensure a Turkish-capable Unicode TrueType font is present wherever the pure-Python PDF fallback runs; otherwise, by design, report generation now fails closed with `Utf8ComplianceError`. Headless Chromium/Edge remains the preferred engine.
 4. **Caller handling of `Utf8ComplianceError`.** Confirm all callers of `create_executive_pdf()` surface the fail-closed error to the operator explicitly rather than swallowing it.
 5. **End-to-end regression run.** Execute the full QA suite once the environment/font preconditions are met and archive the clean results as evidence.

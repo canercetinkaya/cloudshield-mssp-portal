@@ -18,7 +18,7 @@ from datetime import datetime
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 GOLDEN_CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "GoldenStandard", "style.css")
-PROVIDER_NAME = "KoçSistem"
+PROVIDER_NAME = "CloudShield"
 
 # ─────────────────────────────────────────────────────────────
 # 1. DATA LOADERS & ROBUST ARITHMETIC HELPERS
@@ -244,7 +244,7 @@ def render_attribution_grid_mde(auto_blocked, analyst_actions, saved_hours, fte_
     <span class="attr-sub">Otonom Bloklanan Olay<br>(Platform Koruması)</span>
   </div>
   <div class="attribution-card koc">
-    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
     <b>{saved_display}</b>
     <span class="attr-sub">Kazanılan Efor (~{fte_equiv} FTE)<br>{analyst_display}{evidence_note}</span>
   </div>
@@ -274,7 +274,7 @@ def render_attribution_grid_purview(total_events, blocked_events, overrides, eng
     <span class="attr-sub">Otonom DLP Engeli<br>(Hassas Veri Kalkanı)</span>
   </div>
   <div class="attribution-card koc">
-    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
     <b>{saved_display}</b>
     <span class="attr-sub">Kazanılan Efor (~{fte_equiv} FTE)<br>{eng_display}{evidence_note}</span>
   </div>
@@ -301,7 +301,7 @@ def render_attribution_grid_consolidated(total_blocks, total_analyst_actions, sa
     <span class="attr-sub">Toplam Otonom Engel<br>(XDR &amp; Purview Kalkanı)</span>
   </div>
   <div class="attribution-card koc">
-    <span class="attr-title" style="color:#059669;">2. KoçSistem Yönetilen Hizmeti</span>
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
     <b>{saved_display}</b>
     <span class="attr-sub">Kazanılan Zaman (~{fte_equiv} FTE)<br>{total_analyst_actions} Uzman Müdahalesi</span>
   </div>
@@ -383,7 +383,7 @@ def render_decision_framework_mde(ghost_14_30, analyst_actions):
   </div>
 
   <div class="decision-box recommended">
-    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
@@ -457,7 +457,7 @@ def render_decision_framework_purview(endpoint_blocks, overrides):
   </div>
 
   <div class="decision-box recommended">
-    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
@@ -499,7 +499,7 @@ def render_decision_framework_consolidated():
       </tr>
       <tr>
         <td><b>DEC-M365-APP-02</b></td>
-        <td>Purview DLP ve KoçSistem MSSP Mühendislik Triyaj Entegrasyonu</td>
+        <td>Purview DLP ve CloudShield MSSP Mühendislik Triyaj Entegrasyonu</td>
         <td>Bilgi Güvenliği Direktörü</td>
         <td><span class="pill p-ok">Tamamlandı</span></td>
         <td>RB-DLP-INT-02</td>
@@ -539,7 +539,7 @@ def render_decision_framework_consolidated():
   </div>
 
   <div class="decision-box recommended">
-    <h4>💡 4. KoçSistem Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
@@ -567,7 +567,7 @@ def render_decision_framework_consolidated():
 # ─────────────────────────────────────────────────────────────
 
 def render_executive_brief_mde(customer_name, period_label, total_devices, total_alerts, open_incidents, auto_blocked, analyst_actions, saved_hours, fte_equiv, ghost_14_30):
-    analyst_txt = f"KoçSistem uzmanları {analyst_actions} doğrudan analist müdahalesi gerçekleştirdi, {saved_hours:.1f} saat (~{fte_equiv} FTE) mühendislik eforu sağladı." if analyst_actions > 0 else "Dönem boyunca analist eskalasyonu gerektiren kritik bir anomali yaşanmamış, standart izleme sürdürülmüştür."
+    analyst_txt = f"CloudShield uzmanları {analyst_actions} doğrudan analist müdahalesi gerçekleştirdi, {saved_hours:.1f} saat (~{fte_equiv} FTE) mühendislik eforu sağladı." if analyst_actions > 0 else "Dönem boyunca analist eskalasyonu gerektiren kritik bir anomali yaşanmamış, standart izleme sürdürülmüştür."
     
     return f'''
 <div class="executive-brief">
@@ -589,7 +589,7 @@ def render_executive_brief_mde(customer_name, period_label, total_devices, total
         <p>Microsoft Defender E5 bulut heuristiği ve AIR mekanizması {fmt_num(auto_blocked)} olayı milisaniyeler içinde otonom sınırlandırdı.</p>
       </div>
       <div class="brief-col">
-        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
         <p>{analyst_txt}</p>
       </div>
     </div>
@@ -608,7 +608,7 @@ def render_executive_brief_mde(customer_name, period_label, total_devices, total
 
 def render_executive_brief_purview(customer_name, period_label, total_events, blocked_events, overrides, eng_effort, saved_hours):
     fte_equiv = fmt_fte(saved_hours)
-    analyst_txt = f"KoçSistem mühendisleri {eng_effort} adet politika aşımı ve kural optimizasyonunu inceledi, kuruma {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırdı." if eng_effort > 0 else "Dönem içinde incelenen kural aşımı bulunmamaktadır."
+    analyst_txt = f"CloudShield mühendisleri {eng_effort} adet politika aşımı ve kural optimizasyonunu inceledi, kuruma {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırdı." if eng_effort > 0 else "Dönem içinde incelenen kural aşımı bulunmamaktadır."
     
     return f'''
 <div class="executive-brief">
@@ -630,7 +630,7 @@ def render_executive_brief_purview(customer_name, period_label, total_events, bl
         <p>M365 E5 DLP motoru hassas bilgi türlerini (SIT) tarayarak {fmt_num(blocked_events)} yetkisiz veri aktarımını durdurdu.</p>
       </div>
       <div class="brief-col">
-        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
         <p>{analyst_txt}</p>
       </div>
     </div>
@@ -649,7 +649,7 @@ def render_executive_brief_purview(customer_name, period_label, total_events, bl
 
 def render_executive_brief_consolidated(customer_name, period_label, num_services, total_blocks, total_analyst_actions, saved_hours):
     fte_equiv = fmt_fte(saved_hours)
-    analyst_txt = f"KoçSistem mühendisleri çapraz etki alanı korelasyonu ve triyajı ile {total_analyst_actions} doğrudan müdahale gerçekleştirerek {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırmıştır." if total_analyst_actions > 0 else "Dönem içinde çapraz servis triyajı gerektiren açık kritik güvenlik olayı yaşanmamıştır."
+    analyst_txt = f"CloudShield mühendisleri çapraz etki alanı korelasyonu ve triyajı ile {total_analyst_actions} doğrudan müdahale gerçekleştirerek {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırmıştır." if total_analyst_actions > 0 else "Dönem içinde çapraz servis triyajı gerektiren açık kritik güvenlik olayı yaşanmamıştır."
     
     return f'''
 <div class="executive-brief">
@@ -671,7 +671,7 @@ def render_executive_brief_consolidated(customer_name, period_label, num_service
         <p>XDR ve Purview makine hızında otonom müdahale ile {fmt_num(total_blocks)} olayı yayılmadan izole etmiştir.</p>
       </div>
       <div class="brief-col">
-        <b>4. KoçSistem Yönetilen Hizmeti Ne Sağladı?:</b>
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
         <p>{analyst_txt}</p>
       </div>
     </div>

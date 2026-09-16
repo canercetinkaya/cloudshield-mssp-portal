@@ -34,7 +34,7 @@ flowchart TD
 | **03** | Parent-Child Count Discrepancy | Sum of child counts does not equal parent total count. | Strict equality enforced |
 | **04** | Percentage Distribution on Zero Total | Percentage breakdown table rendered when total events is 0. | Table suppressed; render zero-state badge |
 | **05** | Unbacked Positive FTE | FTE > 0 rendered while approved saved hours is 0 or unbacked. | `0.0 FTE (Kayıt Yok)` |
-| **06** | Action Without Approved Evidence | KoçSistem intervention claimed without discrete `ActionId`. | Link to verified activity ticket |
+| **06** | Action Without Approved Evidence | CloudShield intervention claimed without discrete `ActionId`. | Link to verified activity ticket |
 | **07** | Failed Service KPI Rendering | KPI card displayed for a service in `CollectionFailed` state. | Suppress card; disclose in Page 1 health |
 | **08** | Empty Table Rendering | HTML `<table>` tag rendered with zero data rows. | Suppress table; render clean notice box |
 | **09** | Unloaded Service Omission | Contracted service omitted from Page 1 collection health matrix. | Every contracted service must be listed |

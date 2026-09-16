@@ -2,7 +2,7 @@
 
 **Audit Title:** Deep-Layer Operational Evidence & Value Attribution Integrity Audit  
 **Date:** 2026-09-10  
-**Audit Entity:** KoçSistem MSSP Operations Review Board  
+**Audit Entity:** CloudShield MSSP Operations Review Board  
 **Target Artifacts:**  
 - `Data/manual-service-activities.json`  
 - `Portal/api/report_generator.py` (Attribution Grids L234-L310)  
@@ -25,7 +25,7 @@ A rigorous operational audit was performed on the reported **9 MDE Analyst Actio
 
 ---
 
-## 2. KoçSistem Action Evidence Audit (MDE 9 & DLP 6 Actions)
+## 2. CloudShield Action Evidence Audit (MDE 9 & DLP 6 Actions)
 
 ### 2.1 The Runbook vs. Execution Record Fallacy
 In `report_generator.py`:

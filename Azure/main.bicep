@@ -1,5 +1,5 @@
 // ==============================================================================
-// KoçSistem Managed Security Operations & Reporting Platform (MSSP Portal)
+// CloudShield Managed Security Operations & Reporting Platform (MSSP Portal)
 // Infrastructure as Code: Azure Container Apps Serverless Architecture
 // Optimized for Azure MCT Subscription (<$10/mo) and Enterprise Production
 // ==============================================================================

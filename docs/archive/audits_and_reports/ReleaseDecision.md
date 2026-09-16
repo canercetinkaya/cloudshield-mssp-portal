@@ -25,7 +25,7 @@ Under the authoritative specification, `READY_FOR_CONTROLLED_PILOT` may only be 
 | 2 | Independent Quality Gate Pass | **FAIL** | 20 Pass / 1 Fail in `test_post_remediation_independent_gate.py` | ❌ Blocking |
 | 3 | Zero blocking semantic violations | **FAIL** | Prohibited phrase `hukuki inkar edilemezlik` active in customer report | ❌ Blocking |
 | 4 | Zero synthetic customer KPIs | **FAIL** | Saved hours (22.5h) computed via synthetic 1.5x multiplier | ❌ Blocking |
-| 5 | KoçSistem actions verified via execution evidence | **FAIL** | Actions cite static runbook IDs instead of individual ticket records | ❌ Blocking |
+| 5 | CloudShield actions verified via execution evidence | **FAIL** | Actions cite static runbook IDs instead of individual ticket records | ❌ Blocking |
 | 6 | Saved hours and FTE evidence-backed | **FAIL** | Actual logged worklog is 9.5h vs 22.5h claimed; FTE capacity unproven | ❌ Blocking |
 | 7 | Zero PDF content clipping | **FAIL** | `style.css` `overflow: hidden` silently crops lines past 275mm | ❌ Blocking |
 | 8 | Portal endpoint run evidence verified | **PASS** | Validated via `PortalWorkflowEvidence.json` (Status 200, SHA-256 traces) | ✅ Passed |

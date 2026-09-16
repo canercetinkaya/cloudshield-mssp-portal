@@ -19,7 +19,7 @@ Enforces 14 Automated Semantic Failure Conditions:
 3. Sum of child counts not equal to total
 4. Percentage distribution with a zero total
 5. FTE greater than zero when approved effort basis is absent
-6. KoçSistem action without evidence
+6. CloudShield action without evidence
 7. Service KPI rendered when collection failed
 8. Empty table rendered
 9. Unloaded service omitted from executive completeness
@@ -96,12 +96,12 @@ def check_semantic_rules(html_content, live_data=None, requested_services=None):
                 if "0.0 sa" in html_content or "+0 Saat" in html_content or "0 Uzman Eforu" in html_content or "0 Uzman Müdahalesi" in html_content:
                     findings.append(f"FAIL [Rule 5]: FTE ({fte_val}) > 0 rendered while approved effort/hours is zero")
 
-    # Rule 6: KoçSistem action without evidence
+    # Rule 6: CloudShield action without evidence
     if "Uzman Müdahalesi" in html_content or "Uzman Eforu" in html_content:
         nonzero_actions = re.search(r"([1-9][0-9]*)\s*(?:Uzman Eforu|Uzman Müdahalesi|doğrudan analist müdahalesi)", html_content)
         if nonzero_actions:
             if "Kanıt:" not in html_content and "RB-" not in html_content and "INC-" not in html_content:
-                findings.append(f"FAIL [Rule 6]: KoçSistem action ({nonzero_actions.group(0)}) rendered without approved operational evidence ID")
+                findings.append(f"FAIL [Rule 6]: CloudShield action ({nonzero_actions.group(0)}) rendered without approved operational evidence ID")
 
     # Rule 7: Service KPI rendered when collection failed
     if live_data:
@@ -194,7 +194,7 @@ def evaluate_report_quality(html_content, report_type="MDE", live_data=None, req
             score_pg -= 3.0
             details.append(f)
     unmasked = re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", html_content)
-    raw_emails = [e for e in unmasked if "***" not in e and not any(d in e for d in ["example.com", "w3.org", "domain.com", "kocsistem.com.tr", "cloudshield-mssp.com"])]
+    raw_emails = [e for e in unmasked if "***" not in e and not any(d in e for d in ["example.com", "w3.org", "domain.com", "cloudshield-mssp.com", "cloudshield-mssp.com"])]
     if raw_emails:
         score_pg -= 4.0
         details.append(f"Privacy: Raw unmasked email: {raw_emails[:2]}")
@@ -217,7 +217,7 @@ def evaluate_report_quality(html_content, report_type="MDE", live_data=None, req
         if any(r in f for r in ["Rule 5", "Rule 6"]):
             score_sve -= 3.0
             details.append(f)
-    required_pillars = ["Microsoft Teknolojisi", "KoçSistem Yönetilen", "Müşteri Eylem", "Ortak Başarı"]
+    required_pillars = ["Microsoft Teknolojisi", "CloudShield Yönetilen", "Müşteri Eylem", "Ortak Başarı"]
     for p in required_pillars:
         if p not in html_content:
             score_sve -= 2.5
@@ -230,7 +230,7 @@ def evaluate_report_quality(html_content, report_type="MDE", live_data=None, req
         if any(r in f for r in ["Rule 9", "Rule 14"]):
             score_ec -= 2.0
             details.append(f)
-    required_questions = ["1. Ne Oldu?", "2. Neden Önemli?", "3. Microsoft", "4. KoçSistem", "5. Ortamda Hangi", "6. Liderlikten Hangi"]
+    required_questions = ["1. Ne Oldu?", "2. Neden Önemli?", "3. Microsoft", "4. CloudShield", "5. Ortamda Hangi", "6. Liderlikten Hangi"]
     for q in required_questions:
         if q not in html_content:
             score_ec -= 1.5

@@ -344,7 +344,7 @@ The following text must round-trip without loss through every supported customer
 
 ```text
 İstanbul
-KoçSistem
+CloudShield
 Güvenlik
 Şifre
 İhlal
@@ -708,7 +708,7 @@ Every customer-facing executive report must provide, when supported by evidence:
 - key risks and material changes;
 - security and compliance trends;
 - service-level findings;
-- KoçSistem operational actions with execution evidence;
+- CloudShield operational actions with execution evidence;
 - customer-owned actions;
 - decision backlog;
 - owners and target timelines when approved;

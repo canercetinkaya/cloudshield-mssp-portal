@@ -6,7 +6,7 @@ Author: Independent QA Automation Engineer & Security Review Board
 Scope:
   - Validates zero-denominator robustness (8 boundary cases)
   - Validates parent-child arithmetic consistency (8 boundary cases)
-  - Audits KoçSistem operational evidence validity (actions, runbooks, IDs)
+  - Audits CloudShield operational evidence validity (actions, runbooks, IDs)
   - Audits FTE and saved hours computation (synthetic multiplier detection)
   - Audits PDF content preservation and CSS overflow clipping risks
   - Scans for prohibited absolute marketing/guarantee phrases
@@ -202,7 +202,7 @@ class TestIndependentParentChildArithmeticGate(unittest.TestCase):
 class TestOperationalEvidenceAndSavedHours(unittest.TestCase):
     """
     Mandatory Control 5 & 6:
-    Verify KoçSistem Action Evidence, Saved Hours & FTE.
+    Verify CloudShield Action Evidence, Saved Hours & FTE.
     """
 
     def test_fte_formula_strictly_uses_160_hours_divisor(self):

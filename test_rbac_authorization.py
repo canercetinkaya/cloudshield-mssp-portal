@@ -171,7 +171,7 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
 
         self.cur.execute("""
             INSERT INTO users (id, organization_id, upn, display_name, email, password_hash, password_salt, is_active, created_at)
-            VALUES (?, 'org-kocsistem', ?, 'Expired User', ?, ?, ?, 1, ?)
+            VALUES (?, 'org-cloudshield', ?, 'Expired User', ?, ?, ?, 1, ?)
         """, (uid, f"{uid}@test.local", f"{uid}@test.local", h, s, now.isoformat()))
 
         # Assign role with expired valid_to
@@ -203,7 +203,7 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
 
         self.cur.execute("""
             INSERT INTO users (id, organization_id, upn, display_name, email, password_hash, password_salt, is_active, created_at)
-            VALUES (?, 'org-kocsistem', ?, 'Disabled User', ?, ?, ?, 0, ?)
+            VALUES (?, 'org-cloudshield', ?, 'Disabled User', ?, ?, ?, 0, ?)
         """, (uid, f"{uid}@test.local", f"{uid}@test.local", h, s, now))
         self.conn.commit()
 

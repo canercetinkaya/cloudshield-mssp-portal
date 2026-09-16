@@ -55,9 +55,9 @@ erDiagram
 
 ### 3.1 `organizations`
 Represents the root MSSP organization hosting the platform.
-- `id` (TEXT, PK): Unique organization ID (`org-kocsistem`).
-- `name` (TEXT): Enterprise display name (`KoçSistem MSSP Platform`).
-- `domain` (TEXT): Enterprise domain (`kocsistem.com.tr`).
+- `id` (TEXT, PK): Unique organization ID (`org-cloudshield`).
+- `name` (TEXT): Enterprise display name (`CloudShield MSSP Platform`).
+- `domain` (TEXT): Enterprise domain (`cloudshield-mssp.com`).
 - `created_at` (TEXT): ISO 8601 creation timestamp.
 
 ### 3.2 `users`

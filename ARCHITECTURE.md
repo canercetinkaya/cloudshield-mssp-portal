@@ -9,7 +9,7 @@
 
 ## 1. CloudShield Overview
 
-**CloudShield** is an enterprise-grade, multi-tenant managed security operations, governance, and executive reporting platform engineered specifically for **KoçSistem Managed Security Service Provider (MSSP)** operations. 
+**CloudShield** is an enterprise-grade, multi-tenant managed security operations, governance, and executive reporting platform engineered specifically for **CloudShield Managed Security Service Provider (MSSP)** operations. 
 
 It connects directly to client Microsoft 365 E5, Microsoft Defender XDR, and Microsoft Purview tenants to aggregate raw security telemetry, normalize indicators, enforce mathematical consistency, and produce boardroom-ready executive briefings and actionable remediation backlogs.
 
@@ -23,7 +23,7 @@ CloudShield operates as a **100% Dynamic Data Shell**:
 - **Storytelling Contract:** Every section follows a four-stage cognitive progression:
   $$\text{Evidence} \longrightarrow \text{Meaning} \longrightarrow \text{Risk} \longrightarrow \text{Action}$$
 - **Four Executive Quadrants:** All remediation backlog items are categorized into actionable quadrants (*Approved*, *Pending*, *Deferred*, *Recommended*).
-- **Executive Readability:** Directly answers the 6 mandatory C-Level questions (*Ne Oldu?*, *Neden Önemli?*, *Microsoft Ne Sağladı?*, *KoçSistem Ne Sağladı?*, *Hangi Riskler Kaldı?*, *Hangi Kararlar Alınmalı?*).
+- **Executive Readability:** Directly answers the 6 mandatory C-Level questions (*Ne Oldu?*, *Neden Önemli?*, *Microsoft Ne Sağladı?*, *CloudShield Ne Sağladı?*, *Hangi Riskler Kaldı?*, *Hangi Kararlar Alınmalı?*).
 
 ---
 
@@ -105,7 +105,7 @@ Collector execution status is tracked across 4 standard states:
 ## 8. Customer Decision Framework
 
 Operational backlog items are structured into an actionable four-quadrant instrument:
-1. **Approved (Uygulanan):** Approved optimizations implemented by KoçSistem engineering.
+1. **Approved (Uygulanan):** Approved optimizations implemented by CloudShield engineering.
 2. **Pending (Onay Bekleyen):** Critical policy or rule changes awaiting customer CISO decision.
 3. **Deferred (Ertelenen):** Low-priority recommendations postponed for scheduled maintenance.
 4. **Recommended (Tavsiye Edilen):** Proactive hardening steps derived from telemetry posture.

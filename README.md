@@ -6,7 +6,7 @@
 [![Azure Deployment](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/cs-mssp-poc-app-AutoDeployTrigger-e70e00a1-3ae4-4b88-a6be-343e239cba38.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/cs-mssp-poc-app-AutoDeployTrigger-e70e00a1-3ae4-4b88-a6be-343e239cba38.yml)
 [![Security Policy](https://img.shields.io/badge/Security-Zero%20Trust%20%2B%20Least%20Privilege-orange.svg)](SECURITY.md)
 
-**CloudShield MSSP Platform**, **KoçSistem Yönetilen Güvenlik Hizmetleri (MSSP)** operasyonları için özel olarak geliştirilmiş kurumsal, çok kiracılı (multi-tenant) bir güvenlik orkestrasyonu, yönetim ve raporlama SaaS portalıdır. 
+**CloudShield MSSP Platform**, **CloudShield MSSP Yönetilen Güvenlik Hizmetleri** operasyonları için özel olarak geliştirilmiş kurumsal, çok kiracılı (multi-tenant) bir güvenlik orkestrasyonu, yönetim ve raporlama SaaS portalıdır. 
 
 Canlı Microsoft Defender XDR ve Microsoft Purview ortamlarına bağlanarak C-Level yöneticiler (CISO, CIO) ve operasyon ekipleri için yönetim kurulu seviyesinde güvenlik karneleri, uyum raporları ve doğrulanabilir tehdit analizleri sunar.
 
@@ -25,8 +25,8 @@ Canlı Microsoft Defender XDR ve Microsoft Purview ortamlarına bağlanarak C-Le
 
 1. **Tek Kiracılı Yönetici Kokpiti (Executive Cockpit):**
    - Müşteri bazında filtrelendiğinde devreye giren özel C-Level yönetim ekranı.
-   - **4 Sütunlu Değer Atıf Modeli:** Microsoft otonom engellemeleri ile KoçSistem kıdemli mühendislik saatlerini net olarak ayrıştırır.
-   - **6 Kritik Yönetici Sorusu:** Ne Oldu? Neden Önemli? Microsoft Ne Sağladı? KoçSistem Ne Sağladı? Kalan Riskler? Alınacak Kararlar?
+   - **4 Sütunlu Değer Atıf Modeli:** Microsoft otonom engellemeleri ile CloudShield kıdemli mühendislik saatlerini net olarak ayrıştırır.
+   - **6 Kritik Yönetici Sorusu:** Ne Oldu? Neden Önemli? Microsoft Ne Sağladı? CloudShield Ne Sağladı? Kalan Riskler? Alınacak Kararlar?
 
 2. **İnteraktif Karar Çerçevesi (Customer Decision Framework):**
    - Onaylanmış, Bekleyen, Ertelenmiş ve Tavsiye Edilen kararları portal üzerinden onaylama ve audit loglama.
@@ -117,5 +117,5 @@ python test_rbac_authorization.py
 
 ## 📄 Yetkilendirme & Lisans
 
-Telif Hakkı &copy; 2026 **KoçSistem Bilgi ve İletişim Hizmetleri A.Ş.** / **CloudShield MSSP Global Operations**.  
+Telif Hakkı &copy; 2026 **CloudShield MSSP Security Operations** / **CloudShield MSSP Global Operations**.  
 Gizli ve Özel Mülkiyettir.
