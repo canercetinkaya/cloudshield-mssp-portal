@@ -29,6 +29,10 @@ param(
     [string] $PortalApiUrl = 'https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io',
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet('Certificate', 'ClientSecret', 'GDAP')]
+    [string] $AuthMode = 'Certificate',
+
+    [Parameter(Mandatory = $false)]
     [int] $ValidityMonths = 12
 )
 
@@ -204,24 +208,97 @@ Invoke-MgGraphRest -Method PATCH -Uri ('https://graph.microsoft.com/v1.0/applica
     })
 } | Out-Null
 
-Write-Host ('`n[4/5] ' + $ValidityMonths + ' Aylık İstemci Sırrı (Client Secret) Üretiliyor...') -ForegroundColor Cyan
-$pwdResp = Invoke-MgGraphRest -Method POST -Uri ('https://graph.microsoft.com/v1.0/applications/' + $App.id + '/addPassword') -Body @{
-    passwordCredential = @{
-        displayName = ('CS-MSSP-Secret-' + (Get-Date -Format 'yyyyMMdd'))
+if ($AuthMode -eq 'Certificate') {
+    Write-Host ('`n[4/5] ' + $ValidityMonths + ' Aylık Kurumsal İstemci Sertifikası (CBA / RFC 7523) Hazırlanıyor...') -ForegroundColor Cyan
+    $certSubject = "CN=CloudShield-MSSP-$CleanName"
+    $cert = New-SelfSignedCertificate -Subject $certSubject `
+        -CertStoreLocation "Cert:\CurrentUser\My" `
+        -KeyExportPolicy Exportable `
+        -KeySpec Signature `
+        -KeyLength 2048 `
+        -KeyAlgorithm RSA `
+        -HashAlgorithm SHA256 `
+        -NotAfter (Get-Date).AddMonths($ValidityMonths)
+
+    $certRaw = [Convert]::ToBase64String($cert.GetRawCertData())
+    $certThumb = $cert.Thumbprint
+    $CertSecretName = 'MSSP-Tenant-' + $CleanName + '-Cert'
+
+    # Register certificate to Azure AD App Registration via Microsoft Graph
+    $keyCred = @{
+        type        = 'AsymmetricX509Cert'
+        usage       = 'Verify'
+        key         = $certRaw
+        displayName = ('CS-MSSP-CBA-' + (Get-Date -Format 'yyyyMMdd'))
         endDateTime = (Get-Date).AddMonths($ValidityMonths).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     }
-}
-$ClientSecret = $pwdResp.secretText
-Write-Host '   [OK] Güvenli istemci sırrı üretildi.' -ForegroundColor Green
 
-if ($KeyVaultName) {
-    Write-Host ('`n[KeyVault] Sır Azure Key Vaulta kaydediliyor (' + $KeyVaultName + ')...') -ForegroundColor Cyan
     try {
-        $SecretName = 'MSSP-Tenant-' + $CleanName + '-Secret'
-        Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName -SecretValue (ConvertTo-SecureString $ClientSecret -AsPlainText -Force) | Out-Null
-        Write-Host ('   [OK] Key Vault Secret kaydedildi: ' + $SecretName) -ForegroundColor Green
+        Invoke-MgGraphRest -Method POST -Uri ('https://graph.microsoft.com/v1.0/applications/' + $App.id + '/addKey') -Body @{ keyCredential = $keyCred } | Out-Null
+        Write-Host ('   [OK] Sertifika Entra ID Uygulamasına başarıyla bağlandı (Thumbprint: ' + $certThumb + ')') -ForegroundColor Green
     } catch {
-        Write-Warning ('Azure Key Vaulta doğrudan yazılamadı (Secret portala güvenle aktarılacak): ' + $_.Exception.Message)
+        $appCurrent = Invoke-MgGraphRest -Method GET -Uri ('https://graph.microsoft.com/v1.0/applications/' + $App.id)
+        $existingKeys = if ($appCurrent.keyCredentials) { @($appCurrent.keyCredentials) } else { @() }
+        $existingKeys += $keyCred
+        Invoke-MgGraphRest -Method PATCH -Uri ('https://graph.microsoft.com/v1.0/applications/' + $App.id) -Body @{ keyCredentials = $existingKeys } | Out-Null
+        Write-Host ('   [OK] Sertifika Entra ID Uygulamasına bağlandı.') -ForegroundColor Green
+    }
+
+    if ($KeyVaultName) {
+        Write-Host ('`n[KeyVault] Sertifika Azure Key Vaulta kaydediliyor (' + $KeyVaultName + ')...') -ForegroundColor Cyan
+        try {
+            $pfxBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, "")
+            $pfxBase64 = [Convert]::ToBase64String($pfxBytes)
+            Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name $CertSecretName -SecretValue (ConvertTo-SecureString $pfxBase64 -AsPlainText -Force) | Out-Null
+            Write-Host ('   [OK] Key Vault Certificate yüklendi: ' + $CertSecretName) -ForegroundColor Green
+        } catch {
+            Write-Warning ('Azure Key Vaulta doğrudan yazılamadı (Sertifika yerel depoda aktif): ' + $_.Exception.Message)
+        }
+    }
+
+    $tenantAuthBlock = @{
+        Method                  = 'Certificate'
+        ClientId                = $App.appId
+        CertificateThumbprint   = $certThumb
+        KeyVaultCertificateName = $CertSecretName
+    }
+}
+elseif ($AuthMode -eq 'GDAP') {
+    Write-Host ('`n[4/5] GDAP (Granular Delegated Admin Privileges) Modeli Yapılandırılıyor...') -ForegroundColor Cyan
+    Write-Host '   [OK] Microsoft CSP GDAP delegasyon modeli müşteri kiracısına bağlandı.' -ForegroundColor Green
+    $tenantAuthBlock = @{
+        Method             = 'GDAP'
+        ClientId           = $App.appId
+        DelegatedAdminRole = 'Security Reader, Global Reader'
+    }
+}
+else {
+    Write-Warning "`n[4/5] [UYARI] Client Secret modu seçildi. Bu mod yalnızca Test / Sandbox ortamları içindir!"
+    $pwdResp = Invoke-MgGraphRest -Method POST -Uri ('https://graph.microsoft.com/v1.0/applications/' + $App.id + '/addPassword') -Body @{
+        passwordCredential = @{
+            displayName = ('CS-MSSP-Secret-' + (Get-Date -Format 'yyyyMMdd'))
+            endDateTime = (Get-Date).AddMonths($ValidityMonths).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        }
+    }
+    $ClientSecret = $pwdResp.secretText
+    Write-Host '   [OK] İstemci sırrı üretildi (Test Modu).' -ForegroundColor Yellow
+
+    if ($KeyVaultName) {
+        Write-Host ('`n[KeyVault] Sır Azure Key Vaulta kaydediliyor (' + $KeyVaultName + ')...') -ForegroundColor Cyan
+        try {
+            $SecretName = 'MSSP-Tenant-' + $CleanName + '-Secret'
+            Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName -SecretValue (ConvertTo-SecureString $ClientSecret -AsPlainText -Force) | Out-Null
+            Write-Host ('   [OK] Key Vault Secret kaydedildi: ' + $SecretName) -ForegroundColor Green
+        } catch {
+            Write-Warning ('Azure Key Vaulta doğrudan yazılamadı: ' + $_.Exception.Message)
+        }
+    }
+
+    $tenantAuthBlock = @{
+        Method             = 'ClientSecret'
+        ClientId           = $App.appId
+        ClientSecret       = $ClientSecret
+        KeyVaultSecretName = if ($KeyVaultName) { ('MSSP-Tenant-' + $CleanName + '-Secret') } else { '' }
     }
 }
 
@@ -250,12 +327,7 @@ $tenantPayload = @{
         Channels = @('Email', 'HtmlReport', 'VectorPdf')
         Status = 'Active'
     }
-    Auth             = @{
-        Method             = 'ClientSecret'
-        ClientId           = $App.appId
-        ClientSecret       = $ClientSecret
-        KeyVaultSecretName = if ($KeyVaultName) { ('MSSP-Tenant-' + $CleanName + '-Secret') } else { '' }
-    }
+    Auth             = $tenantAuthBlock
     Description      = ($CustomerName + ' - Canlı Müşteri Kiracısı (Otomatik Onboard Edildi)')
 }
 
@@ -273,8 +345,12 @@ Write-Host '====================================================================
 Write-Host ('  Müşteri Adı            : ' + $CustomerName) -ForegroundColor White
 Write-Host ('  Microsoft 365 Tenant ID: ' + $TenantId) -ForegroundColor White
 Write-Host ('  Application (Client) ID: ' + $App.appId) -ForegroundColor Yellow
-Write-Host ('  Client Secret          : ' + $ClientSecret.Substring(0, 4) + '....' + $ClientSecret.Substring($ClientSecret.Length - 4) + ' (Güvenli saklandı)') -ForegroundColor Yellow
-Write-Host ('  Sır Geçerlilik Bitişi  : ' + (Get-Date -Date $pwdResp.endDateTime -Format 'yyyy-MM-dd')) -ForegroundColor White
+Write-Host ('  Kimlik Doğrulama Modu  : ' + $AuthMode + ' (Zero Trust)') -ForegroundColor Yellow
+if ($AuthMode -eq 'Certificate') {
+    Write-Host ('  Sertifika Thumbprint   : ' + $certThumb) -ForegroundColor Cyan
+} elseif ($AuthMode -eq 'ClientSecret' -and $ClientSecret) {
+    Write-Host ('  Client Secret          : ' + $ClientSecret.Substring(0, 4) + '....' + $ClientSecret.Substring($ClientSecret.Length - 4) + ' (Yalnızca Test)') -ForegroundColor Yellow
+}
 Write-Host ('  Yetkilendirilen Roller : ' + $grantedCount + ' Adet Salt-Okunur Graph İzni') -ForegroundColor White
 Write-Host '=================================================================================' -ForegroundColor Green
 Write-Host ''

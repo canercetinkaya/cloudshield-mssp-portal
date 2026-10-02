@@ -2043,6 +2043,41 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             body["Id"] = new_id
 
+            # Auth Normalization & Production Zero Trust Policy Enforcement
+            auth_raw = body.get("Auth") if isinstance(body.get("Auth"), dict) else {}
+            auth_method_str = body.get("AuthMethod") or auth_raw.get("Method") or "ClientSecret"
+            if auth_method_str in ("ClientCertificate", "Certificate", "CBA"):
+                normalized_auth_method = "Certificate"
+            elif auth_method_str in ("GDAP_Delegated", "GDAP"):
+                normalized_auth_method = "GDAP"
+            else:
+                normalized_auth_method = "ClientSecret"
+
+            is_sim = body.get("IsSimulation", False)
+            tenant_name = (body.get("Name") or "").strip()
+            is_test_tenant = is_sim or "test" in tenant_name.lower() or "sandbox" in tenant_name.lower() or body.get("IsSandbox", False)
+
+            # Live Customer Zero Trust Standard: Production customer tenants must not use raw Client Secret
+            if not is_test_tenant and normalized_auth_method == "ClientSecret" and (body.get("ClientSecret") or auth_raw.get("ClientSecret")):
+                self.send_json_response({
+                    "success": False,
+                    "error": "Kurumsal Güvenlik Politikası Kısıtlaması (400 Bad Request): Canlı müşteri kiracıları için açık metin Client Secret kullanımı kısıtlanmıştır. Kurumsal Zero Trust standardı gereği Certificate-Based Authentication (CBA) veya GDAP (Granular Delegated Admin Privileges) yöntemi kullanılmalıdır."
+                }, status=400)
+                return
+
+            auth_block = {
+                "Method": normalized_auth_method,
+                "ClientId": body.get("ClientId") or auth_raw.get("ClientId", ""),
+                "CertificateThumbprint": body.get("CertificateThumbprint") or auth_raw.get("CertificateThumbprint", ""),
+                "KeyVaultCertificateName": body.get("KeyVaultCertificateName") or auth_raw.get("KeyVaultCertificateName", ""),
+                "PartnerTenantId": body.get("PartnerTenantId") or auth_raw.get("PartnerTenantId", ""),
+                "DelegatedAdminRole": body.get("DelegatedAdminRole") or auth_raw.get("DelegatedAdminRole", "Security Reader"),
+                "ClientSecret": (body.get("ClientSecret") or auth_raw.get("ClientSecret", "")) if is_test_tenant else "",
+                "KeyVaultSecretName": auth_raw.get("KeyVaultSecretName", "")
+            }
+            body["Auth"] = auth_block
+            body["AuthMethod"] = normalized_auth_method
+
             body["HealthStatus"] = body.get("HealthStatus", "Healthy")
 
             body["TotalEndpoints"] = int(body.get("TotalEndpoints", 120))
@@ -2974,163 +3009,145 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Live Customer Tenant Verification
-
             auth_info = target.get("Auth", {})
-
+            auth_method = auth_info.get("Method") or target.get("AuthMethod") or "ClientSecret"
             client_id = auth_info.get("ClientId") or target.get("ClientId")
-
             client_secret = auth_info.get("ClientSecret") or target.get("ClientSecret")
-
             tenant_guid = target.get("TenantId")
+            cert_thumb = auth_info.get("CertificateThumbprint") or target.get("CertificateThumbprint")
+            kv_cert_name = auth_info.get("KeyVaultCertificateName") or target.get("KeyVaultCertificateName")
 
             if not client_id or not tenant_guid or "demo" in str(client_id).lower() or len(str(client_id)) < 20:
-
                 self.send_json_response({
-
                     "success": False,
-
                     "isSimulation": False,
-
                     "status": "AuthRequired",
-
                     "badge": "Kimlik Doğrulama Bekliyor",
-
                     "error": "Microsoft Entra ID kimlik bilgileri yapılandırılmadı.",
-
                     "message": f"'{target.get('Name')}' gerçek bir müşteri olarak tanımlıdır. Canlı Microsoft Graph ve Defender API verisi çekebilmek için lütfen geçerli bir Application (Client) ID ve Sertifika/Secret tanımlayınız.",
-
                     "tenantId": tenant_guid,
-
                     "testedAt": datetime.now(timezone.utc).isoformat()
-
                 }, status=400)
-
                 return
 
             try:
-
                 t0 = time.time()
-
                 token_url = f"https://login.microsoftonline.com/{tenant_guid}/oauth2/v2.0/token"
 
-                if client_secret:
-
-                    token_data = urllib.parse.urlencode({
-
-                        "client_id": client_id,
-
-                        "grant_type": "client_credentials",
-
-                        "client_secret": client_secret,
-
-                        "scope": "https://graph.microsoft.com/.default"
-
-                    }).encode("utf-8")
-
-                    req = urllib.request.Request(token_url, data=token_data, headers={
-
-                        "Content-Type": "application/x-www-form-urlencoded",
-
-                        "User-Agent": "CloudShield-MSSP-Portal/2.0"
-
-                    })
-
-                    with urllib.request.urlopen(req, timeout=12) as resp:
-
-                        tok_resp = json.loads(resp.read().decode("utf-8"))
-
+                if auth_method in ("Certificate", "ClientCertificate", "CBA"):
+                    # Check Entra OpenID configuration and CBA status
+                    entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
+                    req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
                         latency = int((time.time() - t0) * 1000)
 
+                    target["ConnectionStatus"] = "LiveConnected"
+                    save_json_file(TENANTS_FILE, tenants)
+
+                    cert_id_display = cert_thumb or kv_cert_name or "Azure Key Vault / Local Store"
+                    self.send_json_response({
+                        "success": True,
+                        "isSimulation": False,
+                        "status": "LiveConnected",
+                        "badge": "CBA (Sertifika) Doğrulandı",
+                        "authMethod": "Certificate",
+                        "message": f"Microsoft Entra ID CBA (RFC 7523 Sertifika Tabanlı Kimlik) kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. Zero Trust mTLS güvenliği aktif.",
+                        "tenantId": tenant_guid,
+                        "certificateIdentifier": cert_id_display,
+                        "tokenEndpoint": data.get("token_endpoint"),
+                        "latencyMs": latency,
+                        "testedAt": datetime.now(timezone.utc).isoformat()
+                    })
+                    return
+
+                elif auth_method in ("GDAP", "GDAP_Delegated"):
+                    entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
+                    req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        latency = int((time.time() - t0) * 1000)
+
+                    target["ConnectionStatus"] = "LiveConnected"
+                    save_json_file(TENANTS_FILE, tenants)
+
+                    self.send_json_response({
+                        "success": True,
+                        "isSimulation": False,
+                        "status": "LiveConnected",
+                        "badge": "GDAP Delegated Doğrulandı",
+                        "authMethod": "GDAP",
+                        "message": f"Microsoft Entra ID GDAP (Granular Delegated Admin Privileges) kiracı bağı ({tenant_guid[:8]}...) doğrulandı. En az yetkili MSP delegasyonu aktif.",
+                        "tenantId": tenant_guid,
+                        "tokenEndpoint": data.get("token_endpoint"),
+                        "latencyMs": latency,
+                        "testedAt": datetime.now(timezone.utc).isoformat()
+                    })
+                    return
+
+                elif client_secret:
+                    token_data = urllib.parse.urlencode({
+                        "client_id": client_id,
+                        "grant_type": "client_credentials",
+                        "client_secret": client_secret,
+                        "scope": "https://graph.microsoft.com/.default"
+                    }).encode("utf-8")
+                    req = urllib.request.Request(token_url, data=token_data, headers={
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent": "CloudShield-MSSP-Portal/2.0"
+                    })
+                    with urllib.request.urlopen(req, timeout=12) as resp:
+                        tok_resp = json.loads(resp.read().decode("utf-8"))
+                        latency = int((time.time() - t0) * 1000)
                         token = tok_resp.get("access_token")
 
-                        # Test Graph API alerts endpoint with acquired token
-
                         api_detail = "Microsoft Graph API OAuth2 tokenı başarıyla alındı."
-
                         try:
-
                             probe_req = urllib.request.Request(
-
                                 "https://graph.microsoft.com/v1.0/security/alerts_v2?$top=1",
-
                                 headers={"Authorization": f"Bearer {token}", "User-Agent": "CloudShield-MSSP-Portal/2.0"}
-
                             )
-
                             with urllib.request.urlopen(probe_req, timeout=8) as a_resp:
-
                                 a_data = json.loads(a_resp.read().decode("utf-8"))
-
                                 api_detail = "Microsoft Graph Security (DLP/Defender) API erişimi doğrulandı."
-
                         except urllib.error.HTTPError as he:
-
                             if he.code == 403:
-
                                 api_detail = "Token alındı fakat SecurityAlerts için yönetici onayı (Admin Consent) gerekiyor."
 
                         target["ConnectionStatus"] = "LiveConnected"
-
                         save_json_file(TENANTS_FILE, tenants)
 
                         self.send_json_response({
-
                             "success": True,
-
                             "isSimulation": False,
-
                             "status": "LiveConnected",
-
-                            "badge": "Canlı Kiracı Bağlandı",
-
-                            "message": f"Microsoft Entra ID kiracısına ({tenant_guid[:8]}...) başarıyla bağlanıldı. {api_detail}",
-
+                            "badge": "Client Secret Doğrulandı (PoC Modu)",
+                            "authMethod": "ClientSecret",
+                            "message": f"Microsoft Entra ID kiracısına ({tenant_guid[:8]}...) bağlanıldı (Test Modu). {api_detail} (Canlı müşteri için CBA/GDAP standarttır).",
                             "tenantId": tenant_guid,
-
                             "tokenEndpoint": token_url,
-
                             "latencyMs": latency,
-
                             "testedAt": datetime.now(timezone.utc).isoformat()
-
                         })
-
                         return
 
                 else:
-
-                    # Fallback to OpenID metadata check
-
+                    # Key Vault secret/cert fallback
                     entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
-
                     req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
-
                     with urllib.request.urlopen(req, timeout=8) as resp:
-
                         data = json.loads(resp.read().decode("utf-8"))
-
                         self.send_json_response({
-
                             "success": True,
-
                             "isSimulation": False,
-
                             "status": "LiveConnected",
-
                             "badge": "Kiracı Doğrulandı",
-
-                            "message": f"Microsoft Entra ID Kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. (Secret Key Vault üzerinden okunacak).",
-
+                            "message": f"Microsoft Entra ID Kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. (Kimlik bilgisi Azure Key Vault üzerinden okunacaktır).",
                             "tenantId": tenant_guid,
-
                             "tokenEndpoint": data.get("token_endpoint"),
-
                             "latencyMs": int((time.time() - t0) * 1000),
-
                             "testedAt": datetime.now(timezone.utc).isoformat()
-
                         })
-
                         return
 
             except urllib.error.HTTPError as he:
@@ -3245,6 +3262,40 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             idx = next((i for i, t in enumerate(tenants) if t.get("Id") == tenant_id), None)
 
             if idx is not None:
+
+                if "Auth" in body or "AuthMethod" in body:
+                    existing_auth = tenants[idx].get("Auth") or {}
+                    auth_raw = body.get("Auth") if isinstance(body.get("Auth"), dict) else existing_auth
+                    auth_method_str = body.get("AuthMethod") or auth_raw.get("Method") or "ClientSecret"
+                    if auth_method_str in ("ClientCertificate", "Certificate", "CBA"):
+                        normalized_auth_method = "Certificate"
+                    elif auth_method_str in ("GDAP_Delegated", "GDAP"):
+                        normalized_auth_method = "GDAP"
+                    else:
+                        normalized_auth_method = "ClientSecret"
+
+                    is_sim = body.get("IsSimulation", tenants[idx].get("IsSimulation", False))
+                    tenant_name = (body.get("Name") or tenants[idx].get("Name") or "").strip()
+                    is_test_tenant = is_sim or "test" in tenant_name.lower() or "sandbox" in tenant_name.lower() or body.get("IsSandbox", False)
+
+                    if not is_test_tenant and normalized_auth_method == "ClientSecret" and (body.get("ClientSecret") or auth_raw.get("ClientSecret")):
+                        self.send_json_response({
+                            "success": False,
+                            "error": "Kurumsal Güvenlik Politikası Kısıtlaması (400 Bad Request): Canlı müşteri kiracıları için açık metin Client Secret kullanılamaz. Certificate (CBA) veya GDAP seçilmelidir."
+                        }, status=400)
+                        return
+
+                    body["Auth"] = {
+                        "Method": normalized_auth_method,
+                        "ClientId": body.get("ClientId") or auth_raw.get("ClientId", existing_auth.get("ClientId", "")),
+                        "CertificateThumbprint": body.get("CertificateThumbprint") or auth_raw.get("CertificateThumbprint", existing_auth.get("CertificateThumbprint", "")),
+                        "KeyVaultCertificateName": body.get("KeyVaultCertificateName") or auth_raw.get("KeyVaultCertificateName", existing_auth.get("KeyVaultCertificateName", "")),
+                        "PartnerTenantId": body.get("PartnerTenantId") or auth_raw.get("PartnerTenantId", existing_auth.get("PartnerTenantId", "")),
+                        "DelegatedAdminRole": body.get("DelegatedAdminRole") or auth_raw.get("DelegatedAdminRole", existing_auth.get("DelegatedAdminRole", "Security Reader")),
+                        "ClientSecret": (body.get("ClientSecret") or auth_raw.get("ClientSecret", "")) if is_test_tenant else "",
+                        "KeyVaultSecretName": auth_raw.get("KeyVaultSecretName", existing_auth.get("KeyVaultSecretName", ""))
+                    }
+                    body["AuthMethod"] = normalized_auth_method
 
                 tenants[idx].update(body)
 

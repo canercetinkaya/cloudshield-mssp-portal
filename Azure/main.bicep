@@ -96,6 +96,20 @@ resource dataContainer 'Microsoft.Storage/storageAccounts/blobServices/container
   }
 }
 
+// 2.1 Azure File Share (Data/ Dizini Kalıcı Veritabanı ve Yapılandırma Kalıcılığı İçin)
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource dataShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
+  parent: fileService
+  name: 'cloudshield-data'
+  properties: {
+    shareQuota: 10
+  }
+}
+
 // 3. Azure Key Vault (Müşteri Secret ve Sertifikaları İçin)
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -133,13 +147,30 @@ resource acaEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
   }
 }
 
-// 5. Azure Container App (MCT Bütçe Dostu Sunucusuz Çalışma & Sıfıra Ölçeklenme)
+// 4.1 ACA Environment Storage Mount (Azure File Share Bağlantısı)
+resource acaStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  parent: acaEnvironment
+  name: 'cloudshielddata'
+  properties: {
+    azureFile: {
+      accountName: storageAccount.name
+      accountKey: storageAccount.listKeys().keys[0].value
+      shareName: dataShare.name
+      accessMode: 'ReadWrite'
+    }
+  }
+}
+
+// 5. Azure Container App (MCT / Canlı Üretim Konteyner Mimarisi - Kalıcı Volume Mount)
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: containerAppName
   location: location
   identity: {
     type: 'SystemAssigned'
   }
+  dependsOn: [
+    acaStorage
+  ]
   properties: {
     managedEnvironmentId: acaEnvironment.id
     configuration: {
@@ -151,6 +182,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
     }
     template: {
+      volumes: [
+        {
+          name: 'cloudshield-data-vol'
+          storageType: 'AzureFile'
+          storageName: 'cloudshielddata'
+        }
+      ]
       containers: [
         {
           name: 'cloudshield-mssp-portal'
@@ -159,6 +197,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             cpu: json(cpuCores)
             memory: memorySize
           }
+          volumeMounts: [
+            {
+              volumeName: 'cloudshield-data-vol'
+              mountPath: '/app/Data'
+            }
+          ]
           env: [
             {
               name: 'PORT'
@@ -180,8 +224,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
       ]
       scale: {
-        minReplicas: 0 // Boşta beklerken $0 maliyet için sıfıra iner
-        maxReplicas: 3
+        minReplicas: 1 // Cold Start gecikmesini onlemek icin her an en az 1 aktif kopya
+        maxReplicas: 3 // Eszamanli rapor uretimlerinde bellek tasmasini onlemek icin 3 kopya
         rules: [
           {
             name: 'http-rule'

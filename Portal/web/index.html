@@ -2029,16 +2029,22 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Kimlik Doğrulama Yöntemi</label>
-                            <select id="tenantAuthMethod" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
-                                <option value="ClientSecret">Client Secret (Test / PoC)</option>
-                                <option value="ClientCertificate">Certificate CBA (Kurumsal Prod)</option>
-                                <option value="GDAP_Delegated">GDAP (Granular Delegated Admin)</option>
+                            <select id="tenantAuthMethod" onchange="toggleAuthFields(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
+                                <option value="ClientCertificate">Certificate CBA (Kurumsal Prod - Tavsiye Edilen)</option>
+                                <option value="GDAP_Delegated">GDAP (Granular Delegated Admin - MSP)</option>
+                                <option value="ClientSecret">Client Secret (Yalnızca Test / Sandbox)</option>
                             </select>
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Entra App (Client) ID *</label>
                             <input type="text" id="tenantClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
                         </div>
+                    </div>
+
+                    <div id="certFieldsDiv" class="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <label class="block font-bold text-slate-700 uppercase mb-1 text-[11px]">Sertifika Thumbprint veya Azure Key Vault Sertifika Adı</label>
+                        <input type="text" id="tenantCertThumbprint" placeholder="Örn: 9F8E7D6C5B4A... veya cs-kv-tenant-cert" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
+                        <div class="text-[10px] text-slate-500 mt-1">Canlı müşteri kiracılarında RFC 7523 mTLS / CBA kimlik doğrulaması uygulanır.</div>
                     </div>
 
                     <!-- Otomatik Yönetici Onay Linki Üretici -->
@@ -3582,16 +3588,32 @@ let allUsers = [];
             }, 800);
         }
 
+        function toggleAuthFields(val) {
+            const certDiv = document.getElementById('certFieldsDiv');
+            if (certDiv) {
+                if (val === 'ClientCertificate' || val === 'Certificate') {
+                    certDiv.classList.remove('hidden');
+                } else {
+                    certDiv.classList.add('hidden');
+                }
+            }
+        }
+
         async function handleSaveTenant(e) {
             e.preventDefault();
             const checkedServices = Array.from(document.querySelectorAll('input[name="tenantServices"]:checked')).map(c => c.value);
             const contactEmail = document.getElementById('tenantContactEmail') ? document.getElementById('tenantContactEmail').value : 'ciso@musteri.com';
+            const authMethod = document.getElementById('tenantAuthMethod') ? document.getElementById('tenantAuthMethod').value : 'ClientCertificate';
+            const certThumb = document.getElementById('tenantCertThumbprint') ? document.getElementById('tenantCertThumbprint').value.trim() : '';
+
             const payload = {
                 Name: document.getElementById('tenantName').value,
                 TenantId: document.getElementById('tenantGuid').value,
                 ContactEmail: contactEmail,
-                AuthMethod: document.getElementById('tenantAuthMethod') ? document.getElementById('tenantAuthMethod').value : 'ClientSecret',
+                AuthMethod: authMethod,
                 ClientId: document.getElementById('tenantClientId') ? document.getElementById('tenantClientId').value : '',
+                CertificateThumbprint: certThumb,
+                KeyVaultCertificateName: certThumb,
                 ActiveServices: checkedServices,
                 RecipientEmails: [contactEmail, "mssp-reporting@cloudshield-mssp.com"],
                 HealthStatus: "Healthy",
@@ -3607,10 +3629,13 @@ let allUsers = [];
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (res.ok) {
+                const resData = await res.json();
+                if (res.ok && resData.success) {
                     closeAddTenantModal();
                     await loadTenants();
                     alert(`✅ Müşteri (${payload.Name}) başarıyla sisteme eklendi!`);
+                } else {
+                    alert(`❌ Müşteri ekleme hatası: ${resData.error || 'İşlem başarısız'}`);
                 }
             } catch (err) {
                 alert('Müşteri ekleme hatası: ' + err);

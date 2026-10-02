@@ -290,7 +290,44 @@ function Get-ServiceToken {
         $body['client_assertion_type'] = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
         $body['client_assertion'] = $assertion
     }
+    elseif ($authMethod -eq 'GDAP') {
+        # GDAP (Granular Delegated Admin Privileges) Delegated MSP Token Flow
+        $partnerClientId = if ($appConfig.PartnerClientId) { $appConfig.PartnerClientId } else { $clientId }
+        $body['client_id'] = $partnerClientId
+
+        # Müşteri kiracısına karşı GDAP yetkili partner sertifikası veya kimliği ile bağlanılır
+        $cert = $null
+        if ($appConfig.CertificateThumbprint) {
+            $thumb = $appConfig.CertificateThumbprint.Replace(" ", "").Trim()
+            $locations = @('Cert:\CurrentUser\My', 'Cert:\LocalMachine\My')
+            foreach ($loc in $locations) {
+                if (Test-Path "$loc\$thumb") {
+                    $cert = Get-Item "$loc\$thumb"
+                    break
+                }
+            }
+        }
+        elseif ($appConfig.KeyVaultCertificateName -or ($env:AZURE_KEYVAULT_URL -and $appConfig.KeyVaultSecretName)) {
+            $certName = if ($appConfig.KeyVaultCertificateName) { $appConfig.KeyVaultCertificateName } else { $appConfig.KeyVaultSecretName }
+            $cert = Get-PlatformKeyVaultCertificate -CertificateName $certName
+        }
+
+        if ($cert) {
+            $assertion = New-ClientAssertionJwt -ClientId $partnerClientId -TenantId $tenantId -Certificate $cert
+            $body['client_assertion_type'] = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+            $body['client_assertion'] = $assertion
+        }
+        elseif ($appConfig.ClientSecret) {
+            $body['client_secret'] = $appConfig.ClientSecret
+        }
+        else {
+            throw "GDAP kimlik doğrulaması için geçerli bir partner sertifikası veya kimliği bulunamadı (Tenant: $tenantId)"
+        }
+    }
     else {
+        if ($cust.Customer -and -not $cust.Customer.IsSimulation) {
+            Write-Verbose "[AUDIT-NOTE] Tenant $tenantId için ClientSecret kimlik doğrulama yöntemi kullanılıyor. Canlı üretimde CBA veya GDAP standarttır."
+        }
         # Secret Çözme (Doğrudan ClientSecret, Azure Key Vault Managed Identity veya yerel Windows DPAPI)
         $plainSecret = $null
         if ($appConfig.ClientSecret) {
