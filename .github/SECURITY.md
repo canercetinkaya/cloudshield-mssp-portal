@@ -6,9 +6,9 @@ Security updates, vulnerability patches, and zero-day remediations are actively 
 
 | Version | Release Tag | Status | Supported |
 | :--- | :--- | :--- | :--- |
-| **v2.5.x** | `v2.5.10-PILOT` | **Active Release** | :white_check_mark: Supported |
-| **v2.4.x** | `v2.4.x` | Deprecated | :x: End of Life |
-| **< v2.4** | Legacy | Deprecated | :x: Unsupported |
+| **v3.0.x** | `v3.0.0-ENTERPRISE` | **Current GA Release** | :white_check_mark: Supported |
+| **v2.5.x** | `v2.5.15` | Previous Release | :white_check_mark: Security Patches Only |
+| **< v2.5** | Legacy | Deprecated | :x: End of Life |
 
 ---
 

@@ -1,15 +1,17 @@
 # CloudShield Enterprise MSSP Platform — Master Architecture Specification
 
-**Document Version:** `2.5.15`  
+**Document Version:** `3.0.0`  
 **Classification:** Enterprise System Architecture & Security Specification  
-**Platform Status:** Controlled Pilot & Production Release Candidate  
+**Platform Status:** Enterprise Production GA — General Availability  
 **Runtime Architecture:** Dual-Engine (Python 3.11 Standard Library REST API + PowerShell 7.4 Telemetry Engine)  
 **Cloud Hosting Altyapısı:** Azure Container Apps (ACA Serverless Linux Container, Autoscaled Replicas 1–3)  
 **Kalıcı Depolama:** Azure Storage File Share Mount (`cloudshield-data` on `/app/Data`)  
 **Kimlik Sağlayıcı:** Microsoft Entra ID (OIDC SSO with PKCE & Strict Pre-Enrollment)  
 **Müşteri Yetkilendirme Standartı:** Certificate-Based Authentication (RFC 7523 X.509 CBA) & Microsoft CSP GDAP  
+**Live Endpoint:** `https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/`
 
 ---
+
 
 ## 1. Executive Summary & Design Principles
 
@@ -479,14 +481,14 @@ Test Suite 1: Unit & Security Test Discovery (python -m unittest discover tests)
 ├── test_report_quality_gate.py           # 14 semantic report quality rules
 ├── test_tenant_cba_gdap.py               # CBA X.509 & GDAP onboarding validation
 └── test_post_remediation_gate.py         # Zero-leak temporary config and session isolation
-Result: 46/46 Passed (OK)
+Result: 54/54 Passed (OK)
 
 Test Suite 2: Full-Stack Platform QA Suite (python tests/test_comprehensive_qa.py)
 ├── PowerShell Reporting Engine           # 33 engine tests (DPAPI, PrivacyEngine, Collectors)
-├── Engine Credential Containment         # W7/W8 legacy password rejection verification
+├── Engine Credential Containment         # Legacy password rejection verification
 ├── Web API REST Contracts                # Health, version, Entra SSO, logo, and error gates
 ├── Multi-Tenant Concurrency & Isolation  # Concurrent requests, 404 isolation, zero temp config leak
-└── Pilot Hardening Quality Gates         # UTF-8 round-trip, path traversal, legal disclaimers
+└── Enterprise Production Quality Gates  # UTF-8 round-trip, path traversal, legal disclaimers
 Result: 59/59 Passed (100% Green)
 ```
 

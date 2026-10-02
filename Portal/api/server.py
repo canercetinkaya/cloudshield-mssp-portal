@@ -534,27 +534,16 @@ def get_version_info():
     vpath = root_ver if os.path.exists(root_ver) else VERSION_FILE
 
     default_info = {
-
-        "version": "2.5.15",
-
-        "release": "v2.5.15-PILOT",
-
-        "build": "2026.09.16.1",
-
-        "channel": "pilot",
-
-        "build_number": 15,
-
-        "last_updated": "2026-09-16T12:50:00+03:00",
-
-        "environment": "pilot",
-
-        "productionReady": False,
-
+        "version": "3.0.0",
+        "release": "v3.0.0-ENTERPRISE",
+        "build": "2026.10.03.1",
+        "channel": "production",
+        "build_number": 16,
+        "last_updated": "2026-10-03T00:00:00+03:00",
+        "environment": "production",
+        "productionReady": True,
         "agent_name": "CloudShield DevSecOps Autonomous Agent",
-
         "changelog": []
-
     }
 
     return load_json_file(vpath, default_info)
@@ -631,9 +620,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-        self.send_header("X-Portal-Version", vinfo.get("version", "2.5.10"))
+        self.send_header("X-Portal-Version", vinfo.get("version", "3.0.0"))
 
-        self.send_header("X-Portal-Release", vinfo.get("release", "v2.5.10-PILOT"))
+        self.send_header("X-Portal-Release", vinfo.get("release", "v3.0.0-ENTERPRISE"))
 
         self.send_header("X-Content-Type-Options", "nosniff")
 
@@ -1287,17 +1276,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
                 "status": "Healthy",
 
-                "version": vinfo.get("version", "2.5.10"),
+                "version": vinfo.get("version", "3.0.0"),
 
-                "release": vinfo.get("release", "v2.5.10-PILOT"),
+                "release": vinfo.get("release", "v3.0.0-ENTERPRISE"),
 
-                "build": vinfo.get("build", "2026.09.10.10"),
+                "build": vinfo.get("build", "2026.10.03.1"),
 
-                "channel": vinfo.get("channel", "pilot"),
+                "channel": vinfo.get("channel", "production"),
 
-                "environment": vinfo.get("environment", "pilot"),
+                "environment": vinfo.get("environment", "production"),
 
-                "productionReady": vinfo.get("productionReady", False),
+                "productionReady": vinfo.get("productionReady", True),
 
                 "timestamp": datetime.now(timezone.utc).isoformat()
 
@@ -1311,15 +1300,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             self.send_json_response({
 
-                "version": vinfo.get("version", "2.5.10"),
+                "version": vinfo.get("version", "3.0.0"),
 
-                "release": vinfo.get("release", "v2.5.10-PILOT"),
+                "release": vinfo.get("release", "v3.0.0-ENTERPRISE"),
 
-                "build": vinfo.get("build", "2026.09.10.10"),
+                "build": vinfo.get("build", "2026.10.03.1"),
 
-                "channel": vinfo.get("channel", "pilot"),
+                "channel": vinfo.get("channel", "production"),
 
-                "build_number": vinfo.get("build_number", 10),
+                "build_number": vinfo.get("build_number", 16),
 
                 "last_updated": vinfo.get("last_updated", datetime.now(timezone.utc).isoformat()),
 
@@ -1331,9 +1320,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
                 "timestamp": datetime.now(timezone.utc).isoformat(),
 
-                "environment": vinfo.get("environment", "pilot"),
+                "environment": vinfo.get("environment", "production"),
 
-                "productionReady": vinfo.get("productionReady", False),
+                "productionReady": vinfo.get("productionReady", True),
 
                 "features": [
 
@@ -2145,22 +2134,22 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         if path == "/api/auth/login":
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             vinfo = get_version_info()
-            channel = str(vinfo.get("channel", "pilot")).lower()
-            env_mode = str(vinfo.get("environment", "pilot")).lower()
+            channel = str(vinfo.get("channel", "production")).lower()
+            env_mode = str(vinfo.get("environment", "production")).lower()
             allow_local = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH", "false").lower() == "true"
 
-            # Mandatory Outcome 2: Disable local password authentication in Pilot mode
-            if (channel == "pilot" or env_mode == "pilot") and not allow_local:
+            # Mandatory: Disable local password authentication in Enterprise/Production mode unless explicitly enabled
+            if (channel in ("pilot", "production", "enterprise") or env_mode in ("pilot", "production", "enterprise")) and not allow_local:
                 record_audit_event(
                     event_type="AUTH_DENY",
                     resource="/api/auth/login",
                     decision="DENY",
-                    reason="LocalAuthDisabledInPilotMode",
+                    reason="LocalAuthDisabledInProductionMode",
                     ip_address=client_ip
                 )
                 self.send_json_response({
                     "success": False,
-                    "error": "Pilot modunda yerel parola kimlik doğrulaması devre dışıdır. Lütfen kurumsal Microsoft Entra ID (SSO) ile oturum açınız.",
+                    "error": "Kurumsal üretim modunda yerel parola kimlik doğrulaması devre dışıdır. Lütfen kurumsal Microsoft Entra ID (SSO) ile oturum açınız.",
                     "authProvider": "EntraID_OIDC",
                     "ssoRequired": True
                 }, status=403)

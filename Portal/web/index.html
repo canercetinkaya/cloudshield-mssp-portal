@@ -60,7 +60,7 @@
                 <h2 class="text-base font-bold">MSSP SaaS Portal Girişi</h2>
                 <p class="text-xs text-slate-300 mt-1">Microsoft Security & Purview Yönetilen Hizmetler</p>
                 <div id="loginVersionBadge" class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                    v2.5.15-PILOT
+                    v3.0.0-ENTERPRISE
                 </div>
             </div>
 
@@ -153,8 +153,8 @@
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
                 <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v2.5.15-PILOT</span>
-                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.09.11</span>
+                    <span id="headerVersionBadge">v3.0.0-ENTERPRISE</span>
+                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.03</span>
                 </div>
             </div>
 
@@ -2807,23 +2807,23 @@
                 if (res.ok) {
                     const data = await res.json();
                     const badge = document.getElementById('headerVersionBadge');
-                    if (badge) badge.textContent = data.release || 'v2.5.10-PILOT';
+                    if (badge) badge.textContent = data.release || 'v3.0.0-ENTERPRISE';
 
                     const loginBadge = document.getElementById('loginVersionBadge');
-                    if (loginBadge) loginBadge.textContent = data.release || 'v2.5.10-PILOT';
+                    if (loginBadge) loginBadge.textContent = data.release || 'v3.0.0-ENTERPRISE';
                     
                     const buildSpan = document.getElementById('headerVersionBuild');
                     if (buildSpan && data.last_updated) {
                         const d = new Date(data.last_updated);
-                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.09.10';
+                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.10.03';
                         buildSpan.textContent = `| ${dateStr}`;
                     }
 
                     // Update settings version cards
                     const cRel = document.getElementById('verCardRelease');
-                    if (cRel) cRel.textContent = data.release || 'v2.5.10-PILOT';
+                    if (cRel) cRel.textContent = data.release || 'v3.0.0-ENTERPRISE';
                     const cBuild = document.getElementById('verCardBuild');
-                    if (cBuild) cBuild.textContent = data.build || '2026.09.10.1';
+                    if (cBuild) cBuild.textContent = data.build || '2026.10.03.1';
                     const cNum = document.getElementById('verCardBuildNum');
                     if (cNum) cNum.textContent = `Derleme #${data.build_number || 1}`;
                     const cLast = document.getElementById('verCardLastUpdated');

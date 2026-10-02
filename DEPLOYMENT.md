@@ -1,6 +1,6 @@
 # CloudShield MSSP Platform — Deployment Guide
 
-**Current Release Version:** `v2.5.15-PILOT`  
+**Current Release Version:** `v3.0.0-ENTERPRISE`  
 **Target Environment:** Azure Container Apps & On-Premises Docker  
 
 ---
@@ -27,7 +27,7 @@ docker build -t cloudshield-mssp-portal:latest -f Docker/Dockerfile .
 docker run -d -p 8080:8080 \
   --name cloudshield-portal \
   -e PORT=8080 \
-  -e ENVIRONMENT=Pilot \
+  -e ENVIRONMENT=production \
   cloudshield-mssp-portal:latest
 
 # 3. Verify health
@@ -66,9 +66,10 @@ python Azure/deploy_aca.py
 | Variable | Default | Purpose |
 | :--- | :--- | :--- |
 | `PORT` | `8080` | HTTP listener port for REST API and web UI |
-| `ENVIRONMENT` | `pilot` | Deployment environment label (`pilot`, `production`) |
-| `CLOUDSHIELD_RELEASE_CHANNEL` | `PILOT` | Release channel gate (`PILOT`, `PRODUCTION`) |
+| `ENVIRONMENT` | `production` | Deployment environment label (`production`, `development`) |
+| `CLOUDSHIELD_RELEASE_CHANNEL` | `PRODUCTION` | Release channel gate (`PRODUCTION`, `DEV`) |
 | `PORTAL_ADMIN_PASSWORD` | - | Admin credential override (prevents defaults) |
+| `CLOUDSHIELD_ALLOW_LOCAL_AUTH` | `false` | Enable local password auth for dev only (`true` only in isolated dev) |
 
 ---
 
@@ -76,6 +77,7 @@ python Azure/deploy_aca.py
 
 - **Health Endpoint:** `GET /api/health`
 - **Version Manifest:** `GET /api/version`
+- **Live Deployment:** `https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/`
 - **Container Probe:** Configured in `Dockerfile` and `docker-compose.yml`:
   ```bash
   HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
