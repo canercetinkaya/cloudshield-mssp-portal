@@ -121,6 +121,7 @@ def seed_default_data(conn):
         ("role-security-engineer", "SecurityEngineer", "Kıdemli Güvenlik Mühendisi (EDR/XDR)", "Defender ve XDR operasyonları, rapor üretimi ve indirme", 0, 1),
         ("role-compliance-specialist", "ComplianceSpecialist", "Purview & Uyum Uzmanı", "DLP, sınıflandırma, iç tehdit operasyonları ve raporlama", 0, 1),
         ("role-customer-ciso", "CustomerCISO", "Müşteri CISO & Yönetici", "Müşteriye özel güvenlik panosu, rapor inceleme ve onaylama", 0, 1),
+        ("role-customer-viewer", "CustomerViewer", "Müşteri Gözlemcisi", "Müşteriye özel salt-okunur rapor ve pano erişimi", 0, 1),
         ("role-auditor", "Auditor", "Bağımsız Denetçi", "Tüm denetim kütükleri, atamalar ve raporları salt-okunur inceleme", 0, 1),
         ("role-service-operator", "ServiceOperator", "Operasyonel Teknisyen", "Temel telemetri izleme ve salt-okunur pano görünümü", 0, 1)
     ]
@@ -150,6 +151,9 @@ def seed_default_data(conn):
         "CustomerCISO": [
             "reports:view", "reports:download", "reports:review", "reports:approve",
             "customers:view", "services:view", "matrix:view"
+        ],
+        "CustomerViewer": [
+            "reports:view", "reports:download", "customers:view"
         ],
         "Auditor": [
             "reports:view", "reports:download", "audit:view", "customers:view",
@@ -380,6 +384,8 @@ def seed_default_data(conn):
                             svc_id = "svc-xdr"
                         elif role_str == "CustomerCISO":
                             role_id = "role-customer-ciso"
+                        elif role_str == "CustomerViewer":
+                            role_id = "role-customer-viewer"
 
                         if "ALL" in assigned_tenants:
                             asgn_id = f"asgn-{uid}-all"
@@ -405,13 +411,179 @@ def seed_default_data(conn):
                         elif role_str == "ComplianceSpecialist":
                             cur.execute("INSERT OR IGNORE INTO team_memberships (id, team_id, user_id, role_in_team, joined_at) VALUES (?, ?, ?, ?, ?)",
                                         (f"tm-{uid}-prv", "team-compliance", uid, "Specialist", now))
-                        elif role_str == "CustomerCISO":
+                        elif role_str in ("CustomerCISO", "CustomerViewer"):
                             cur.execute("INSERT OR IGNORE INTO team_memberships (id, team_id, user_id, role_in_team, joined_at) VALUES (?, ?, ?, ?, ?)",
                                         (f"tm-{uid}-ciso", "team-ciso-board", uid, "Executive", now))
         except Exception as e:
             print(f"[WARN] User import error: {e}")
 
+    # 7. Seed Historical Monthly Metrics for tenant-002 (12-month trajectory)
+    seed_historical_metrics_data(cur, now)
+
+    # 8. Seed Credential Health for tenant-002
+    seed_credential_health_data(cur, now)
+
     conn.commit()
+
+def seed_historical_metrics_data(cur, now):
+    try:
+        cur.execute("SELECT COUNT(*) as cnt FROM tenant_historical_metrics WHERE tenant_id = 'tenant-002'")
+        row = cur.fetchone()
+        if row and row["cnt"] > 0:
+            return
+
+        sample_history = [
+            ("2026-05", "CONSOLIDATED", 36.2, 142, 5, 28, 86, 4, 78.5, 12.0, 48000.0),
+            ("2026-06", "CONSOLIDATED", 38.0, 165, 4, 22, 94, 3, 82.0, 14.5, 58000.0),
+            ("2026-07", "CONSOLIDATED", 40.5, 198, 3, 17, 112, 2, 86.4, 16.0, 64000.0),
+            ("2026-08", "CONSOLIDATED", 43.0, 215, 2, 12, 128, 2, 89.2, 18.5, 74000.0),
+            ("2026-09", "CONSOLIDATED", 45.2, 230, 1, 8, 145, 1, 91.8, 21.0, 84000.0),
+            ("2026-10", "CONSOLIDATED", 47.0, 248, 0, 5, 160, 1, 94.0, 22.5, 90000.0),
+            ("2026-08", "SVC-MDE", 43.0, 88, 2, 0, 0, 0, 89.2, 8.5, 34000.0),
+            ("2026-09", "SVC-MDE", 45.2, 94, 1, 0, 0, 0, 91.8, 9.0, 36000.0),
+            ("2026-10", "SVC-MDE", 47.0, 102, 0, 0, 0, 0, 94.0, 10.0, 40000.0),
+            ("2026-08", "SVC-MDO", 43.0, 128, 0, 0, 128, 0, 0.0, 6.0, 24000.0),
+            ("2026-09", "SVC-MDO", 45.2, 145, 0, 0, 145, 0, 0.0, 7.0, 28000.0),
+            ("2026-10", "SVC-MDO", 47.0, 160, 0, 0, 160, 0, 0.0, 7.5, 30000.0),
+            ("2026-08", "SVC-PURVIEW", 43.0, 12, 0, 12, 0, 0, 0.0, 4.0, 16000.0),
+            ("2026-09", "SVC-PURVIEW", 45.2, 8, 0, 8, 0, 0, 0.0, 5.0, 20000.0),
+            ("2026-10", "SVC-PURVIEW", 47.0, 5, 0, 5, 0, 0, 0.0, 5.0, 20000.0),
+            ("2026-08", "SVC-INTUNE", 43.0, 0, 0, 0, 0, 0, 89.2, 4.0, 16000.0),
+            ("2026-09", "SVC-INTUNE", 45.2, 0, 0, 0, 0, 0, 91.8, 4.5, 18000.0),
+            ("2026-10", "SVC-INTUNE", 47.0, 0, 0, 0, 0, 0, 94.0, 5.0, 20000.0)
+        ]
+        for period, svc, score, thr, crit, dlp, phish, pim, dev_pct, hrs, cost in sample_history:
+            cur.execute("""
+                INSERT OR REPLACE INTO tenant_historical_metrics 
+                (tenant_id, period, service_code, secure_score, threats_blocked, critical_incidents,
+                 dlp_violations, phishing_blocked, pim_activations, device_compliance_pct, hours_saved,
+                 cost_avoidance_usd, recorded_at, raw_summary_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                "tenant-002", period, svc, score, thr, crit, dlp, phish, pim, dev_pct, hrs, cost, now,
+                json.dumps({"period": period, "score": score, "source": "historical_seed"})
+            ))
+    except Exception as e:
+        print(f"[WARN] Error seeding historical metrics: {e}")
+
+def seed_credential_health_data(cur, now):
+    try:
+        cur.execute("SELECT tenant_id FROM tenant_credential_health WHERE tenant_id = 'tenant-002'")
+        if not cur.fetchone():
+            cur.execute("""
+                INSERT OR REPLACE INTO tenant_credential_health
+                (tenant_id, auth_type, secret_expiry_date, cert_expiry_date, last_preflight_check,
+                 last_preflight_status, days_until_expiry, health_status, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                "tenant-002",
+                "ClientSecret",
+                "2027-04-15T00:00:00Z",
+                "2027-09-30T00:00:00Z",
+                now,
+                "Passed (12/12 Services Authorized)",
+                194,
+                "Healthy",
+                now
+            ))
+    except Exception as e:
+        print(f"[WARN] Error seeding credential health: {e}")
+
+def record_tenant_trend(tenant_id, period, service_code, metrics, raw_json=None, db_path=None):
+    """Inserts or updates a monthly metric snapshot for a tenant."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        raw_str = json.dumps(raw_json) if raw_json is not None else None
+        cur.execute("""
+            INSERT OR REPLACE INTO tenant_historical_metrics
+            (tenant_id, period, service_code, secure_score, threats_blocked, critical_incidents,
+             dlp_violations, phishing_blocked, pim_activations, device_compliance_pct, hours_saved,
+             cost_avoidance_usd, recorded_at, raw_summary_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            tenant_id,
+            period,
+            service_code,
+            float(metrics.get("secure_score", 0.0)),
+            int(metrics.get("threats_blocked", 0)),
+            int(metrics.get("critical_incidents", 0)),
+            int(metrics.get("dlp_violations", 0)),
+            int(metrics.get("phishing_blocked", 0)),
+            int(metrics.get("pim_activations", 0)),
+            float(metrics.get("device_compliance_pct", 0.0)),
+            float(metrics.get("hours_saved", 0.0)),
+            float(metrics.get("cost_avoidance_usd", 0.0)),
+            now,
+            raw_str
+        ))
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_tenant_trends(tenant_id, service_code=None, limit_months=12, db_path=None):
+    """Retrieves time-series historical metrics for a tenant ordered chronologically."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        if service_code:
+            cur.execute("""
+                SELECT * FROM tenant_historical_metrics
+                WHERE tenant_id = ? AND service_code = ?
+                ORDER BY period ASC
+                LIMIT ?
+            """, (tenant_id, service_code, limit_months))
+        else:
+            cur.execute("""
+                SELECT * FROM tenant_historical_metrics
+                WHERE tenant_id = ?
+                ORDER BY period ASC
+                LIMIT ?
+            """, (tenant_id, limit_months))
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def update_tenant_credential_health(tenant_id, auth_type="ClientSecret", secret_expiry=None,
+                                    cert_expiry=None, preflight_status="Healthy",
+                                    days_left=None, health_status="Healthy", db_path=None):
+    """Updates credential expiration health and preflight verification status."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        cur.execute("""
+            INSERT OR REPLACE INTO tenant_credential_health
+            (tenant_id, auth_type, secret_expiry_date, cert_expiry_date, last_preflight_check,
+             last_preflight_status, days_until_expiry, health_status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            tenant_id,
+            auth_type,
+            secret_expiry,
+            cert_expiry,
+            now,
+            preflight_status,
+            days_left,
+            health_status,
+            now
+        ))
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_tenant_credential_health(tenant_id, db_path=None):
+    """Returns the credential expiration and preflight health for a tenant."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT * FROM tenant_credential_health WHERE tenant_id = ?", (tenant_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     init_db()

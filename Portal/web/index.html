@@ -179,6 +179,12 @@
                     </div>
                 </div>
 
+                <!-- Dil Seçici (TR / EN) -->
+                <div class="flex items-center space-x-1 bg-ks-navydark border border-slate-700 rounded-lg p-0.5 text-xs">
+                    <button id="langBtn-tr" onclick="setAppLanguage('tr')" class="px-2 py-1 rounded font-bold bg-ks-red text-white transition text-[11px]" title="Türkçe Raporlama">TR</button>
+                    <button id="langBtn-en" onclick="setAppLanguage('en')" class="px-2 py-1 rounded font-medium text-slate-300 hover:text-white transition text-[11px]" title="English Reporting">EN</button>
+                </div>
+
                 <!-- Kullanıcı Rozeti & SSO & Logout -->
                 <div class="flex items-center space-x-3 border-l border-slate-700 pl-4">
                     <div id="userAvatarInitials" class="w-8 h-8 rounded-full bg-ks-navy flex items-center justify-center font-bold text-xs text-white shadow">
@@ -192,6 +198,17 @@
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Müşteri Portalı İzolasyon Bildirimi Banner'ı (Customer Viewer Modu) -->
+        <div id="customerPortalBanner" class="hidden bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-4 py-2 text-xs border-b border-blue-700/50">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500 text-white">MÜŞTERİ PORTALI</span>
+                    <span class="text-slate-200">Kendi kiracınıza ait doğrulanmış güvenlik ve uyum raporlarına erişiyorsunuz. Çoklu kiracı veri izolasyonu devrededir.</span>
+                </div>
+                <div class="text-[11px] text-blue-200 font-mono font-bold" id="customerPortalTenantName">--</div>
             </div>
         </div>
 
@@ -842,6 +859,13 @@
                                 <div class="flex justify-between">
                                     <span class="text-slate-500">Çıktı Formatı:</span>
                                     <span class="text-slate-700">Vektörel PDF + HTML</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Rapor Dili:</span>
+                                    <select id="studioReportLang" class="text-xs bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-ks-red">
+                                        <option value="tr">🇹🇷 Türkçe (TR)</option>
+                                        <option value="en">🇬🇧 English (EN)</option>
+                                    </select>
                                 </div>
                                 <div class="flex justify-between items-center pt-2 border-t border-slate-200">
                                     <span class="text-slate-500">Telemetri Kaynağı:</span>
@@ -2494,6 +2518,78 @@
         </div>
     </div>
 
+    <!-- Kiracı Tarihsel Trendler ve Metrikler Modalı (12 Aylık Veri Ambarı) -->
+    <div id="tenantTrendsModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 bg-ks-navy text-white flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-chart-line text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold flex items-center space-x-2">
+                            <span id="trendsModalTenantName">Müşteri Tarihsel Trendleri</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-indigo-500 text-white">12 Aylık SQLite Veri Ambarı</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-300">Zaman serisi güvenlik skoru, engellenen tehditler ve DLP ihlal grafikleri</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeTenantTrendsModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-4 text-xs">
+                <!-- Özet KPI İstatistikleri -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Son Secure Score</div>
+                        <div id="trendsLastSecureScore" class="text-xl font-black text-emerald-600">--</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Engellenen Tehdit</div>
+                        <div id="trendsLastThreats" class="text-xl font-black text-ks-navy">--</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">DLP İhlal Olayları</div>
+                        <div id="trendsLastDlp" class="text-xl font-black text-amber-600">--</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Kazanılan Efor (Saat)</div>
+                        <div id="trendsLastHours" class="text-xl font-black text-indigo-600">--</div>
+                    </div>
+                </div>
+
+                <!-- 12 Aylık Trend Tablosu -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead class="bg-slate-50 font-semibold text-slate-600 uppercase text-[10px]">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">Dönem</th>
+                                <th class="px-3 py-2.5 text-left">Servis</th>
+                                <th class="px-3 py-2.5 text-center">Secure Score</th>
+                                <th class="px-3 py-2.5 text-center">Tehdit Blok</th>
+                                <th class="px-3 py-2.5 text-center">Kritik Olay</th>
+                                <th class="px-3 py-2.5 text-center">DLP İhlal</th>
+                                <th class="px-3 py-2.5 text-center">Efor Tasarrufu</th>
+                                <th class="px-3 py-2.5 text-right">Kayıt Tarihi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trendsTableBody" class="divide-y divide-slate-100">
+                            <!-- JS ile doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button type="button" onclick="closeTenantTrendsModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-1.5 rounded-lg transition">
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT MOTORU -->
     <script>
         // Otomatik API Authorization Header Sarmalayıcı (Bearer Token Enjeksiyonu)
@@ -2581,6 +2677,24 @@
             }
         }
 
+        let currentLanguage = 'tr';
+        function setAppLanguage(lang) {
+            currentLanguage = lang;
+            const btnTr = document.getElementById('langBtn-tr');
+            const btnEn = document.getElementById('langBtn-en');
+            const studioLang = document.getElementById('studioReportLang');
+
+            if (lang === 'en') {
+                if (btnEn) btnEn.className = 'px-2 py-1 rounded font-bold bg-ks-red text-white transition text-[11px]';
+                if (btnTr) btnTr.className = 'px-2 py-1 rounded font-medium text-slate-300 hover:text-white transition text-[11px]';
+                if (studioLang) studioLang.value = 'en';
+            } else {
+                if (btnTr) btnTr.className = 'px-2 py-1 rounded font-bold bg-ks-red text-white transition text-[11px]';
+                if (btnEn) btnEn.className = 'px-2 py-1 rounded font-medium text-slate-300 hover:text-white transition text-[11px]';
+                if (studioLang) studioLang.value = 'tr';
+            }
+        }
+
         function applyUserProfile(user) {
             if (!user) return;
             currentUser = user;
@@ -2588,8 +2702,30 @@
             const role = document.getElementById('currentUserRole');
             const init = document.getElementById('userAvatarInitials');
             if (disp && user.displayName) disp.textContent = user.displayName;
-            if (role && (user.role || user.Role)) role.textContent = user.role || user.Role;
+            const userRole = user.role || user.Role || '';
+            if (role && userRole) role.textContent = userRole;
             if (init && user.initials) init.textContent = user.initials;
+
+            // Customer Portal Self-Service Isolation Mode
+            const isCustomerRole = userRole.toLowerCase().includes('customer') || userRole === 'CustomerViewer' || userRole === 'CustomerCISO';
+            const banner = document.getElementById('customerPortalBanner');
+            const bannerTenant = document.getElementById('customerPortalTenantName');
+            
+            if (isCustomerRole) {
+                if (banner) banner.classList.remove('hidden');
+                if (bannerTenant) bannerTenant.textContent = user.tenantId || user.customerId || 'Müşteri Portalı';
+                // Lock and hide internal administrative tabs for customer viewers
+                ['tabBtn-tenants', 'tabBtn-teams', 'tabBtn-settings', 'tabBtn-rbac'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+            } else {
+                if (banner) banner.classList.add('hidden');
+                ['tabBtn-tenants', 'tabBtn-teams', 'tabBtn-settings', 'tabBtn-rbac'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = '';
+                });
+            }
         }
 
         async function handleLoginSubmit(event) {
@@ -3069,6 +3205,18 @@
                     statusBadge = '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">🟡 Kimlik Bekliyor</span>';
                 }
 
+                let credBadge = '';
+                if (t.CredentialHealth) {
+                    const ch = t.CredentialHealth;
+                    if (ch.status === 'CRITICAL' || ch.status === 'EXPIRED') {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-red-100 text-red-700 border border-red-200 ml-1" title="Sır/Sertifika: ${ch.daysRemaining} gün kaldı">🔴 ${ch.daysRemaining}g</span>`;
+                    } else if (ch.status === 'EXPIRING_SOON') {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-700 border border-amber-200 ml-1" title="Sır/Sertifika: ${ch.daysRemaining} gün kaldı">🟡 ${ch.daysRemaining}g</span>`;
+                    } else {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200 ml-1" title="Key Vault & Sır Sağlığı Normal">🟢 KV</span>`;
+                    }
+                }
+
                 const svcs = (t.ActiveServices || []).map(s => `<span class="bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded text-[10px] font-mono mr-1">${s}</span>`).join('');
 
                 tr.innerHTML = `
@@ -3077,13 +3225,16 @@
                         <div class="text-[10px] text-slate-400 font-mono">${t.ContactEmail || 'ciso@musteri.com'}</div>
                     </td>
                     <td class="px-4 py-3 font-mono text-[11px] text-slate-600">${t.TenantId || t.Id}</td>
-                    <td class="px-4 py-3">${statusBadge}</td>
+                    <td class="px-4 py-3 flex items-center space-x-1">${statusBadge}${credBadge}</td>
                     <td class="px-4 py-3 font-semibold text-slate-700">${Number(t.TotalEndpoints || 0).toLocaleString('tr-TR')}</td>
                     <td class="px-4 py-3 font-bold text-emerald-600">%${t.SecureScore !== undefined && t.SecureScore !== null ? t.SecureScore : 0}</td>
                     <td class="px-4 py-3">${svcs || '<span class="text-slate-400 text-[10px]">-</span>'}</td>
                     <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                         <button onclick="showTenantPermissions('${t.Id}')" class="px-2 py-1 text-blue-600 hover:text-blue-800 border border-blue-200 hover:bg-blue-50 rounded text-xs transition font-semibold" title="Pre-flight Graph API Yetki &amp; Sağlık Tanısı">
                             <i class="fa-solid fa-stethoscope text-[10px] mr-1"></i>İzin Tanısı
+                        </button>
+                        <button onclick="showTenantTrendsModal('${t.Id}', '${escapeHtml(t.Name)}')" class="px-2 py-1 text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:bg-indigo-50 rounded text-xs transition font-semibold" title="12 Aylık Tarihsel Trendler ve Metrikler">
+                            <i class="fa-solid fa-chart-line text-[10px] mr-1"></i>Trend
                         </button>
                         <button onclick="openTenantLogoModal('${t.Id}', '${escapeHtml(t.Name)}')" class="px-2 py-1 text-slate-600 hover:text-ks-navy border border-slate-200 hover:bg-slate-100 rounded text-xs transition" title="Kurumsal Logo Yükle">
                             <i class="fa-solid fa-image text-[10px] mr-1"></i>Logo
@@ -3128,6 +3279,18 @@
                     cardBadge = `<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">🟡 Kimlik Bekliyor</span>`;
                 }
 
+                let credBadge = '';
+                if (t.CredentialHealth) {
+                    const ch = t.CredentialHealth;
+                    if (ch.status === 'CRITICAL' || ch.status === 'EXPIRED') {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-red-100 text-red-700 border border-red-200" title="Sır/Sertifika: ${ch.daysRemaining} gün kaldı">🔴 ${ch.daysRemaining}g Sır</span>`;
+                    } else if (ch.status === 'EXPIRING_SOON') {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-700 border border-amber-200" title="Sır/Sertifika: ${ch.daysRemaining} gün kaldı">🟡 ${ch.daysRemaining}g Sır</span>`;
+                    } else {
+                        credBadge = `<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="Key Vault & Sır Sağlığı Normal">🟢 KV OK</span>`;
+                    }
+                }
+
                 card.innerHTML = `
                     <div>
                         <div class="flex justify-between items-start mb-2">
@@ -3135,7 +3298,10 @@
                                 <h3 class="text-sm font-bold text-ks-navy">${t.Name}</h3>
                                 <div class="text-[11px] text-slate-400 font-mono">${t.TenantId || t.Id}</div>
                             </div>
-                            ${cardBadge}
+                            <div class="flex flex-col items-end space-y-1">
+                                ${cardBadge}
+                                ${credBadge}
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 my-3 text-xs bg-slate-50 p-2.5 rounded-lg">
@@ -3152,10 +3318,15 @@
                     </div>
 
                     <div class="pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center gap-2 text-xs">
-                        <div class="flex items-center space-x-2">
+                        <div class="flex items-center space-x-1.5">
                             <button onclick="showTenantPermissions('${t.Id}')" class="text-blue-600 hover:text-blue-800 transition flex items-center space-x-1 font-semibold" title="Pre-flight Graph API Yetki &amp; Sağlık Tanısı">
                                 <i class="fa-solid fa-stethoscope text-[11px]"></i>
-                                <span>İzin Tanısı</span>
+                                <span>İzin</span>
+                            </button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="showTenantTrendsModal('${t.Id}', '${escapeHtml(t.Name)}')" class="text-indigo-600 hover:text-indigo-800 transition flex items-center space-x-1 font-semibold" title="12 Aylık Tarihsel Trendler ve Metrikler">
+                                <i class="fa-solid fa-chart-line text-[11px]"></i>
+                                <span>Trend</span>
                             </button>
                             <span class="text-slate-300">|</span>
                             <button onclick="openTenantLogoModal('${t.Id}', '${escapeHtml(t.Name)}')" class="text-slate-600 hover:text-ks-navy transition flex items-center space-x-1" title="Müşteri Kurumsal Logosu Yükle">
@@ -3421,11 +3592,13 @@
             logPre.innerText = `[INFO] PowerShell 7.4 motoru tetiklendi...\n[INFO] Hedef Kiracı: ${tenant ? tenant.Name : tenantId}\n[INFO] Mod: ${isDryRun ? 'DryRun (Simülasyon)' : 'CANLI MICROSOFT GRAPH/DEFENDER'}\n[INFO] Seçilen Servisler: ` + selectedServices.join(', ');
 
             try {
+                const reportLang = document.getElementById('studioReportLang') ? document.getElementById('studioReportLang').value : (currentLanguage || 'tr');
                 const payload = {
                     tenantId: tenantId,
                     services: selectedServices,
                     mode: document.getElementById('studioPeriodSelect') ? document.getElementById('studioPeriodSelect').value : 'Monthly',
-                    dryRun: isDryRun
+                    dryRun: isDryRun,
+                    language: reportLang
                 };
 
                 const res = await fetch('/api/reports/generate', {
@@ -4120,6 +4293,68 @@ let allUsers = [];
 
         function closeTenantPermissionsModal() {
             document.getElementById('tenantPermissionsModal').classList.add('hidden');
+        }
+
+        async function showTenantTrendsModal(tenantId, tenantName) {
+            const modal = document.getElementById('tenantTrendsModal');
+            const tbody = document.getElementById('trendsTableBody');
+            const title = document.getElementById('trendsModalTenantName');
+            
+            if (title) title.textContent = `${tenantName || tenantId} Tarihsel Trendleri`;
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-500"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>12 Aylık tarihsel telemetri veritabanından çekiliyor...</td></tr>';
+            if (modal) modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/tenants/${tenantId}/trends`);
+                const data = await res.json();
+                
+                if (!res.ok || !data.success) {
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-red-600 font-bold">Hata: ${data.error || 'Trend verisi alınamadı'}</td></tr>`;
+                    return;
+                }
+
+                const trends = data.trends || [];
+                if (trends.length === 0) {
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">Bu kiracı için henüz kaydedilmiş zaman serisi verisi bulunmamaktadır.</td></tr>';
+                    return;
+                }
+
+                const latest = trends[0] || {};
+                const scoreEl = document.getElementById('trendsLastSecureScore');
+                const threatsEl = document.getElementById('trendsLastThreats');
+                const dlpEl = document.getElementById('trendsLastDlp');
+                const hoursEl = document.getElementById('trendsLastHours');
+
+                if (scoreEl) scoreEl.textContent = latest.secure_score ? `%${latest.secure_score}` : '--';
+                if (threatsEl) threatsEl.textContent = (latest.threats_blocked !== undefined) ? latest.threats_blocked : '--';
+                if (dlpEl) dlpEl.textContent = (latest.dlp_violations !== undefined) ? latest.dlp_violations : '--';
+                if (hoursEl) hoursEl.textContent = latest.hours_saved ? `${latest.hours_saved}s` : '--';
+
+                if (tbody) {
+                    tbody.innerHTML = trends.map(t => {
+                        const scoreColor = t.secure_score >= 80 ? 'text-emerald-600 font-bold' : (t.secure_score >= 60 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold');
+                        return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="px-4 py-2 font-mono font-bold text-ks-navy">${t.period}</td>
+                                <td class="px-3 py-2 font-mono text-[11px] text-slate-600">${t.service_code}</td>
+                                <td class="px-3 py-2 text-center ${scoreColor}">%${t.secure_score}</td>
+                                <td class="px-3 py-2 text-center font-bold text-slate-800">${t.threats_blocked}</td>
+                                <td class="px-3 py-2 text-center text-red-600 font-bold">${t.critical_incidents}</td>
+                                <td class="px-3 py-2 text-center text-amber-600 font-bold">${t.dlp_violations}</td>
+                                <td class="px-3 py-2 text-center text-indigo-700 font-bold">${t.hours_saved} sa</td>
+                                <td class="px-3 py-2 text-right text-[10px] text-slate-400 font-mono">${(t.recorded_at || '').substring(0, 10)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-red-600">Bağlantı hatası: ${err}</td></tr>`;
+            }
+        }
+
+        function closeTenantTrendsModal() {
+            const modal = document.getElementById('tenantTrendsModal');
+            if (modal) modal.classList.add('hidden');
         }
 
         // ==========================================

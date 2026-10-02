@@ -43,7 +43,9 @@
       "Method": "ClientSecret",
       "ClientId": "b715103d-ff46-4717-a9b5-cba6427cbe01",
       "KeyVaultSecretName": "MSSP-Tenant-EmreTestTenant-Secret",
-      "ClientSecret": ""
+      "ClientSecret": "",
+      "SecretExpiryDate": "2027-04-15T00:00:00Z",
+      "CertExpiryDate": "2027-09-30T00:00:00Z"
     },
     "Description": "Emre-TestTenant - Canlı Müşteri Kiracısı (Otomatik Onboard Edildi)",
     "ScheduleFrequency": "Monthly",

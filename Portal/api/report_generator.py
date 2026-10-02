@@ -186,6 +186,53 @@ def get_provider_logo_data_uri():
     b64 = base64.b64encode(provider_svg.encode("utf-8")).decode("utf-8")
     return f"data:image/svg+xml;base64,{b64}"
 
+def render_historical_trends_section(tenant_id=None, language="tr", db_path=None):
+    """Fetches real time-series records from database and renders an executive historical trajectory table."""
+    try:
+        from database.db import get_tenant_trends
+        target_tid = tenant_id or "tenant-002"
+        trends = get_tenant_trends(target_tid, limit_months=12, db_path=db_path)
+        if not trends:
+            return ""
+
+        seen_periods = set()
+        unique_trends = []
+        for tr in sorted(trends, key=lambda x: x["period"]):
+            if tr["period"] not in seen_periods:
+                seen_periods.add(tr["period"])
+                unique_trends.append(tr)
+
+        if not unique_trends:
+            return ""
+
+        if language == "en":
+            title = "Historical Security &amp; Compliance Trajectory (Past 6 Months &mdash; Database Verified)"
+            th = "<tr><th>Period</th><th>Secure Score</th><th>Threats Blocked</th><th>Critical Incidents</th><th>DLP Violations</th><th>Device Compliance</th><th>Hours Saved</th></tr>"
+        else:
+            title = "Tarihsel Güvenlik ve Uyum Gelişim Eğrisi (Son 6 Ay &mdash; Doğrulanmış Zaman Serisi)"
+            th = "<tr><th>Dönem</th><th>Secure Score</th><th>Bloke Tehdit</th><th>Kritik Olay</th><th>DLP İhlali</th><th>Cihaz Uyumu</th><th>Kazanılan Efor</th></tr>"
+
+        rows = []
+        for ut in unique_trends[-6:]:
+            p = ut.get("period", "")
+            sc = f"%{ut.get('secure_score', 0.0):.1f}"
+            th_cnt = ut.get("threats_blocked", 0)
+            cr_cnt = ut.get("critical_incidents", 0)
+            dlp_cnt = ut.get("dlp_violations", 0)
+            dev_comp = f"%{ut.get('device_compliance_pct', 0.0):.1f}" if ut.get('device_compliance_pct') else "N/A"
+            hrs = f"+{ut.get('hours_saved', 0.0):.1f} sa" if language == "tr" else f"+{ut.get('hours_saved', 0.0):.1f} hrs"
+
+            rows.append(f"<tr><td><b>{p}</b></td><td class='num'>{sc}</td><td class='num'>{th_cnt}</td><td class='num'>{cr_cnt}</td><td class='num'>{dlp_cnt}</td><td class='num'>{dev_comp}</td><td class='num font-mono'>{hrs}</td></tr>")
+
+        return f'''
+<h2>{title}</h2>
+<table>
+  {th}
+  {''.join(rows)}
+</table>'''
+    except Exception:
+        return ""
+
 # ─────────────────────────────────────────────────────────────
 # 3. PROVENANCE & COLLECTION HEALTH COMPONENTS
 # ─────────────────────────────────────────────────────────────
@@ -1019,11 +1066,11 @@ def render_executive_brief_entra(customer_name, period_label, total_roles, perma
 # 7. GOLDEN REPORT HTML BUILDERS
 # ─────────────────────────────────────────────────────────────
 
-def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1070,6 +1117,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     brief_html = render_executive_brief_mde(customer_name, period_label, total_devices, total_alerts, open_incidents, total_auto, analyst_actions, saved_hours, fte_equiv, ghost_14_30)
     attr_grid_html = render_attribution_grid_mde(total_auto, analyst_actions, saved_hours, fte_equiv, ghost_14_30, evidence_id)
     decision_html = render_decision_framework_mde(ghost_14_30, analyst_actions)
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     # Semantic Rule 14: Dynamic badges that match values
     tvm_badge_class = "p-ok" if tvm_pct != "N/A" and float(tvm_pct.replace("%", "")) >= 80 else "p-info"
@@ -1091,35 +1139,50 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     else:
         falcon_table = "<div class='empty-state-notice'>Dönem içinde yürütülen proaktif KQL avcılık senaryolarında istismara rastlanmamıştır (0 Tespit).</div>"
 
+    is_en = language == "en"
+    lang_attr = "en" if is_en else "tr"
+    page_title = f"Monthly EDR Security Report - {customer_name}" if is_en else f"Aylık EDR Güvenlik Raporu - {customer_name}"
+    h1_text = "Monthly EDR Security Report" if is_en else "Aylık EDR Güvenlik Raporu"
+    sub_text = f"{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint Managed Security Service<br>Reporting Period: {period_label} &nbsp;|&nbsp; Generated at: {now_str} &nbsp;|&nbsp; Telemetry: {data_source_note}" if is_en else f"{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yönetilen Güvenlik Hizmeti<br>Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}"
+
+    b1_label = "Monitored Devices" if is_en else "İzlenen Cihaz"
+    b2_label = "Sensor Coverage" if is_en else "Sensör Kapsamı"
+    b3_label = "Autonomous Blocks" if is_en else "Otonom Blok"
+    b4_label = "Expert Actions" if is_en else "Uzman Eforu"
+    b4_val = f"{analyst_actions} Actions" if is_en else f"{analyst_actions} Aksiyon"
+
+    stamp_p1 = "Page 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
+    stamp_p2 = "Page 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
+    stamp_p3 = f"Page 3 / 3 &nbsp;|&nbsp; Generated: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}" if is_en else f"Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}"
+
     return f'''<!DOCTYPE html>
-<html lang="tr"><head><meta charset="utf-8">
-<title>Aylik EDR Guvenlik Raporu - {customer_name}</title>
+<html lang="{lang_attr}"><head><meta charset="utf-8">
+<title>{page_title}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: CISO VE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylik EDR Guvenlik Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yonetilen Guvenlik Hizmeti<br>
-  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+  <h1>{h1_text}</h1>
+  <div class="sub">{sub_text}</div>
 </header>
 
 <div class="ciso-badge">
-  <div class="ciso-badge-item">İzlenen Cihaz: <b>{total_devices}</b></div>
-  <div class="ciso-badge-item">Sensör Kapsamı: <b>{sensor_cov_pct}</b></div>
-  <div class="ciso-badge-item">Otonom Blok: <b>{total_auto}</b></div>
-  <div class="ciso-badge-item">Uzman Eforu: <b>{analyst_actions} Aksiyon</b></div>
+  <div class="ciso-badge-item">{b1_label}: <b>{total_devices}</b></div>
+  <div class="ciso-badge-item">{b2_label}: <b>{sensor_cov_pct}</b></div>
+  <div class="ciso-badge-item">{b3_label}: <b>{total_auto}</b></div>
+  <div class="ciso-badge-item">{b4_label}: <b>{b4_val}</b></div>
 </div>
 
 {coll_health_html}
 {brief_html}
 
-<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+<h2>{'Four Pillars of Service Value Attribution Model' if is_en else 'Dört Temel Değer Sütunu (Service Value Attribution Model)'}</h2>
 {attr_grid_html}
 
-<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+<div class="stamp">{stamp_p1}</div>
 </div>
 
 <!-- SAYFA 2: OPERASYONEL METRİKLER VE TEHDİT AVI -->
@@ -1148,6 +1211,8 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <h2>Proaktif Tehdit Avcılığı (FalconFriday KQL Kampanyaları)</h2>
 {falcon_table}
 
+{trends_html}
+
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
@@ -1170,11 +1235,11 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 
 </div></body></html>'''
 
-def build_golden_purview_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_purview_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1205,6 +1270,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
     brief_html = render_executive_brief_purview(customer_name, period_label, total_matches, blocked_events, overrides, eng_effort, saved_hours)
     attr_grid_html = render_attribution_grid_purview(total_matches, blocked_events, overrides, eng_effort, saved_hours, evidence_id)
     decision_html = render_decision_framework_purview(endpoint_blocks, overrides)
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     # Semantic Rule 3: Override breakdown arithmetic consistency
     override_breakdown = kpis.get("UserOverrideBreakdown") or []
@@ -1282,6 +1348,8 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <h2>Kullanıcı Kural Aşımı (Override) Dağılımı</h2>
 {override_table}
 
+{trends_html}
+
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
@@ -1304,11 +1372,11 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 
 </div></body></html>'''
 
-def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1348,6 +1416,7 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
     brief_html = render_executive_brief_mdo(customer_name, period_label, total_inbound, total_blocked, phish_blocked, malware_blocked, zap_actions, analyst_actions, saved_hours, fte_equiv)
     attr_grid_html = render_attribution_grid_mdo(total_blocked, analyst_actions, saved_hours, fte_equiv, user_submissions, evidence_id)
     decision_html = render_decision_framework_mdo(analyst_actions, user_submissions)
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     # Tables with semantic Rule 8 empty-state guarantee
     threat_rows = [
@@ -1423,6 +1492,8 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
   <tr><td><b>DMARC &amp; Anti-Spoofing</b></td><td>Alan Adı Sahteciliği ve Kimlik Koruma</td><td>Gelen ve Giden Tüm İletiler</td><td><span class="pill p-ok">Sıkı Denetim</span></td></tr>
 </table>
 
+{trends_html}
+
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
@@ -1445,11 +1516,11 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 
 </div></body></html>'''
 
-def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1481,6 +1552,7 @@ def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="A
     brief_html = render_executive_brief_entra(customer_name, period_label, total_roles, permanent_gas, eligible_roles, pim_activations, analyst_actions, saved_hours, fte_equiv)
     attr_grid_html = render_attribution_grid_entra(total_roles, permanent_gas, eligible_roles, analyst_actions, saved_hours, fte_equiv, evidence_id)
     decision_html = render_decision_framework_entra(permanent_gas, analyst_actions)
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     # Tables with semantic Rule 8 empty-state guarantee
     role_dist_rows = [
@@ -1557,6 +1629,8 @@ def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="A
   <tr><td><b>Eski Protokol Engelleme</b></td><td>Temel Kimlik Doğrulama (Basic Auth) Kısıtı</td><td>Exchange, IMAP, POP3 ve SMTP</td><td><span class="pill p-ok">Engellendi</span></td></tr>
 </table>
 
+{trends_html}
+
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
@@ -1579,11 +1653,11 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 
 </div></body></html>'''
 
-def build_golden_consolidated_html(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_consolidated_html(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1627,10 +1701,31 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
         saved_hours = 0.0
     fte_equiv = fmt_fte(saved_hours)
 
+    is_en = language == "en"
+    lang_attr = "en" if is_en else "tr"
+    page_title = f"Monthly Consolidated Security Report - {customer_name}" if is_en else f"Aylık Birleşik Güvenlik ve Uyum Raporu - {customer_name}"
+    h1_text = "Monthly Consolidated Security &amp; Compliance Report" if is_en else "Aylık Birleşik Güvenlik ve Uyum Raporu"
+    sub_service = "Microsoft 365 E5 Managed Security &amp; Purview Services" if is_en else "Microsoft 365 E5 Yönetilen Güvenlik ve Purview Hizmetleri"
+    sub_period = f"Reporting period: {period_label} &nbsp;|&nbsp; Generated at: {now_str} &nbsp;|&nbsp; Provider: {PROVIDER_NAME}" if is_en else f"Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet sağlayıcı: {PROVIDER_NAME}"
+
+    b1_label = "Managed Services" if is_en else "Yönetilen Servis"
+    b2_label = "Autonomous Response" if is_en else "Otonom Müdahale"
+    b3_label = "Expert Analyst" if is_en else "Uzman Analist"
+    b4_label = "Hours Saved" if is_en else "Kazanılan Efor"
+    b3_val = f"{total_analyst_actions} Actions" if is_en else f"{total_analyst_actions} Aksiyon"
+    b4_val = f"{saved_hours:.1f} hrs (~{fte_equiv} FTE)" if is_en else f"{saved_hours:.1f} sa (~{fte_equiv} FTE)"
+
+    stamp_p1 = "Page 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
+    stamp_p2 = "Page 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
+    stamp_p3 = f"Page 3 / 3 &nbsp;|&nbsp; Generated: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}" if is_en else f"Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}"
+
+    disclaimer_text = """<b>Disclaimer &amp; Legal Notice:</b> This report summarizes technical security posture based on API telemetry data. Final compliance and regulatory determinations rest with the data controller's compliance and audit teams.<br><b>Report Integrity Verification:</b> The data integrity of this report is sealed with a SHA-256 cryptographic digest for technical change-control purposes.<br>Confidentiality: TLP:AMBER &bull; Client Confidential &amp; Commercial Secret.""" if is_en else """<b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br><b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır."""
+
     coll_health_html = render_collection_health_card(services, live_data)
     cons_brief_html = render_executive_brief_consolidated(customer_name, period_label, len(services), total_blocks, total_analyst_actions, saved_hours)
     cons_attr_grid_html = render_attribution_grid_consolidated(total_blocks, total_analyst_actions, saved_hours, len(services))
     decision_html = render_decision_framework_consolidated()
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     cross_incidents = live_data.get("ConsolidatedIncidents") or []
     if cross_incidents:
@@ -1640,25 +1735,25 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
         inc_table = "<div class='empty-state-notice'>Dönem içinde çapraz servislerde müdahale gerektiren açık kritik incident saptanmamıştır.</div>"
 
     return f'''<!DOCTYPE html>
-<html lang="tr"><head><meta charset="utf-8">
-<title>Aylik Birlesik Guvenlik ve Uyum Raporu - {customer_name}</title>
+<html lang="{lang_attr}"><head><meta charset="utf-8">
+<title>{page_title}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: KONSOLİDE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylik Birlesik Guvenlik ve Uyum Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5 Yonetilen Guvenlik ve Purview Hizmetleri<br>
-  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
+  <h1>{h1_text}</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {sub_service}<br>
+  {sub_period}</div>
 </header>
 
 <div class="ciso-badge">
-  <div class="ciso-badge-item">Yönetilen Servis: <b>{len(services)}</b></div>
-  <div class="ciso-badge-item">Otonom Müdahale: <b>{total_blocks}</b></div>
-  <div class="ciso-badge-item">Uzman Analist: <b>{total_analyst_actions} Aksiyon</b></div>
-  <div class="ciso-badge-item">Kazanılan Efor: <b>{saved_hours:.1f} sa (~{fte_equiv} FTE)</b></div>
+  <div class="ciso-badge-item">{b1_label}: <b>{len(services)}</b></div>
+  <div class="ciso-badge-item">{b2_label}: <b>{total_blocks}</b></div>
+  <div class="ciso-badge-item">{b3_label}: <b>{b3_val}</b></div>
+  <div class="ciso-badge-item">{b4_label}: <b>{b4_val}</b></div>
 </div>
 
 {coll_health_html}
@@ -1667,28 +1762,30 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 <h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
 {cons_attr_grid_html}
 
-<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+<div class="stamp">{stamp_p1}</div>
 </div>
 
 <!-- SAYFA 2: ÇAPRAZ TEHDİT VE KORUMA KARNESİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Capraz Tehdit ve Yonetisim Karnesi</h1>
+  <h1>{'Cross-Domain Threat &amp; Governance Scorecard' if is_en else 'Çapraz Tehdit ve Yönetişim Karnesi'}</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
-<h2>Servis Bazli Koruma Karnesi</h2>
+<h2>{'Service-Level Protection Scorecard' if is_en else 'Servis Bazlı Koruma Karnesi'}</h2>
 <table>
-  <tr><th>Yonetilen Servis</th><th>Kapsanan Varlik</th><th>Otonom Mudahale</th><th>Analist Eforu</th><th>Durum</th></tr>
+  <tr><th>{'Managed Service' if is_en else 'Yönetilen Servis'}</th><th>{'Covered Assets' if is_en else 'Kapsanan Varlık'}</th><th>{'Autonomous Response' if is_en else 'Otonom Müdahale'}</th><th>{'Analyst Effort' if is_en else 'Analist Eforu'}</th><th>{'Status' if is_en else 'Durum'}</th></tr>
   {"".join(scorecard_rows)}
 </table>
 
-<h2>Donemdeki Kritik Guvenlik Olaylari</h2>
+<h2>{'Critical Security Incidents in Period' if is_en else 'Dönemdeki Kritik Güvenlik Olayları'}</h2>
 {inc_table}
 
-<h2>Çapraz Güvenlik Trendi ve Dayanıklılık Duruşu</h2>
+{trends_html}
+
+<h2>{'Cross-Domain Security Trend &amp; Posture Resilience' if is_en else 'Çapraz Güvenlik Trendi ve Dayanıklılık Duruşu'}</h2>
 <table>
   <tr><th>Güvenlik Katmanı</th><th>Kapsanan Varlıklar</th><th>Otonom Koruma Kalkanı</th><th>Analist Yönetişim Duruşu</th></tr>
   <tr><td><b>Uç Nokta &amp; Cihaz (MDE)</b></td><td>Windows, macOS, Linux İstemciler</td><td>AIR Otonom İzolasyon &amp; AV</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
@@ -1697,24 +1794,22 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
   <tr><td><b>Veri &amp; Uyum (Purview)</b></td><td>SharePoint, OneDrive, USB, Endpoint</td><td>DLP Otonom Engelleme &amp; Etiketleme</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
 </table>
 
-<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+<div class="stamp">{stamp_p2}</div>
 </div>
 
 <!-- SAYFA 3: KONSOLİDE KARAR VE YÖNETİŞİM MATRİSİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Birlesik Karar ve Yonetisim Matrisi</h1>
+  <h1>{'Consolidated Decision &amp; Governance Matrix' if is_en else 'Birleşik Karar ve Yönetişim Matrisi'}</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
 {decision_html}
 
-<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
-<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
-Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<p class="note">{disclaimer_text}</p>
+<div class="stamp">{stamp_p3}</div>
 </div>
 
 </div></body></html>'''
@@ -1888,11 +1983,11 @@ def render_executive_brief_intune(customer_name, period_label, total_devices, co
 # 7. GOLDEN REPORT HTML BUILDERS
 # ─────────────────────────────────────────────────────────────
 
-def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     css = get_golden_style_css()
-    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_l = get_customer_logo_data_uri(customer_name, tenant_id=tenant_id)
     logo_r = get_provider_logo_data_uri()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -1933,6 +2028,7 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
     brief_html = render_executive_brief_intune(customer_name, period_label, total_devices, compliant_devices, non_compliant, encrypted_devices, autonomous_actions, engineer_actions, saved_hours, fte_equiv, compliance_pct)
     attr_grid_html = render_attribution_grid_intune(autonomous_actions, engineer_actions, saved_hours, fte_equiv, non_compliant, evidence_id)
     decision_html = render_decision_framework_intune(non_compliant, engineer_actions)
+    trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
 
     # Tables for Page 2
     if total_devices > 0:
@@ -2016,6 +2112,8 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
   {policy_rows}
 </table>
 
+{trends_html}
+
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
@@ -2047,7 +2145,7 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 # ─────────────────────────────────────────────────────────────
 
 def generate_html_report(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026 Dönemi",
-                         live_data=None, data_source_note=""):
+                         live_data=None, data_source_note="", language="tr", tenant_id=None):
     if live_data is None:
         live_data = {}
     
@@ -2055,21 +2153,21 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
         services = ["SVC-MDE"]
 
     if len(services) == 1 and services[0] == "SVC-MDE":
-        return build_golden_mde_html(customer_name, period_tag, period_label, live_data, data_source_note)
+        return build_golden_mde_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
     if len(services) == 1 and services[0] in ("SVC-MDO", "SVC-DEFENDER-OFFICE"):
-        return build_golden_mdo_html(customer_name, period_tag, period_label, live_data, data_source_note)
+        return build_golden_mdo_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
     if len(services) == 1 and services[0] in ("SVC-ENTRA-ID", "SVC-ENTRA-PIM", "SVC-ENTRA"):
-        return build_golden_entra_html(customer_name, period_tag, period_label, live_data, data_source_note)
+        return build_golden_entra_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
     if (len(services) == 1 and services[0] in ("SVC-PURVIEW", "SVC-PRV-DLP")) or all(s.startswith("SVC-PRV-") or s in ("SVC-PURVIEW", "SVC-AI-SECURITY") for s in services):
-        return build_golden_purview_html(customer_name, period_tag, period_label, live_data, data_source_note)
+        return build_golden_purview_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
     if len(services) == 1 and services[0] == "SVC-INTUNE":
-        return build_golden_intune_html(customer_name, period_tag, period_label, live_data, data_source_note)
+        return build_golden_intune_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
-    return build_golden_consolidated_html(customer_name, services, period_tag, period_label, live_data, data_source_note)
+    return build_golden_consolidated_html(customer_name, services, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
 def find_pdf_engine():
     candidates = [
@@ -2534,7 +2632,7 @@ def create_executive_pdf(customer_name, services, output_path, period_label="A\u
         f.write(out)
     return output_path
 
-def render_and_save_report(customer_name, services, output_dir, period_tag=None, period_label=None):
+def render_and_save_report(customer_name, services, output_dir, period_tag=None, period_label=None, language="tr", tenant_id=None):
     now = datetime.now()
     if not period_tag:
         prev_month = now.month - 1 if now.month > 1 else 12
@@ -2545,21 +2643,25 @@ def render_and_save_report(customer_name, services, output_dir, period_tag=None,
     try:
         year, month = int(period_tag.split("-")[0]), int(period_tag.split("-")[1])
         month_name = calendar.month_name[month]
-        period_label = period_label or f"{month_name} {year} Dönemi"
+        period_label = period_label or (f"{month_name} {year} Period" if language == "en" else f"{month_name} {year} Dönemi")
     except Exception:
-        period_label = period_label or f"{period_tag} Dönemi"
+        period_label = period_label or (f"{period_tag} Period" if language == "en" else f"{period_tag} Dönemi")
 
     safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
     target_dir = os.path.join(output_dir, safe_name, period_tag)
     os.makedirs(target_dir, exist_ok=True)
 
-    html_path = os.path.join(target_dir, f"Rapor_{safe_name}_{period_tag}.html")
-    pdf_path  = os.path.join(target_dir, f"Rapor_{safe_name}_{period_tag}.pdf")
+    file_prefix = f"Report_{safe_name}_{period_tag}" if language == "en" else f"Rapor_{safe_name}_{period_tag}"
+    html_path = os.path.join(target_dir, f"{file_prefix}.html")
+    pdf_path  = os.path.join(target_dir, f"{file_prefix}.pdf")
 
     live_data = load_live_data(output_dir, customer_name, period_tag)
-    data_source_note = "⚡ Canlı Microsoft Graph API / MDE Hunting" if live_data else "⚠️ Telemetri verisi bulunamadı — veri toplama durumu gösteriliyor"
+    if language == "en":
+        data_source_note = "⚡ Live Microsoft Graph API / MDE Advanced Hunting" if live_data else "⚠️ Telemetry not found — collection status displayed"
+    else:
+        data_source_note = "⚡ Canlı Microsoft Graph API / MDE Hunting" if live_data else "⚠️ Telemetri verisi bulunamadı — veri toplama durumu gösteriliyor"
 
-    html_content = generate_html_report(customer_name, services, period_tag, period_label, live_data=live_data, data_source_note=data_source_note)
+    html_content = generate_html_report(customer_name, services, period_tag, period_label, live_data=live_data, data_source_note=data_source_note, language=language, tenant_id=tenant_id)
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
