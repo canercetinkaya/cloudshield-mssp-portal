@@ -302,8 +302,13 @@ def decode_jwt_payload(jwt_token):
 
 def resolve_entra_user(claims):
     """
-    Resolve or provision authenticated Entra ID user identity into relational RBAC database.
-    Strictly verifies tenant boundaries, checks active status, and loads effective assignments.
+    Resolve and strictly authorize authenticated Entra ID identity into relational RBAC database.
+    Production Zero Trust Controls:
+    1. Tenant boundary enforcement: Incoming tid must match expected corporate tenant.
+    2. Consumer email rejection: Personal MSA domains (@outlook.com, @hotmail.com, @gmail.com, etc.) are blocked.
+    3. Exact identity matching: Zero fuzzy/substring checks. Exact UPN, Email, or AlternativeUpn match required.
+    4. Mandatory pre-enrollment: Only pre-registered users in the platform directory are granted access.
+    5. Inactive account containment: Inactive users are rejected with 403.
     """
     oid = claims.get("oid") or claims.get("sub", "")
     tid = claims.get("tid", "")
@@ -311,45 +316,91 @@ def resolve_entra_user(claims):
     email = (claims.get("email") or claims.get("preferred_username") or upn).lower().strip()
     name = claims.get("name") or upn
 
+    cfg = get_entra_config()
+    expected_tid = cfg.get("tenant_id")
+
+    # 1. Tenant boundary validation (Fail-closed)
+    if expected_tid and tid and tid != expected_tid:
+        return None, (
+            f"Yetkisiz Kiracı Erişimi (403 Forbidden): Oturum açılan kiracı ({tid}) bu platform için yetkilendirilmemiştir. "
+            f"Yalnızca onaylı kurumsal tenant ({expected_tid}) kabul edilir."
+        )
+
+    # 2. Block consumer email providers outright
+    upn_domain = upn.split("@")[-1].lower() if "@" in upn else ""
+    email_domain = email.split("@")[-1].lower() if "@" in email else ""
+    blocked_consumer_domains = {
+        "outlook.com", "hotmail.com", "live.com", "msn.com",
+        "gmail.com", "yahoo.com", "icloud.com", "yandex.com", "mail.com"
+    }
+    if upn_domain in blocked_consumer_domains or email_domain in blocked_consumer_domains:
+        bad_domain = upn_domain if upn_domain in blocked_consumer_domains else email_domain
+        return None, (
+            f"Bireysel Hesap Girişi Engellendi (403 Forbidden): Kişisel e-posta sağlayıcıları (@{bad_domain}) "
+            "kurumsal MSSP güvenlik platformuna giriş yapamaz. Lütfen yetkilendirilmiş kurumsal iş hesabınız (@cnrctnky.onmicrosoft.com) ile oturum açınız."
+        )
+
+    auth_cfg = load_json_file(AUTH_CONFIG_FILE, {}).get("EntraConfig", {})
+    allowed_domains = [d.lower() for d in auth_cfg.get("AllowedDomains", ["cnrctnky.onmicrosoft.com", "cloudshield-mssp.com"])]
+
     conn = get_db()
     cur = conn.cursor()
 
+    # 3. Exact UPN or Email match in database (NO fuzzy or substring matching!)
     cur.execute("SELECT * FROM users WHERE LOWER(upn) = ? OR LOWER(email) = ?", (upn, email))
     user_row = cur.fetchone()
 
-    # Match aliases or personal Microsoft accounts for administrators
+    # Check alternative UPN / aliases in users.json if not found directly
     if not user_row:
-        if "caner" in upn or "caner" in email or "admin" in upn:
-            cur.execute("SELECT * FROM users WHERE id = 'usr-001'")
-            user_row = cur.fetchone()
+        raw_users = load_json_file(USERS_FILE, [])
+        for u in raw_users:
+            alt_upn = (u.get("AlternativeUpn") or "").lower().strip()
+            u_email = (u.get("Email") or "").lower().strip()
+            u_upn = (u.get("Upn") or "").lower().strip()
+            if upn in (alt_upn, u_email, u_upn) or email in (alt_upn, u_email, u_upn):
+                cur.execute("SELECT * FROM users WHERE id = ?", (u.get("Id"),))
+                user_row = cur.fetchone()
+                break
 
     now = datetime.now(timezone.utc).isoformat()
 
-    if user_row:
+    # 4. Fail-closed Pre-enrollment Enforcement
+    if not user_row:
+        # Check if auto-provisioning is explicitly enabled for approved corporate domains
+        auto_provision = auth_cfg.get("AutoProvisionUsers", False)
+        domain_allowed = (upn_domain in allowed_domains or email_domain in allowed_domains)
+
+        if auto_provision and domain_allowed:
+            # JIT provision strictly as restricted operator, NEVER with platform admin or ALL customer access
+            user_id = f"usr-entra-{secrets.token_hex(3)}"
+            cur.execute(
+                """INSERT INTO users (id, organization_id, upn, display_name, email, department,
+                                    password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, last_login_at, created_at)
+                   VALUES (?, 'org-cloudshield', ?, ?, ?, 'MSSP Cloud Security', NULL, NULL, 1, 1, 'EntraID_OIDC', ?, ?)""",
+                (user_id, upn, name, email, now, now)
+            )
+            role_id = "role-service-operator"
+            cur.execute(
+                """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope,
+                                                  service_scope, valid_from, is_temporary, is_active, created_by, created_at)
+                   VALUES (?, 'User', ?, ?, 'Restricted', 'None', ?, 0, 1, 'entra-sso', ?)""",
+                (f"asgn-{user_id}-restricted", user_id, role_id, now, now)
+            )
+            conn.commit()
+        else:
+            conn.close()
+            return None, (
+                f"Yetkisiz Kullanıcı (403 Forbidden): '{upn}' hesabı CloudShield MSSP Platformu üzerinde tanımlı veya yetkili değildir. "
+                "Erişim tanımlanması için lütfen sistem yöneticiniz ile iletişime geçiniz."
+            )
+    else:
         user_dict = dict(user_row)
         if not user_dict.get("is_active"):
             conn.close()
-            return None, "Kullanıcı hesabı devre dışı bırakılmıştır. Lütfen sistem yöneticinizle iletişime geçin."
+            return None, "Kullanıcı hesabı devre dışı bırakılmıştır (Inactive Account). Lütfen sistem yöneticinizle iletişime geçin."
         cur.execute("UPDATE users SET last_login_at = ?, auth_provider = 'EntraID_OIDC' WHERE id = ?", (now, user_dict["id"]))
         conn.commit()
         user_id = user_dict["id"]
-    else:
-        # Provision new authorized user under org-cloudshield
-        user_id = f"usr-entra-{secrets.token_hex(3)}"
-        cur.execute(
-            """INSERT INTO users (id, organization_id, upn, display_name, email, department,
-                                password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, last_login_at, created_at)
-               VALUES (?, 'org-cloudshield', ?, ?, ?, 'MSSP Cloud Security', NULL, NULL, 1, 1, 'EntraID_OIDC', ?, ?)""",
-            (user_id, upn, name, email, now, now)
-        )
-        role_id = "role-security-engineer"
-        cur.execute(
-            """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope,
-                                              service_scope, valid_from, is_temporary, is_active, created_by, created_at)
-               VALUES (?, 'User', ?, ?, 'ALL', 'ALL', ?, 0, 1, 'entra-sso', ?)""",
-            (f"asgn-{user_id}-all", user_id, role_id, now, now)
-        )
-        conn.commit()
 
     assignments = get_effective_assignments(user_id, conn)
     roles = list({a["role_name"] for a in assignments})

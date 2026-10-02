@@ -6,16 +6,25 @@
     ],
     "AllowedDomains": [
       "cnrctnky.onmicrosoft.com",
-      "cloudshield-mssp.com",
+      "cloudshield-mssp.com"
+    ],
+    "BlockedDomains": [
       "outlook.com",
-      "hotmail.com"
+      "hotmail.com",
+      "live.com",
+      "msn.com",
+      "gmail.com",
+      "yahoo.com",
+      "icloud.com"
     ],
     "ClientId": "15b69eff-dc1e-4bf3-9d72-ebda8d7fff40",
     "TenantId": "2fb2bcee-61be-48af-972c-0b11a606578f",
     "Authority": "https://login.microsoftonline.com/2fb2bcee-61be-48af-972c-0b11a606578f/v2.0",
     "RedirectUri": "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/auth/entra/callback",
     "RequireMfa": true,
-    "EnforceConditionalAccess": true
+    "EnforceConditionalAccess": true,
+    "StrictPreEnrollmentRequired": true,
+    "AutoProvisionUsers": false
   },
   "SamlConfig": {
     "EntityId": "https://mssp.cloudshield-mssp.com/saml/metadata",
@@ -24,5 +33,5 @@
     "FederationMetadataUrl": "https://login.microsoftonline.com/2fb2bcee-61be-48af-972c-0b11a606578f/federationmetadata/2007-06/federationmetadata.xml"
   },
   "SsoEnforced": true,
-  "LastUpdated": "2026-10-02T17:15:00Z"
+  "LastUpdated": "2026-10-02T18:50:00Z"
 }

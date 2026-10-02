@@ -94,34 +94,59 @@ class TestEntraIdOidcSSO(unittest.TestCase):
         self.assertEqual(decoded["name"], "Caner Çetinkaya")
 
     def test_04_user_resolution_admin_mapping(self):
-        """Verify that authenticating as Caner or admin maps to PlatformAdmin."""
-        claims = {
+        """Verify that authenticating as Caner (corporate UPN or email) maps to PlatformAdmin."""
+        claims_corp = {
             "oid": "test-oid-admin",
             "tid": "2fb2bcee-61be-48af-972c-0b11a606578f",
-            "preferred_username": "caner.cetinkaya@cloudshield-mssp.com",
+            "preferred_username": "Caner@cnrctnky.onmicrosoft.com",
+            "email": "Caner@cnrctnky.onmicrosoft.com",
             "name": "Caner Çetinkaya"
         }
-        user_profile, err = resolve_entra_user(claims)
+        user_profile, err = resolve_entra_user(claims_corp)
         self.assertIsNone(err)
         self.assertIsNotNone(user_profile)
         self.assertEqual(user_profile["role"], "PlatformAdmin")
         self.assertTrue(user_profile["isPlatformAdmin"])
         self.assertEqual(user_profile["authProvider"], "EntraID_OIDC")
 
-    def test_05_user_resolution_provision_new_operator(self):
-        """Verify that a new user in the corporate tenant is safely provisioned as SecurityEngineer."""
-        unique_upn = f"sec.analyst.{int(time.time())}@cloudshield-mssp.com"
-        claims = {
-            "oid": f"oid-{int(time.time())}",
+    def test_05_block_consumer_and_unauthorized_accounts(self):
+        """Verify that personal consumer accounts (e.g. outlook.com) and foreign tenants are strictly blocked."""
+        # 1. Block consumer email (e.g. canercetinkaya@outlook.com)
+        claims_consumer = {
+            "oid": "consumer-oid-999",
             "tid": "2fb2bcee-61be-48af-972c-0b11a606578f",
-            "preferred_username": unique_upn,
-            "name": "Security Analyst"
+            "preferred_username": "canercetinkaya@outlook.com",
+            "email": "canercetinkaya@outlook.com",
+            "name": "Caner Çetinkaya"
         }
-        user_profile, err = resolve_entra_user(claims)
-        self.assertIsNone(err)
-        self.assertIsNotNone(user_profile)
-        self.assertEqual(user_profile["role"], "SecurityEngineer")
-        self.assertFalse(user_profile["isPlatformAdmin"])
+        profile, err = resolve_entra_user(claims_consumer)
+        self.assertIsNone(profile)
+        self.assertIsNotNone(err)
+        self.assertIn("Bireysel Hesap Girişi Engellendi", err)
+
+        # 2. Block foreign tenant ID
+        claims_foreign_tenant = {
+            "oid": "corp-user-foreign",
+            "tid": "9188040d-6c67-4c5b-b112-36a304b66dad",  # Consumer MSA tenant or foreign org
+            "preferred_username": "user@foreign-company.com",
+            "email": "user@foreign-company.com"
+        }
+        profile, err = resolve_entra_user(claims_foreign_tenant)
+        self.assertIsNone(profile)
+        self.assertIsNotNone(err)
+        self.assertIn("Yetkisiz Kiracı Erişimi", err)
+
+        # 3. Block unenrolled corporate user (Strict pre-enrollment)
+        claims_unenrolled = {
+            "oid": "corp-user-unenrolled",
+            "tid": "2fb2bcee-61be-48af-972c-0b11a606578f",
+            "preferred_username": "unknown.person@cnrctnky.onmicrosoft.com",
+            "email": "unknown.person@cnrctnky.onmicrosoft.com"
+        }
+        profile, err = resolve_entra_user(claims_unenrolled)
+        self.assertIsNone(profile)
+        self.assertIsNotNone(err)
+        self.assertIn("Yetkisiz Kullanıcı", err)
 
     def test_06_persistent_session_store_and_rehydration(self):
         """Verify session storage in SQLite survives memory clear and rehydrates properly."""
