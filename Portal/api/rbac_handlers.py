@@ -430,6 +430,65 @@ def handle_rbac_post(handler, path, body):
             handler.send_json_response({"success": True, "message": "Erişim ataması başarıyla oluşturuldu.", "assignmentId": asgn_id, "assignment_id": asgn_id})
             return
 
+        # 3.B. JIT Self-Activation Elevation for Authorized Engineers and Platform Administrators
+        elif path == "/api/rbac/jit/elevate":
+            cust_id = body.get("customerId") or body.get("customer_id")
+            if not cust_id:
+                handler.send_json_response({"success": False, "error": "customerId zorunludur."}, status=400)
+                return
+
+            duration_hours = int(body.get("durationHours") or body.get("duration_hours", 4))
+            justification = (body.get("justification") or "Operasyonel Rapor Üretimi ve Güvenlik Denetimi").strip()
+
+            cur.execute("""
+                SELECT aa.id, r.name, r.is_platform_role
+                FROM access_assignments aa
+                JOIN roles r ON aa.role_id = r.id
+                WHERE aa.subject_id = ? AND aa.is_active = 1
+            """, (user["id"],))
+            user_roles = cur.fetchall()
+            is_authorized = any(r["is_platform_role"] or r["name"] in ("PlatformAdmin", "SecurityEngineer") for r in user_roles)
+            if not is_authorized:
+                record_audit_event("AUTH_DENY", user_id=user["id"], user_upn=user["upn"], customer_id=cust_id,
+                                   resource=path, decision="DENY", reason="JITElevationDenied: UserNotAuthorizedForSelfElevation",
+                                   ip_address=client_ip)
+                handler.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Sadece Platform Yöneticileri ve Güvenlik Mühendisleri doğrudan JIT yükseltmesi başlatabilir."
+                }, status=403)
+                return
+
+            valid_to = (datetime.now(timezone.utc) + timedelta(hours=duration_hours)).isoformat()
+            asgn_id = f"asgn-jit-{uuid.uuid4().hex[:8]}"
+            approval_id = f"appr-jit-auto-{uuid.uuid4().hex[:6]}"
+
+            cur.execute("""
+                INSERT INTO access_approvals (id, requester_id, approver_id, requested_role_id, customer_id,
+                                              service_id, duration_hours, reason, status, decision_reason, created_at, decided_at)
+                VALUES (?, ?, ?, 'role-security-engineer', ?, 'ALL', ?, ?, 'Approved', 'JIT Self-Activation Policy Verified', ?, ?)
+            """, (approval_id, user["id"], user["id"], cust_id, duration_hours, justification, now, now))
+
+            cur.execute("""
+                INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                                service_scope, service_id, valid_from, valid_to, is_temporary, is_active,
+                                                approval_id, created_by, created_at)
+                VALUES (?, 'User', ?, 'role-security-engineer', 'Specific', ?, 'ALL', NULL, ?, ?, 1, 1, ?, ?, ?)
+            """, (asgn_id, user["id"], cust_id, now, valid_to, approval_id, user["upn"], now))
+            conn.commit()
+
+            record_audit_event("ROLE_ASSIGN", user_id=user["id"], user_upn=user["upn"], customer_id=cust_id,
+                               resource=path, decision="ALLOW",
+                               reason=f"JITElevationActivated: {duration_hours}h for customer '{cust_id}' ({justification})",
+                               ip_address=client_ip, details={"assignmentId": asgn_id, "durationHours": duration_hours, "validTo": valid_to})
+
+            handler.send_json_response({
+                "success": True,
+                "message": f"'{cust_id}' müşterisi için {duration_hours} saatlik Süreli (JIT) Operasyonel Yetki başarıyla etkinleştirildi.",
+                "assignmentId": asgn_id,
+                "validTo": valid_to
+            })
+            return
+
         # 4. Access Approvals: Request PIM Access (Phase 6 & 10)
         elif path in ("/api/rbac/approvals/request", "/api/rbac/approvals"):
             allowed, reason = evaluate_access(user, "approvals:request", resource=path, ip_address=client_ip)

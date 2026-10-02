@@ -317,6 +317,17 @@ def seed_default_data(conn):
             (now, jit_to, now)
         )
 
+    cur.execute("SELECT id FROM access_assignments WHERE id = 'asgn-jit-pilot-caner'")
+    if not cur.fetchone():
+        jit_to = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        cur.execute(
+            """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                              service_scope, service_id, valid_from, valid_to, is_temporary, is_active, approval_id, created_by, created_at)
+               VALUES ('asgn-jit-pilot-caner', 'User', 'usr-001', 'role-security-engineer', 'Specific', 'tenant-002',
+                       'ALL', NULL, ?, ?, 1, 1, 'appr-pilot-init', 'system', ?)""",
+            (now, jit_to, now)
+        )
+
     # Import from Data/users.json
     users_path = os.path.join(ROOT_DIR, "Data", "users.json")
     if os.path.exists(users_path):

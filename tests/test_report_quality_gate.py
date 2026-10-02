@@ -43,7 +43,8 @@ if ROOT_DIR not in sys.path:
 from Portal.api.report_generator import (
     build_golden_mde_html,
     build_golden_purview_html,
-    build_golden_consolidated_html
+    build_golden_consolidated_html,
+    build_golden_intune_html
 )
 
 def check_semantic_rules(html_content, live_data=None, requested_services=None):
@@ -355,6 +356,24 @@ def run_all_gates():
             print(f"    * {sf}")
     print()
 
+    # Test 3b: Microsoft Intune Compliance Report
+    print("--- 3b. Evaluating SVC-INTUNE Executive Report ---")
+    intune_html = build_golden_intune_html(
+        customer_name=active_data["tenant_name"],
+        period_tag=active_data["period_tag"],
+        period_label=active_data["period_label"],
+        live_data=active_data
+    )
+    intune_res = evaluate_report_quality(intune_html, "Intune", live_data=active_data, requested_services=["SVC-INTUNE"])
+    print(f"Intune Composite: {intune_res['composite']} / 10.0 (Passed: {intune_res['passed']})")
+    for dim, sc in intune_res["scores"].items():
+        print(f"  - {dim}: {sc:.1f} / 10.0")
+    if intune_res["semantic_failures"]:
+        print("  Semantic Failures:")
+        for sf in intune_res["semantic_failures"]:
+            print(f"    * {sf}")
+    print()
+
     # Test 4: Live Customer Emre-TestTenant Report Artifact Audit
     tenant_out_dir = os.path.join(ROOT_DIR, "Engine", "Output", "Emre-TestTenant")
     periods = sorted([d for d in os.listdir(tenant_out_dir) if os.path.isdir(os.path.join(tenant_out_dir, d))], reverse=True) if os.path.exists(tenant_out_dir) else []
@@ -373,7 +392,13 @@ def run_all_gates():
     if os.path.exists(cust_report_path):
         with open(cust_report_path, "r", encoding="utf-8") as f:
             cust_html = f.read()
-        cust_res = evaluate_report_quality(cust_html, "CustomerReport", live_data=cust_data, requested_services=["SVC-MDE"])
+        if "SVC-INTUNE" in cust_html or "Intune" in cust_html:
+            cust_requested = ["SVC-INTUNE"]
+        elif "SVC-PURVIEW" in cust_html or "Purview" in cust_html:
+            cust_requested = ["SVC-PURVIEW"]
+        else:
+            cust_requested = ["SVC-MDE"]
+        cust_res = evaluate_report_quality(cust_html, "CustomerReport", live_data=cust_data, requested_services=cust_requested)
         print(f"Customer Report Composite: {cust_res['composite']} / 10.0 (Passed: {cust_res['passed']})")
         for dim, sc in cust_res["scores"].items():
             print(f"  - {dim}: {sc:.1f} / 10.0")
@@ -386,14 +411,14 @@ def run_all_gates():
         cust_res = {"passed": False, "composite": 0.0}
     print()
 
-    overall_passed = mde_res["passed"] and prv_res["passed"] and cons_res["passed"] and cust_res.get("passed", True)
+    overall_passed = mde_res["passed"] and prv_res["passed"] and cons_res["passed"] and intune_res["passed"] and cust_res.get("passed", True)
     print("==================================================")
     if overall_passed:
         print("  RESULT: ALL QUALITY GATES PASSED! (>= 8.5 / 10.0, Zero Semantic Violations) ")
     else:
         print("  RESULT: QUALITY GATE FAILED — SEMANTIC DEFECTS PRESENT ")
     print("==================================================")
-    return overall_passed, {"MDE": mde_res, "Purview": prv_res, "Consolidated": cons_res, "Customer": cust_res}
+    return overall_passed, {"MDE": mde_res, "Purview": prv_res, "Consolidated": cons_res, "Intune": intune_res, "Customer": cust_res}
 
 if __name__ == "__main__":
     passed, results = run_all_gates()

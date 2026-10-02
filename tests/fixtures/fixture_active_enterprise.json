@@ -143,5 +143,21 @@
         }
       ]
     }
+  },
+  "SVC-INTUNE": {
+    "availabilityState": "SupportedAppOnly",
+    "kpis": {
+      "ToplamCihaz": 280,
+      "UyumluCihaz": 262,
+      "UyumsuzCihaz": 18,
+      "UyumOrani": 93.6,
+      "SifreliCihaz": 269,
+      "SifrelemeOrani": 96.1,
+      "WindowsSayisi": 210,
+      "MobilSayisi": 70,
+      "OtonomUyumAksiyonu": 223,
+      "ManuelMuhendisEylemi": 18,
+      "KazanilanSaat": 65.0
+    }
   }
 }

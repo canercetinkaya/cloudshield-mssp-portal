@@ -412,6 +412,44 @@ class TestCloudShieldAuthorizationArchitecture(unittest.TestCase):
         self.cur.execute("DELETE FROM access_assignments WHERE id = ?", (jit_asgn_id,))
         self.conn.commit()
 
+    # --------------------------------------------------------------------------
+    # Assertion 11: JIT Self-Activation Elevation for Customer Report Generation
+    # --------------------------------------------------------------------------
+    def test_11_jit_self_activation_elevation(self):
+        """Validate that an admin can activate time-bounded JIT access for a customer and generate reports."""
+        admin, err = self._auth("caner.cetinkaya@cloudshield-mssp.com")
+        self.assertIsNotNone(admin, f"PlatformAdmin auth failed: {err}")
+
+        # Clean existing temp assignments to test pristine state
+        self.cur.execute("DELETE FROM access_assignments WHERE subject_id = 'usr-001' AND is_temporary = 1")
+        self.conn.commit()
+
+        # 1. Before JIT: Access to tenant-002 customer confidential report is DENIED (Zero Trust)
+        allowed, reason = evaluate_access(admin, "reports:generate", customer_id="tenant-002", service_ids=["SVC-INTUNE"])
+        self.assertFalse(allowed, f"Expected 403 before JIT elevation: {reason}")
+        self.assertIn("JIT", reason)
+
+        # 2. Simulate JIT Self-Activation Elevation (4 hours)
+        now = datetime.now(timezone.utc).isoformat()
+        valid_to = (datetime.now(timezone.utc) + timedelta(hours=4)).isoformat()
+        asgn_id = f"asgn-jit-test-{uuid.uuid4().hex[:6]}"
+
+        self.cur.execute("""
+            INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                            service_scope, service_id, valid_from, valid_to, is_temporary, is_active,
+                                            created_by, created_at)
+            VALUES (?, 'User', 'usr-001', 'role-security-engineer', 'Specific', 'tenant-002', 'ALL', NULL, ?, ?, 1, 1, 'usr-001', ?)
+        """, (asgn_id, now, valid_to, now))
+        self.conn.commit()
+
+        # 3. After JIT: Access to tenant-002 customer report is ALLOWED
+        allowed_after, reason_after = evaluate_access(admin, "reports:generate", customer_id="tenant-002", service_ids=["SVC-INTUNE"])
+        self.assertTrue(allowed_after, f"Expected access granted after JIT elevation: {reason_after}")
+
+        # 4. Clean up fixture
+        self.cur.execute("DELETE FROM access_assignments WHERE id = ?", (asgn_id,))
+        self.conn.commit()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -826,7 +826,14 @@
                                 </label>
                             </div>
 
-                            <div class="pt-2">
+                            <div class="pt-2 space-y-2">
+                                <div id="studioJitBadge" class="hidden p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center justify-between">
+                                    <span class="flex items-center space-x-1.5 font-semibold">
+                                        <i class="fa-solid fa-shield-check text-emerald-600"></i>
+                                        <span>JIT Erişim: <b>Aktif</b></span>
+                                    </span>
+                                    <span class="text-[10px] text-emerald-600 font-mono">Zero Trust Onaylı</span>
+                                </div>
                                 <button onclick="triggerReportGeneration()" id="btnGenerateReport" class="w-full bg-ks-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
                                     <i class="fa-solid fa-play"></i>
                                     <span>Rapor Üretimini Başlat</span>
@@ -844,6 +851,21 @@
                                     <div id="generationStatusTitle" class="text-xs font-bold text-slate-800">Motor Çalışıyor...</div>
                                     <div id="generationStatusDesc" class="text-[11px] text-slate-500">KQL ve Graph telemetrisi işleniyor</div>
                                 </div>
+                            </div>
+
+                            <!-- Zero Trust JIT Self-Activation Banner -->
+                            <div id="jitElevationBox" class="hidden p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2.5">
+                                <div class="font-bold text-amber-900 flex items-center space-x-2">
+                                    <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                                    <span>Zero Trust / En Az Yetki Koruması</span>
+                                </div>
+                                <div class="text-[11px] text-amber-800 leading-relaxed">
+                                    İdari roller müşteri gizli verilerine ve rapor içeriklerine otomatik erişim hakkına sahip değildir (En Az Yetki / Zero Trust). Rapor üretimini tamamlamak için bu kiracı adına tek tıkla 4 saatlik süreli (JIT) erişim yetkisi alabilirsiniz.
+                                </div>
+                                <button id="btnElevateJit" onclick="activateJitAndRetry()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center space-x-2 text-xs">
+                                    <i class="fa-solid fa-bolt"></i>
+                                    <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>
+                                </button>
                             </div>
 
                             <div id="reportActionButtons" class="hidden pt-2 space-y-2">
@@ -3181,7 +3203,9 @@
             const desc = document.getElementById('generationStatusDesc');
             const actionBtns = document.getElementById('reportActionButtons');
             const logPre = document.getElementById('consoleOutputLog');
+            const jitBox = document.getElementById('jitElevationBox');
 
+            if (jitBox) jitBox.classList.add('hidden');
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             statusBox.classList.remove('hidden');
@@ -3244,6 +3268,9 @@
                     if (data.outputLog) {
                         logPre.innerText += '\n[LOG]:\n' + data.outputLog;
                     }
+                    if (jitBox && (res.status === 403 || (data.error && (data.error.includes('JIT') || data.error.includes('Yetkisiz') || data.error.includes('403'))))) {
+                        jitBox.classList.remove('hidden');
+                    }
                 }
             } catch (e) {
                 title.innerText = '❌ İletişim Hatası';
@@ -3253,6 +3280,53 @@
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function activateJitAndRetry(tenantId) {
+            tenantId = tenantId || (document.getElementById('studioTenantSelect') ? document.getElementById('studioTenantSelect').value : null);
+            if (!tenantId) return;
+            const btn = document.getElementById('btnElevateJit');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>JIT Erişim Onaylanıyor...</span>';
+            }
+            try {
+                const res = await fetch('/api/rbac/jit/elevate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: tenantId,
+                        hours: 4,
+                        reason: 'Rapor üretimi için anlık JIT yetki yükseltme (Zero Trust)'
+                    })
+                });
+                const d = await res.json();
+                if (res.ok && d.success) {
+                    const jitBox = document.getElementById('jitElevationBox');
+                    if (jitBox) jitBox.classList.add('hidden');
+                    const studioBadge = document.getElementById('studioJitBadge');
+                    if (studioBadge) studioBadge.classList.remove('hidden');
+                    const logPre = document.getElementById('consoleOutputLog');
+                    if (logPre) {
+                        logPre.innerText += `\n[JIT] 4 saatlik erişim başarıyla onaylandı (${d.assignment_id || 'JIT-OK'}).\n[JIT] Rapor üretimi yeniden başlatılıyor...`;
+                    }
+                    setTimeout(() => {
+                        triggerReportGeneration();
+                    }, 500);
+                } else {
+                    alert('JIT Yetki Yükseltme Başarısız: ' + (d.error || 'Bilinmeyen hata'));
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>';
+                    }
+                }
+            } catch (e) {
+                alert('JIT İletişim Hatası: ' + e);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>';
+                }
             }
         }
 
