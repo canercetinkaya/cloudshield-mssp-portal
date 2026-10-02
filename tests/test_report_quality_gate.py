@@ -435,10 +435,19 @@ def run_all_gates():
     if os.path.exists(cust_report_path):
         with open(cust_report_path, "r", encoding="utf-8") as f:
             cust_html = f.read()
-        if "SVC-INTUNE" in cust_html or "Intune" in cust_html:
+        import re
+        h1_match = re.search(r"<h1>(.*?)</h1>", cust_html, re.IGNORECASE)
+        h1_text = h1_match.group(1) if h1_match else ""
+        if "Intune" in h1_text:
             cust_requested = ["SVC-INTUNE"]
-        elif "SVC-PURVIEW" in cust_html or "Purview" in cust_html:
+        elif "Purview" in h1_text:
             cust_requested = ["SVC-PURVIEW"]
+        elif "MDO" in h1_text or "E-Posta" in h1_text:
+            cust_requested = ["SVC-MDO"]
+        elif "Entra" in h1_text:
+            cust_requested = ["SVC-ENTRA-ID"]
+        elif "Konsolide" in h1_text or "Bütünleşik" in h1_text or "Yönetici" in h1_text and "Özeti" in h1_text:
+            cust_requested = ["SVC-MDE", "SVC-PURVIEW", "SVC-MDO", "SVC-ENTRA-ID"]
         else:
             cust_requested = ["SVC-MDE"]
         cust_res = evaluate_report_quality(cust_html, "CustomerReport", live_data=cust_data, requested_services=cust_requested)
