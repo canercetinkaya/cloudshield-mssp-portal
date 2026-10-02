@@ -2293,37 +2293,71 @@
 
         // Sayfa Yüklendiğinde Başlat
         document.addEventListener('DOMContentLoaded', async () => {
-            checkAuth();
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('error')) {
+                const errBox = document.getElementById('loginErrorMsg');
+                const errText = document.getElementById('loginErrorText');
+                if (errBox && errText) {
+                    errText.textContent = urlParams.get('error');
+                    errBox.classList.remove('hidden');
+                }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            const isAuthed = await checkAuth();
             await checkServerVersion();
-            await fetchGlobalStats();
-            await loadTenants();
-            await loadServiceCatalog();
-            await loadUsers();
-            await loadSsoConfig();
+            if (isAuthed) {
+                await fetchGlobalStats();
+                await loadTenants();
+                await loadServiceCatalog();
+                await loadUsers();
+                await loadSsoConfig();
+            }
         });
 
         // ==========================================
         // KİMLİK DOĞRULAMA (AUTHENTICATION GATE)
         // ==========================================
-        function checkAuth() {
-            const token = localStorage.getItem('cloudshield_auth_token');
+        async function checkAuth() {
+            let token = localStorage.getItem('cloudshield_auth_token');
             const overlay = document.getElementById('loginOverlay');
+
+            // Eğer localStorage'da token yoksa, HttpOnly çerez ile aktif oturumu kontrol et
+            if (!token) {
+                try {
+                    const res = await fetch('/api/auth/me');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.user) {
+                            localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
+                            if (overlay) overlay.classList.add('hidden');
+                            applyUserProfile(data.user);
+                            return true;
+                        }
+                    }
+                } catch (e) {}
+            }
+
             if (!token) {
                 if (overlay) overlay.classList.remove('hidden');
                 return false;
             } else {
                 if (overlay) overlay.classList.add('hidden');
                 const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
-                if (user.displayName) {
-                    const disp = document.getElementById('currentUserDisplay');
-                    const role = document.getElementById('currentUserRole');
-                    const init = document.getElementById('userAvatarInitials');
-                    if (disp) disp.textContent = user.displayName;
-                    if (role) role.textContent = user.role || 'Platform Admin & Mimarlık';
-                    if (init) init.textContent = user.initials || 'CÇ';
-                }
+                applyUserProfile(user);
                 return true;
             }
+        }
+
+        function applyUserProfile(user) {
+            if (!user) return;
+            currentUser = user;
+            const disp = document.getElementById('currentUserDisplay');
+            const role = document.getElementById('currentUserRole');
+            const init = document.getElementById('userAvatarInitials');
+            if (disp && user.displayName) disp.textContent = user.displayName;
+            if (role && (user.role || user.Role)) role.textContent = user.role || user.Role;
+            if (init && user.initials) init.textContent = user.initials;
         }
 
         async function handleLoginSubmit(event) {
@@ -2347,7 +2381,12 @@
                 if (res.ok && data.success) {
                     localStorage.setItem('cloudshield_auth_token', data.token);
                     localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
-                    checkAuth();
+                    await checkAuth();
+                    await fetchGlobalStats();
+                    await loadTenants();
+                    await loadServiceCatalog();
+                    await loadUsers();
+                    await loadSsoConfig();
                 } else {
                     if (errBox) errBox.classList.remove('hidden');
                     if (errText) errText.textContent = data.error || 'Giriş başarısız.';
@@ -2361,35 +2400,11 @@
             }
         }
 
-        async function handleEntraSsoLogin() {
+        function handleEntraSsoLogin() {
             const errDiv = document.getElementById('loginErrorMsg');
-            const errText = document.getElementById('loginErrorText');
             if (errDiv) errDiv.classList.add('hidden');
-
-            try {
-                const resp = await fetch('/api/auth/sso', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: 'EntraID_OIDC' })
-                });
-                const data = await resp.json();
-                if (resp.ok && data.success && data.token) {
-                    localStorage.setItem('cloudshield_auth_token', data.token);
-                    currentUser = data.user;
-                    updateUserBadgeUI();
-                    closeAuthModal();
-                } else {
-                    if (errDiv && errText) {
-                        errText.textContent = data.error || 'Entra ID SSO oturum açma başarısız oldu.';
-                        errDiv.classList.remove('hidden');
-                    }
-                }
-            } catch (err) {
-                if (errDiv && errText) {
-                    errText.textContent = 'SSO bağlantı hatası: ' + err.message;
-                    errDiv.classList.remove('hidden');
-                }
-            }
+            // Doğrudan Microsoft Entra ID OIDC Kurumsal Yetkilendirme Akışına Yönlendir
+            window.location.href = '/api/auth/entra/authorize';
         }
 
         function performLogout() {
