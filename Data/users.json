@@ -2,6 +2,8 @@
   {
     "Id": "usr-001",
     "Upn": "caner.cetinkaya@cloudshield-mssp.com",
+    "Email": "Caner@cnrctnky.onmicrosoft.com",
+    "AlternativeUpn": "Caner@cnrctnky.onmicrosoft.com",
     "DisplayName": "Caner Çetinkaya",
     "Department": "Siber Güvenlik Çözüm Mimarlığı & Otomasyon",
     "Role": "PlatformAdmin",

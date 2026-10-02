@@ -65,53 +65,68 @@
             </div>
 
             <!-- Body -->
-            <div class="p-6 space-y-4">
+            <!-- Body -->
+            <div class="p-6 space-y-5">
                 <div id="loginErrorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg flex items-center space-x-2">
                     <i class="fa-solid fa-circle-exclamation"></i>
-                    <span id="loginErrorText">Kullanıcı adı veya şifre hatalı.</span>
+                    <span id="loginErrorText">Giriş başarısız oldu.</span>
                 </div>
 
-                <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Kurumsal UPN veya Kullanıcı Adı</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-user text-xs"></i></span>
-                            <input id="loginUsername" type="text" value="" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="kullanici@kurum.com.tr">
-                        </div>
+                <!-- Kurumsal Entra ID SSO Giriş Kartı (Birincil Giriş Yöntemi) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center space-y-4 shadow-sm">
+                    <div class="inline-flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-semibold border border-emerald-200">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Kurumsal Kimlik Doğrulama Etkin</span>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Parola</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-lock text-xs"></i></span>
-                            <input id="loginPassword" type="password" value="" required class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="••••••••••••">
-                        </div>
-                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        CloudShield MSSP Platformu Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
+                    </p>
 
-                    <div class="flex items-center justify-between text-xs text-slate-600">
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" id="loginRememberMe" class="rounded text-ks-red focus:ring-ks-red w-3.5 h-3.5">
-                            <span>Beni Hatırla</span>
-                        </label>
-                        <span class="text-[10px] text-slate-400 font-medium"><i class="fa-solid fa-shield-halved mr-1 text-emerald-600"></i>Uçtan Uca Şifreli</span>
-                    </div>
-
-                    <button type="submit" id="loginSubmitBtn" class="w-full bg-ks-red hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition shadow flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Portala Güvenle Giriş Yap</span>
+                    <button type="button" onclick="handleEntraSsoLogin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-3 group hover:shadow-lg">
+                        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 23 23">
+                            <path fill="#f25022" d="M1 1h10v10H1z"/>
+                            <path fill="#00a4ef" d="M1 12h10v10H1z"/>
+                            <path fill="#7fba00" d="M12 1h10v10H12z"/>
+                            <path fill="#ffb900" d="M12 12h10v10H12z"/>
+                        </svg>
+                        <span class="text-sm font-semibold">Microsoft Entra ID ile Oturum Aç</span>
+                        <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:translate-x-1 transition-transform"></i>
                     </button>
-                </form>
 
-                <div class="relative flex py-1 items-center">
-                    <div class="flex-grow border-t border-slate-200"></div>
-                    <span class="flex-shrink mx-2 text-[10px] text-slate-400 uppercase font-semibold">veya</span>
-                    <div class="flex-grow border-t border-slate-200"></div>
+                    <div class="text-[10px] text-slate-400 flex items-center justify-center space-x-2">
+                        <span><i class="fa-solid fa-building mr-1"></i>cnrctnky.onmicrosoft.com</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-shield-halved mr-1 text-emerald-500"></i>OIDC MFA Korumalı</span>
+                    </div>
                 </div>
 
-                <button type="button" onclick="handleEntraSsoLogin()" class="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs py-2 rounded-lg transition flex items-center justify-center space-x-2">
-                    <svg class="w-4 h-4" viewBox="0 0 23 23"><path fill="#f25022" d="M1 1h10v10H1z"/><path fill="#00a4ef" d="M1 12h10v10H1z"/><path fill="#7fba00" d="M12 1h10v10H12z"/><path fill="#ffb900" d="M12 12h10v10H12z"/></svg>
-                    <span>Microsoft Entra ID (SSO) ile Giriş</span>
-                </button>
+                <!-- Geliştirici / Acil Durum Girişi (İsteğe Bağlı Katlanabilir Alan) -->
+                <div class="pt-1">
+                    <button type="button" onclick="toggleLocalAuthForm()" class="text-[11px] text-slate-400 hover:text-slate-600 w-full text-center flex items-center justify-center space-x-1 transition">
+                        <i class="fa-solid fa-terminal text-[10px]"></i>
+                        <span>Yerel / Geliştirici Girişi</span>
+                        <i id="localAuthChevron" class="fa-solid fa-chevron-down text-[9px] ml-1"></i>
+                    </button>
+
+                    <div id="localAuthContainer" class="hidden mt-3 pt-3 border-t border-slate-100">
+                        <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Yerel Kullanıcı / UPN</label>
+                                <input id="loginUsername" type="text" value="" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="admin@cloudshield-mssp.com">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Parola</label>
+                                <input id="loginPassword" type="password" value="" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-ks-red focus:outline-none" placeholder="••••••••••••">
+                            </div>
+
+                            <button type="submit" id="loginSubmitBtn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs py-2 rounded-lg transition">
+                                <i class="fa-solid fa-right-to-bracket mr-1"></i> Yerel Oturum Aç
+                            </button>
+                        </form>
+                    </div>
+                </div>
 
                 <p class="text-[10px] text-slate-400 text-center leading-tight">
                     🔒 Bu portal CloudShield MSSP kurumsal güvenlik ve KVKK / GDPR gizlilik standartları ile korunmaktadır.
@@ -2405,6 +2420,18 @@
             if (errDiv) errDiv.classList.add('hidden');
             // Doğrudan Microsoft Entra ID OIDC Kurumsal Yetkilendirme Akışına Yönlendir
             window.location.href = '/api/auth/entra/authorize';
+        }
+
+        function toggleLocalAuthForm() {
+            const container = document.getElementById('localAuthContainer');
+            const chev = document.getElementById('localAuthChevron');
+            if (container) {
+                container.classList.toggle('hidden');
+                if (chev) {
+                    chev.classList.toggle('fa-chevron-down');
+                    chev.classList.toggle('fa-chevron-up');
+                }
+            }
         }
 
         function performLogout() {

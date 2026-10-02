@@ -333,7 +333,11 @@ def seed_default_data(conn):
 
                     cur.execute("SELECT id FROM users WHERE id = ? OR upn = ?", (uid, upn))
                     u_existing = cur.fetchone()
-                    if not u_existing:
+                    user_email = u.get("Email", upn)
+                    if u_existing:
+                        if u.get("Email"):
+                            cur.execute("UPDATE users SET email = ? WHERE id = ?", (user_email, uid))
+                    else:
                         # W8 (Stage 1 Containment): Imported users are seeded passwordless by default.
                         # No hard-coded literal password hash is written. A local password may only be
                         # set through an out-of-band governed provisioning process (non-pilot/dev).
@@ -341,7 +345,7 @@ def seed_default_data(conn):
                             """INSERT INTO users (id, organization_id, upn, display_name, email, department,
                                                 password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'Local', ?)""",
-                            (uid, "org-cloudshield", upn, dname, upn, dept, None, None, now)
+                            (uid, "org-cloudshield", upn, dname, user_email, dept, None, None, now)
                         )
 
                         role_id = "role-service-operator"
