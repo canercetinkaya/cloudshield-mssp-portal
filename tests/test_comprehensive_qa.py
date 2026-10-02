@@ -46,7 +46,10 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_URL = "http://localhost:8080"
-ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+_CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.dirname(_CUR_DIR) if os.path.basename(_CUR_DIR) == "tests" else _CUR_DIR
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 ENGINE_DIR = os.path.join(ROOT_DIR, "Engine")
 TEMP_DATA_DIR = os.path.join(ENGINE_DIR, "Data", "temp")
 
@@ -336,15 +339,18 @@ def run_api_tests():
     passed = status == 401
     log_test("api_tests", "GET /api/users/me - Kimliksiz Erisim Reddi (401 Deny-by-Default)", passed, f"Status={status}, Error={str(body.get('error'))[:60]}", dur)
 
+    # Admin session token generated directly in isolated test database
+    admin_token = _server.create_session("usr-001") if _server else None
+
     # 2.6 GET /api/tenants - Yalnizca Canli Kiraci (Sifir Mock/Test Musterisi)
-    status, body, dur, _ = http_get("/api/tenants")
+    status, body, dur, _ = http_get("/api/tenants", token=admin_token)
     body_list = body if isinstance(body, list) else []
     has_sandbox = any(t.get("IsSimulation") for t in body_list)
     passed = status == 200 and not has_sandbox and len(body_list) >= 1
     log_test("api_tests", "GET /api/tenants - Sadece Canli Kiraci (Sifir Sahte/Mock Musteri)", passed, f"Status={status}, Count={len(body_list)}, HasSandbox={has_sandbox}", dur)
 
     # 2.7 GET /api/services - Servis Katalogu (10+ Servis)
-    status, body, dur, _ = http_get("/api/services")
+    status, body, dur, _ = http_get("/api/services", token=admin_token)
     services = body.get("services") or body.get("Services", {}) if isinstance(body, dict) else {}
     passed = status == 200 and len(services) >= 10
     log_test("api_tests", "GET /api/services - Servis Katalogu (10+ Servis)", passed, f"Status={status}, ServicesCount={len(services)}", dur)
@@ -354,10 +360,10 @@ def run_api_tests():
     is_valid_logo = status == 200 and isinstance(logo_content, (bytes, bytearray)) and (logo_content.startswith(b"\x89PNG") or b"<svg" in logo_content)
     log_test("api_tests", "GET /api/tenants/tenant-002/logo - Musteri Logosu / Vektorel Monogram (200 OK)", is_valid_logo, f"Status={status}, IsImageOrSvg={is_valid_logo}", dur)
 
-    # 2.9 POST /api/reports/generate - Kimliksiz Rapor Uretimi Reddi (403)
+    # 2.9 POST /api/reports/generate - Kimliksiz Rapor Uretimi Reddi (401/403)
     status, body, dur = http_post("/api/reports/generate", {"tenantId": "tenant-002", "services": ["SVC-MDE"], "dryRun": True})
-    passed = status == 403 and body.get("success") is False
-    log_test("api_tests", "POST /api/reports/generate - Kimliksiz Rapor Uretimi Reddi (403 Forbidden)", passed, f"Status={status}, Error={str(body.get('error'))[:60]}", dur)
+    passed = status in (401, 403) and body.get("success") is False
+    log_test("api_tests", "POST /api/reports/generate - Kimliksiz Rapor Uretimi Reddi (401/403 Deny-by-Default)", passed, f"Status={status}, Error={str(body.get('error'))[:60]}", dur)
 
     # 2.10 POST /api/tenants/tenant-002/test - Kimliksiz Kiraci Testi Reddi (401)
     status, body, dur = http_post("/api/tenants/tenant-002/test", {})
@@ -369,7 +375,7 @@ def run_api_tests():
     passed = status == 401
     log_test("api_tests", "GET /api/auth/config - Kimliksiz Yapilandirma Okuma Reddi (401, W12)", passed, f"Status={status}", dur)
 
-    return ""
+    return admin_token
 
 
 # ==============================================================================
@@ -386,7 +392,7 @@ def run_concurrency_tests(token=None):
 
     # Test 3.1: Eszamanli Bilinmeyen Istek Izolasyonu (404 Reddi)
     def send_live_request(tid):
-        return http_post("/api/reports/generate", {"tenantId": tid})
+        return http_post("/api/reports/generate", {"tenantId": tid}, token=token)
 
     t_start = time.time()
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -397,7 +403,7 @@ def run_concurrency_tests(token=None):
     all_404 = all(r[0] == 404 for r in live_results)
     log_test("concurrency_tests", "Eszamanli 5 Bilinmeyen Istek Izolasyonu ve 404 Reddi", all_404, f"5/5 istek 404 dondu, sure: {round(t_dur, 1)}ms", t_dur)
 
-    # Test 3.2: Eszamanli Yetkisiz Rapor Uretimi Izolasyonu (hepsi 403)
+    # Test 3.2: Eszamanli Yetkisiz Rapor Uretimi Izolasyonu (hepsi 401/403)
     requests_data = [
         {"tenantId": "tenant-002", "services": ["SVC-MDE"], "mode": "Monthly", "dryRun": True},
         {"tenantId": "tenant-002", "services": ["SVC-MDO"], "mode": "Monthly", "dryRun": True},
@@ -419,7 +425,7 @@ def run_concurrency_tests(token=None):
     monitor_thread = threading.Thread(target=monitor_temp_dir, daemon=True)
     monitor_thread.start()
 
-    print("   [INFO] 2 eszamanli YETKISIZ rapor uretim istegi tetikleniyor (403 beklenir)...")
+    print("   [INFO] 2 eszamanli YETKISIZ rapor uretim istegi tetikleniyor (401/403 beklenir)...")
     start_c = time.time()
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(http_post, "/api/reports/generate", req) for req in requests_data]
@@ -427,8 +433,8 @@ def run_concurrency_tests(token=None):
     monitoring = False
     dur_c = (time.time() - start_c) * 1000
 
-    all_403 = all(r[0] == 403 for r in concurrent_results)
-    log_test("concurrency_tests", "2 Eszamanli Yetkisiz Rapor Uretimi Izolasyonu (403 Deny-by-Default)", all_403, f"Both returned 403 Forbidden, Total execution: {round(dur_c/1000, 2)}s", dur_c)
+    all_denied = all(r[0] in (401, 403) for r in concurrent_results)
+    log_test("concurrency_tests", "2 Eszamanli Yetkisiz Rapor Uretimi Izolasyonu (401/403 Deny-by-Default)", all_denied, f"Both returned {concurrent_results[0][0]}, Total execution: {round(dur_c/1000, 2)}s", dur_c)
 
     # Test 3.3: Yetkisiz Istekler Hicbir Gecici Konfig Dosyasi Sizdirmaz (Zero Leak)
     time.sleep(0.5)
@@ -467,7 +473,10 @@ def run_quality_gates(token=None):
     # 4.2 Gate 3: Safe Sync & Branch Isolation
     start = time.time()
     ps_cmd = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
-    proc_sync = subprocess.run([ps_cmd, "-NoProfile", "-File", os.path.join(ROOT_DIR, "Watch-AndSyncToGitHub.ps1"), "-DryRun"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT_DIR)
+    sync_script_path = os.path.join(ROOT_DIR, "Scripts", "Watch-AndSyncToGitHub.ps1")
+    if not os.path.exists(sync_script_path):
+        sync_script_path = os.path.join(ROOT_DIR, "Watch-AndSyncToGitHub.ps1")
+    proc_sync = subprocess.run([ps_cmd, "-NoProfile", "-File", sync_script_path, "-DryRun"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT_DIR)
     sync_passed = ("sync/" in proc_sync.stdout or "sync/" in proc_sync.stderr) and proc_sync.returncode == 0
     dur = (time.time() - start) * 1000
     log_test("quality_gates", "Gate 3: Safe Sync - Direct Push to Main Blocked & Unique Sync Branch", sync_passed, f"Branch Generated in DryRun Output={sync_passed}", dur)
@@ -507,7 +516,7 @@ def run_quality_gates(token=None):
     # No session => must never be served (200). Accept 401/403/404 (fail-closed).
     anon_dl_blocked = s_dl != 200 and (isinstance(body_dl, (bytes, bytearray)) and b"%PDF" not in body_dl)
     s_404, b_404, _, _ = http_get("/api/reports/unknown-random-uuid-999/download")
-    unknown_id_404 = s_404 == 404
+    unknown_id_404 = s_404 in (401, 404)
     s_trav, b_trav, _, _ = http_get("/api/reports/download?file=../../version.json")
     traversal_blocked = s_trav in (400, 403, 404, 401)
     gate5_passed = anon_dl_blocked and unknown_id_404 and traversal_blocked

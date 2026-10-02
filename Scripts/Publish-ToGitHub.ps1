@@ -1,4 +1,4 @@
-﻿﻿# ==============================================================================
+﻿# ==============================================================================
 # CloudShield MSSP Portal - GitHub Yayınlama ve Eşitleme Betiği
 # Hedef Depo: https://github.com/canercetinkaya/cloudshield-mssp-portal
 # ==============================================================================
@@ -11,7 +11,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$portalDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
+$portalDir = if ((Split-Path -Leaf $scriptDir) -eq "Scripts") { Split-Path -Parent $scriptDir } else { $scriptDir }
+Set-Location $portalDir
 
 Write-Host "`n================================================================================" -ForegroundColor Cyan
 Write-Host "  CloudShield MSSP Portal -> GitHub Dağıtım Aracı" -ForegroundColor White

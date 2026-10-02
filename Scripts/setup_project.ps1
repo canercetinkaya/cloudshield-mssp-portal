@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     CloudShield Enterprise MSSP Platform - Turnkey Environment Setup & Bootstrap (Windows)
 .DESCRIPTION
@@ -12,6 +12,9 @@ param (
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }
+$BaseDir = if ((Split-Path -Leaf $ScriptDir) -eq "Scripts") { Split-Path -Parent $ScriptDir } else { $ScriptDir }
+Set-Location $BaseDir
 
 Write-Host ""
 Write-Host "====================================================================" -ForegroundColor Cyan
@@ -62,8 +65,8 @@ if (-not $browserFound) {
 
 # 4. Environment Configuration
 Write-Host "[*] Verifying environment configuration..." -ForegroundColor Yellow
-$envFile = Join-Path $ScriptDir ".env"
-$envExample = Join-Path $ScriptDir ".env.example"
+$envFile = Join-Path $BaseDir ".env"
+$envExample = Join-Path $BaseDir ".env.example"
 if (-not (Test-Path $envFile)) {
     if (Test-Path $envExample) {
         Copy-Item $envExample $envFile
@@ -79,16 +82,16 @@ Write-Host "[*] Initializing CloudShield SQLite Database & RBAC schema..." -Fore
 
 # 6. Run Core Security & Authorization Unit Tests
 Write-Host "[*] Executing Core Authorization & Quality Gate Unit Tests..." -ForegroundColor Yellow
-& $pyExe -m unittest test_rbac_authorization.py test_post_remediation_independent_gate.py test_report_quality_gate.py
+& $pyExe -m unittest discover tests
 
 Write-Host ""
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host "  SETUP COMPLETE - CLOUDSHIELD PLATFORM IS READY" -ForegroundColor Green
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host "To launch the local web portal:" -ForegroundColor White
-Write-Host "    .\Start-LocalPortal.ps1 -Port $Port" -ForegroundColor Yellow
+Write-Host "    .\Scripts\Start-LocalPortal.ps1 -Port $Port" -ForegroundColor Yellow
 Write-Host ""
 
 if ($StartPortal) {
-    & "$ScriptDir\Start-LocalPortal.ps1" -Port $Port
+    & (Join-Path $BaseDir "Scripts\Start-LocalPortal.ps1") -Port $Port
 }

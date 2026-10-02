@@ -19,8 +19,9 @@ param(
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 
-$portalDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $portalDir) { $portalDir = (Get-Location).Path }
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
+$portalDir = if ((Split-Path -Leaf $scriptDir) -eq "Scripts") { Split-Path -Parent $scriptDir } else { $scriptDir }
 Set-Location $portalDir
 
 Write-Host ''

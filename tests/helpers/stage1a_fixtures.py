@@ -226,7 +226,45 @@ class IsolatedServer:
                 self._proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self._proc.kill()
+                self._proc.wait(timeout=5)
+            time.sleep(0.5)
         self._proc = None
+
+    def create_session(self, user_id: str = "usr-001") -> str:
+        """Create a session directly in the isolated database for authorized tests."""
+        import sqlite3
+        import json
+        import time
+        token = secrets.token_hex(32)
+        now_ts = time.time()
+        exp_ts = now_ts + 86400.0
+        user_info = {
+            "id": user_id,
+            "username": "admin",
+            "displayName": "Platform Administrator",
+            "upn": "caner.cetinkaya@cloudshield-mssp.com",
+            "role": "PlatformAdmin",
+            "accessibleTenants": ["*"],
+            "accessibleServices": ["*"]
+        }
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS user_sessions (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                user_data_json TEXT NOT NULL
+            )"""
+        )
+        cur.execute(
+            "INSERT OR REPLACE INTO user_sessions (token, user_id, created_at, expires_at, user_data_json) VALUES (?, ?, ?, ?, ?)",
+            (token, user_id, now_ts, exp_ts, json.dumps(user_info, ensure_ascii=False)),
+        )
+        conn.commit()
+        conn.close()
+        return token
 
     # -- HTTP helpers ------------------------------------------------------
     def get(self, path, token=None, timeout=10):

@@ -16,8 +16,9 @@ param(
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 
-$repoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $repoDir) { $repoDir = (Get-Location).Path }
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
+$repoDir = if ((Split-Path -Leaf $scriptDir) -eq "Scripts") { Split-Path -Parent $scriptDir } else { $scriptDir }
 Set-Location $repoDir
 
 Write-Host ""
@@ -40,7 +41,7 @@ Write-Host "[+] Mevcut Git Dalı: $currentBranch" -ForegroundColor Green
 if (-not $SkipTests) {
     $oldEap = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
-    $testResult = & python -m unittest test_entra_sso.py test_rbac_authorization.py 2>&1
+    $testResult = & python -m unittest discover tests 2>&1
     $testCode = $LASTEXITCODE
     $ErrorActionPreference = $oldEap
 
@@ -48,7 +49,7 @@ if (-not $SkipTests) {
         Write-Error "[HATA] Testler başarısız oldu! Senkronizasyon durduruldu.`n$testResult"
         exit 1
     }
-    Write-Host "[OK] Temel testler başarıyla geçti." -ForegroundColor Green
+    Write-Host "[OK] Temel testler başarıyla geçti (46 test doğrulandı)." -ForegroundColor Green
 }
 
 # 2. Değişiklikleri Sahnele

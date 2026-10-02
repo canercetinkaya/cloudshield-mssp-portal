@@ -31,7 +31,8 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 # Ensure repo root is on sys.path
-ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+_CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.dirname(_CUR_DIR) if os.path.basename(_CUR_DIR) == "tests" else _CUR_DIR
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 

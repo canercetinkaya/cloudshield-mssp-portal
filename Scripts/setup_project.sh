@@ -2,7 +2,13 @@
 # ==================================================================
 # CloudShield Enterprise MSSP Security and Compliance Platform
 # Turnkey Environment Setup and Bootstrap Script (Linux / macOS / Container)
-# ==================================================================set -e
+# ==================================================================
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$(basename "$SCRIPT_DIR")" = "Scripts" ]; then
+    cd "$SCRIPT_DIR/.."
+fi
 
 echo "================================================================="
 echo "  CloudShield MSSP Platform - Automated Setup and Verification"
@@ -49,22 +55,22 @@ if [ ! -f ".env" ]; then
     fi
 else
     echo "[+] Existing .env file found."
-bi
+fi
 
 # 5. Initialize SQLite RBAC Database and Migrations
 echo "[*] Initializing CloudShield SQLite RBAC Database and Migrations..."
 $PY_BIN -c 'from database.db import init_db; init_db(); print("[+] SQLite Database initialized and seeded successfully.")'
 
 # 6. Run Core Security & Authorization Unit Tests
-echo "[*] Rqnning Core RBAC and Quality Gate Test Suite..."
-$PY_BIN -m unittest test_rbac_authorization.py test_post_remediation_independent_gate.py test_report_quality_gate.py
+echo "[*] Running Core RBAC and Quality Gate Test Suite..."
+$PY_BIN -m unittest discover tests
 
 echo ""
 echo "================================================================="
-Echo "  SETUP COMPLETE - CLOUDSHIELD PLATFORM IS READY"
+echo "  SETUP COMPLETE - CLOUDSHIELD PLATFORM IS READY"
 echo "================================================================="
-Echo "To start the local portal server:"
+echo "To start the local portal server:"
 echo "    $PY_BIN Portal/api/server.py 8080"
 echo ""
 echo "Portal URL: http://localhost:8080"
-Echo "================================================================="
+echo "================================================================="

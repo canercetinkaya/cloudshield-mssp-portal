@@ -20,7 +20,9 @@ param (
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ServerScript = Join-Path $ScriptDir "Portal\api\server.py"
+if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }
+$BaseDir = if ((Split-Path -Leaf $ScriptDir) -eq "Scripts") { Split-Path -Parent $ScriptDir } else { $ScriptDir }
+$ServerScript = Join-Path $BaseDir "Portal\api\server.py"
 
 # --- UTF-8 console compliance (see docs/UTF8CompliancePolicy.md) --------------
 # Ensure the host console and child Python process use UTF-8 so Turkish
@@ -85,7 +87,7 @@ if (-not $isAlreadyRunning) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $pythonExe
     $psi.Arguments = "`"$ServerScript`" $Port"
-    $psi.WorkingDirectory = $ScriptDir
+    $psi.WorkingDirectory = $BaseDir
     $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
     $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $true

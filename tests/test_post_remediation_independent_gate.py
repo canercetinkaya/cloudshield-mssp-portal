@@ -31,7 +31,8 @@ if sys.platform == "win32":
 # Derive the repo root from this file so the suite is portable across machines
 # and independent of the caller's working directory. (Previously hard-coded to a
 # specific user's absolute path, which broke on any other clone.)
-ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+_CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.dirname(_CUR_DIR) if os.path.basename(_CUR_DIR) == "tests" else _CUR_DIR
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
