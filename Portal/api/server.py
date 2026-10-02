@@ -20,6 +20,8 @@ import subprocess
 
 import sys
 
+import threading
+
 import time
 
 import urllib.parse
@@ -88,6 +90,8 @@ CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json"
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 
 REPORT_REGISTRY_FILE = os.path.join(DATA_DIR, "report_registry.json")
+LOGOS_DIR = os.path.join(DATA_DIR, "Logos")
+os.makedirs(LOGOS_DIR, exist_ok=True)
 
 def load_report_registry():
 
@@ -967,10 +971,33 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         tenants = load_json_file(TENANTS_FILE, [])
 
         target = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
-
         customer_name = target.get("Name", "Customer") if target else "Customer"
-
         tenant_guid = target.get("TenantId") if target else None
+
+        # 0. Check uploaded local corporate logo first
+        safe_tid = "".join(c for c in str(tenant_id) if c.isalnum() or c in ('-', '_')).strip()
+        png_path = os.path.join(LOGOS_DIR, f"{safe_tid}.png")
+        svg_path = os.path.join(LOGOS_DIR, f"{safe_tid}.svg")
+        if os.path.exists(png_path) and os.path.getsize(png_path) > 0:
+            with open(png_path, "rb") as f:
+                img_data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(img_data)))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            self.wfile.write(img_data)
+            return
+        elif os.path.exists(svg_path) and os.path.getsize(svg_path) > 0:
+            with open(svg_path, "rb") as f:
+                img_data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+            self.send_header("Content-Length", str(len(img_data)))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            self.wfile.write(img_data)
+            return
 
         # 1. Attempt to fetch Microsoft Entra ID custom branding banner logo
 
@@ -1051,8 +1078,84 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "public, max-age=3600")
 
         self.end_headers()
-
         self.wfile.write(svg)
+
+    def handle_tenant_permissions(self, tenant_id):
+        tenants = load_json_file(TENANTS_FILE, [])
+        target = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+        if not target:
+            self.send_json_response({"success": False, "error": "Kiracı bulunamadı."}, status=404)
+            return
+
+        tenant_name = target.get("Name", "Kiracı")
+        tenant_guid = target.get("TenantId", "")
+        client_id = target.get("ClientId") or target.get("Auth", {}).get("ClientId", "")
+        is_sim = target.get("IsSimulation", False) or "test" in tenant_name.lower() or "sandbox" in tenant_name.lower()
+
+        # Load service catalog
+        catalog = load_json_file(CATALOG_FILE, {}).get("services", {})
+        
+        perm_specs = {
+            "SVC-MDE": ["SecurityAlert.Read.All", "ThreatHunting.Read.All", "Machine.Read.All"],
+            "SVC-MDO": ["SecurityAlert.Read.All", "ThreatHunting.Read.All", "SecurityIncident.Read.All"],
+            "SVC-MDI": ["SecurityAlert.Read.All", "ThreatHunting.Read.All", "IdentityRiskEvent.Read.All"],
+            "SVC-MDCA": ["SecurityAlert.Read.All", "CloudAppEvents.Read.All"],
+            "SVC-XDR": ["SecurityAlert.Read.All", "SecurityIncident.Read.All", "ThreatHunting.Read.All"],
+            "SVC-INTUNE": ["DeviceManagementManagedDevices.Read.All", "DeviceManagementConfiguration.Read.All"],
+            "SVC-ENTRA-PIM": ["RoleManagement.Read.Directory", "PrivilegedAccess.Read.AzureADGroup"],
+            "SVC-ENTRA-ID": ["RoleManagement.Read.Directory", "IdentityProtection.Read.All", "User.Read.All"],
+            "SVC-PRV-DLP": ["SecurityAlert.Read.All", "InformationProtectionPolicy.Read.All"],
+            "SVC-PRV-CLASS": ["InformationProtectionPolicy.Read.All"],
+            "SVC-PRV-GOV": ["InformationProtectionPolicy.Read.All"],
+            "SVC-PRV-RISK": ["SecurityAlert.Read.All"],
+            "SVC-AI-SECURITY": ["SecurityAlert.Read.All", "InformationProtectionPolicy.Read.All"]
+        }
+
+        active_services = target.get("ActiveServices", ["SVC-MDE", "SVC-MDO", "SVC-PURVIEW"])
+        results = []
+        for s_code, perms in perm_specs.items():
+            s_meta = catalog.get(s_code, {})
+            display_name = s_meta.get("displayNameTr") or s_code
+            is_active = s_code in active_services or (s_code.startswith("SVC-PRV") and "SVC-PURVIEW" in active_services)
+            
+            # Status resolution
+            if is_sim:
+                status = "Granted"
+                status_desc = "Onaylandı (Simülasyon / Test Ortamı)"
+            elif not client_id or not tenant_guid:
+                status = "MissingScope"
+                status_desc = "Yapılandırma Eksik (ClientId / TenantId Tanımsız)"
+            elif not is_active:
+                status = "NotSubscribed"
+                status_desc = "Abonelik Kapsamı Dışında"
+            else:
+                status = "Granted" if target.get("HealthStatus") == "Healthy" else "AdminConsentRequired"
+                status_desc = "Onaylandı" if status == "Granted" else "Yönetici Onayı Bekliyor (Admin Consent Required)"
+
+            results.append({
+                "serviceCode": s_code,
+                "displayName": display_name,
+                "category": s_meta.get("productFamily", "Microsoft Security"),
+                "isActive": is_active,
+                "requiredPermissions": perms,
+                "status": status,
+                "statusDescription": status_desc
+            })
+
+        consent_url = f"https://login.microsoftonline.com/{tenant_guid or 'common'}/adminconsent?client_id={client_id or '00000000-0000-0000-0000-000000000000'}&redirect_uri=https://portal.cloudshield-mssp.com" if client_id and tenant_guid else ""
+
+        self.send_json_response({
+            "success": True,
+            "tenantId": tenant_id,
+            "tenantName": tenant_name,
+            "tenantGuid": tenant_guid,
+            "clientId": client_id,
+            "isSimulation": is_sim,
+            "adminConsentUrl": consent_url,
+            "servicesCount": len(results),
+            "services": results,
+            "lastCheckedUtc": datetime.now(timezone.utc).isoformat()
+        })
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -1186,11 +1289,13 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path.startswith("/api/tenants/") and path.endswith("/logo"):
-
             tenant_id = path.split("/")[3]
-
             self.handle_tenant_logo(tenant_id)
+            return
 
+        elif path.startswith("/api/tenants/") and path.endswith("/permissions"):
+            tenant_id = path.split("/")[3]
+            self.handle_tenant_permissions(tenant_id)
             return
 
         elif path == "/api/tenants":
@@ -2022,6 +2127,76 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "error": "Bu uç nokta devre dışı bırakılmıştır (410 Gone): Kimlik doğrulama sağlayıcısı devre dışıdır. Kurumsal Microsoft Entra ID (SSO) entegrasyonu henüz etkin değildir.",
                 "ssoRequired": True
             }, status=410)
+            return
+
+        elif path.startswith("/api/tenants/") and path.endswith("/logo"):
+            tenant_id = path.split("/")[3]
+            safe_tid = "".join(c for c in str(tenant_id) if c.isalnum() or c in ('-', '_')).strip()
+            u = self.get_current_user()
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            allowed, reason = evaluate_access(u, "customers:manage", resource=path, ip_address=client_ip)
+            if not allowed:
+                allowed, reason = evaluate_access(u, "TENANT_WRITE", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allowed:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Logo güncelleme yetkiniz bulunmamaktadır."}, status=403)
+                return
+
+            img_bytes = None
+            ext = "png"
+            if isinstance(body, dict) and "logoBase64" in body:
+                b64_str = body["logoBase64"]
+                if "," in b64_str:
+                    b64_str = b64_str.split(",", 1)[1]
+                try:
+                    img_bytes = base64.b64decode(b64_str)
+                except Exception:
+                    img_bytes = None
+                if body.get("format", "").lower() in ("svg", "svg+xml"):
+                    ext = "svg"
+            elif body_bytes and len(body_bytes) > 0:
+                img_bytes = body_bytes
+                content_type = self.headers.get("Content-Type", "")
+                if "svg" in content_type:
+                    ext = "svg"
+
+            if not img_bytes or len(img_bytes) == 0:
+                self.send_json_response({"success": False, "error": "Geçersiz logo verisi (Boş dosya)."}, status=400)
+                return
+
+            if len(img_bytes) > 2 * 1024 * 1024:
+                self.send_json_response({"success": False, "error": "Logo boyutu 2MB sınırını aşamaz."}, status=400)
+                return
+
+            if ext == "png" and not img_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+                if b"<svg" in img_bytes[:300].lower():
+                    ext = "svg"
+                else:
+                    self.send_json_response({"success": False, "error": "Desteklenmeyen dosya formatı. Yalnızca PNG ve SVG kabul edilir."}, status=400)
+                    return
+            elif ext == "svg" and b"<svg" not in img_bytes[:300].lower():
+                self.send_json_response({"success": False, "error": "Geçersiz SVG formatı."}, status=400)
+                return
+
+            out_path = os.path.join(LOGOS_DIR, f"{safe_tid}.{ext}")
+            alt_path = os.path.join(LOGOS_DIR, f"{safe_tid}.{'png' if ext=='svg' else 'svg'}")
+            if os.path.exists(alt_path):
+                try:
+                    os.remove(alt_path)
+                except Exception:
+                    pass
+
+            with open(out_path, "wb") as f:
+                f.write(img_bytes)
+
+            record_audit_event("TENANT_LOGO_UPDATE", user_id=u.get("id"), user_upn=u.get("upn"),
+                               resource=path, decision="ALLOW", reason="TenantLogoUploaded", ip_address=client_ip,
+                               details={"tenantId": tenant_id, "sizeBytes": len(img_bytes), "format": ext})
+
+            self.send_json_response({
+                "success": True,
+                "message": "Kurumsal logo başarıyla yüklendi ve güncellendi.",
+                "logoUrl": f"/api/tenants/{tenant_id}/logo"
+            })
             return
 
         elif path == "/api/tenants":
@@ -3442,6 +3617,59 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         self.send_error(404, "Endpoint Not Found")
 
+def start_dispatch_scheduler():
+    def _scheduler_loop():
+        time.sleep(10)
+        while True:
+            try:
+                tenants = load_json_file(TENANTS_FILE, [])
+                now = datetime.now()
+                updated = False
+                for t in tenants:
+                    freq = t.get("ScheduleFrequency")
+                    if not freq or freq == "None":
+                        continue
+                    last_str = t.get("LastReportDate")
+                    should_run = False
+                    if not last_str:
+                        should_run = True
+                    else:
+                        try:
+                            last_date = datetime.strptime(last_str, "%Y-%m-%d")
+                            if freq == "Daily" and (now - last_date).days >= 1:
+                                should_run = True
+                            elif freq == "Weekly" and (now - last_date).days >= 7:
+                                should_run = True
+                            elif freq == "Monthly" and (now - last_date).days >= 28:
+                                should_run = True
+                        except Exception:
+                            pass
+                    if should_run:
+                        tid = t.get("Id")
+                        tname = t.get("Name", "Customer")
+                        services = t.get("ActiveServices", ["SVC-MDE"])
+                        period_tag = now.strftime("%Y-%m")
+                        print(f"[SCHEDULER] Otomatik zamanlanmış rapor üretimi: {tname} ({tid}) - Frekans: {freq}")
+                        try:
+                            render_and_save_report(tname, services, OUTPUT_DIR, period_tag=period_tag)
+                            t["LastReportDate"] = now.strftime("%Y-%m-%d")
+                            updated = True
+                            record_audit_event("SCHEDULED_REPORT_DISPATCH", user_id="system-scheduler",
+                                               user_upn="scheduler@cloudshield-mssp.com", resource=f"/api/tenants/{tid}/reports",
+                                               decision="ALLOW", reason=f"ScheduledExecution_{freq}", ip_address="127.0.0.1",
+                                               details={"tenantId": tid, "frequency": freq, "period": period_tag})
+                        except Exception as ex:
+                            print(f"[SCHEDULER] Rapor üretim hatası ({tid}): {ex}")
+                if updated:
+                    save_json_file(TENANTS_FILE, tenants)
+            except Exception as e:
+                print(f"[SCHEDULER] Döngü hatası: {e}")
+            time.sleep(60)
+
+    sched_thread = threading.Thread(target=_scheduler_loop, daemon=True, name="CloudShieldDispatchScheduler")
+    sched_thread.start()
+    return sched_thread
+
 def run(port=None):
 
     if port is None:
@@ -3449,6 +3677,7 @@ def run(port=None):
         port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", PORT))
 
     init_db()
+    start_dispatch_scheduler()
     server_address = ("", port)
 
     httpd = http.server.ThreadingHTTPServer(server_address, MSSPPortalHandler)
@@ -3462,6 +3691,7 @@ def run(port=None):
     print(f"  Statik Web Dosyaları: {WEB_DIR}")
 
     print(f"  Veritabanı: {TENANTS_FILE}")
+    print(f"  Otomatik Dağıtım Zamanlayıcı: Aktif (Daemon)")
 
     # Dual-port binding: Try binding port 80 if primary is 8080 (or vice-versa) for Azure Container Apps ingress
 

@@ -223,8 +223,8 @@ def handle_rbac_get(handler, path, query):
             handler.send_json_response({"success": True, "data": approvals})
             return
 
-        # 10. Authorization Audit Log (Phase 9)
-        elif path == "/api/rbac/audit":
+        # 10. Authorization Audit Log (Phase 9 & KVKK/GDPR Compliance)
+        elif path in ("/api/rbac/audit", "/api/rbac/audit/logs"):
             allowed, reason = evaluate_access(user, "audit:view", resource=path, ip_address=client_ip)
             if not allowed:
                 handler.send_json_response({"success": False, "error": reason}, status=403)

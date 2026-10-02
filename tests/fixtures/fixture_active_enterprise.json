@@ -159,5 +159,41 @@
       "ManuelMuhendisEylemi": 18,
       "KazanilanSaat": 65.0
     }
+  },
+  "SVC-MDO": {
+    "availabilityState": "SupportedAdvancedHunting",
+    "kpis": {
+      "ToplamGelenPosta": 148500,
+      "TemizTeslimEdilen": 121300,
+      "EngellenenOltalama": 4650,
+      "EngellenenZararliEk": 1150,
+      "SafeLinksEngelleme": 512,
+      "SafeAttachmentsEng": 118,
+      "ZapSistemGeriCekme": 164,
+      "ToplamEngellenen": 5800,
+      "KullaniciBildirimi": 94,
+      "DogrulananOltalama": 72,
+      "KarantinaTalepSayisi": 42,
+      "KarantinaReddedilen": 34,
+      "KarantinaOnaylanan": 8,
+      "ManuelAnalistEforu": 14,
+      "TasarrufEdilenSaat": 21.0,
+      "ApprovedAnalystActions": 14
+    }
+  },
+  "SVC-ENTRA-ID": {
+    "availabilityState": "SupportedGraphAPI",
+    "kpis": {
+      "ToplamRolAtamasi": 48,
+      "KaliciGlobalAdmin": 2,
+      "EligibleRolSayisi": 36,
+      "PimAktivasyonSayisi": 42,
+      "OrtalamaAktivasyonSure": 4.0,
+      "OtonomJitKorumasi": 42,
+      "ManuelDenetimEylemi": 8,
+      "ManuelAnalistEforu": 8,
+      "TasarrufEdilenSaat": 27.0,
+      "ApprovedAnalystActions": 8
+    }
   }
 }

@@ -14,7 +14,9 @@ MIGRATIONS_DIR = os.path.join(ROOT_DIR, "database", "migrations")
 
 def get_db(db_path=None):
     path = db_path or DB_PATH
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
     conn = sqlite3.connect(path, timeout=20.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")

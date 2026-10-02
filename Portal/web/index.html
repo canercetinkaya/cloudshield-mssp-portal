@@ -200,11 +200,11 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 text-sm">
                 <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 px-1 tab-active flex items-center space-x-2 transition">
                     <i class="fa-solid fa-chart-pie text-xs"></i>
-                    <span>Güvenlik Panosu</span>
+                    <span>Güvenlik & Bilgilendirme Panosu</span>
                 </button>
                 <button onclick="switchTab('tenants')" id="tabBtn-tenants" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-building-shield text-xs"></i>
-                    <span>Müşteri Kiracıları</span>
+                    <span>Hedef Müşteri Kiracıları (Tenants)</span>
                 </button>
                 <button onclick="switchTab('studio')" id="tabBtn-studio" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-file-invoice text-xs"></i>
@@ -244,7 +244,7 @@
                 <div>
                     <div class="flex items-center space-x-2">
                         <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MSSP LIVE</span>
-                        <h1 id="dashboardBannerTitle" class="text-base font-bold">CloudShield MSSP Güvenlik ve Uyum Operasyonları</h1>
+                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Enterprise Managed Security Operations Overview</h1>
                     </div>
                     <p id="dashboardBannerDesc" class="text-xs text-slate-300 mt-1">
                         Microsoft Defender XDR ve Purview çoklu müşteri ortamlarının anlık sağlık karnesi. 
@@ -643,12 +643,12 @@
         </div>
 
         <!-- ========================================================================= -->
-        <!-- 2. MÜŞTERİ KİRACILARI YÖNETİMİ (TENANTS) -->
+        <!-- 2. MÜŞTERİ TENANTLARI YÖNETİMİ (TENANTS) -->
         <!-- ========================================================================= -->
         <div id="view-tenants" class="hidden space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 class="text-lg font-bold text-ks-navy">Müşteri Kiracı (Tenant) Yönetim Merkezi</h1>
+                    <h1 class="text-lg font-bold text-ks-navy">Müşteri Tenant Yönetim Merkezi</h1>
                     <p class="text-xs text-slate-500">CloudShield tarafından yönetilen güvenlik hizmeti alan müşterilerin entegrasyon ayarları</p>
                 </div>
                 <div class="flex items-center space-x-3">
@@ -727,7 +727,7 @@
                         <!-- Hedef Müşteri ve Dönem -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hedef Müşteri Tenantı</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hedef Müşteri Kiracısı (Tenant)</label>
                                 <select id="studioTenantSelect" onchange="onStudioTenantChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-ks-navy">
                                     <!-- JS ile doldurulacak -->
                                 </select>
@@ -735,10 +735,43 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Raporlama Periyodu</label>
                                 <select id="studioPeriodSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-ks-navy">
-                                    <option value="Monthly">Aylık Konsolide Rapor (Son 30 Gün)</option>
+                                    <option value="Monthly">Aylık Konsolide / Birleşik Rapor (Son 30 Gün)</option>
                                     <option value="Weekly">Haftalık Operasyonel Rapor (Son 7 Gün)</option>
                                     <option value="Quarterly">Çeyreklik Yönetici Karnesi (Q3 2026)</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- KQL Tehdit Barometresi & Hızlı Odak Preset Çipleri -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1.5">
+                                    <span class="text-ks-red font-bold text-xs"><i class="fa-solid fa-crosshairs mr-1"></i>KQL Tehdit Barometresi &amp; Hızlı Odak:</span>
+                                    <span class="text-[11px] text-slate-500">Kritik tehdit senaryosuna göre servis setine odaklan</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono">MITRE ATT&amp;CK Destekli</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <button type="button" onclick="applyThreatPreset('quishing')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-sky-500 hover:text-sky-700 text-slate-700 transition flex items-center space-x-1 shadow-xs" title="Quishing (QR Kod Tabanlı Kimlik Avı) ve MDO Koruması">
+                                    <i class="fa-solid fa-qrcode text-sky-600 text-[11px]"></i>
+                                    <span class="font-semibold">Quishing (QR Kod Phishing)</span>
+                                </button>
+                                <button type="button" onclick="applyThreatPreset('aitm')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-indigo-500 hover:text-indigo-700 text-slate-700 transition flex items-center space-x-1 shadow-xs" title="AiTM (Adversary-in-the-Middle) & Token Çalma Tespiti">
+                                    <i class="fa-solid fa-user-secret text-indigo-600 text-[11px]"></i>
+                                    <span class="font-semibold">AiTM (Token Hırsızlığı)</span>
+                                </button>
+                                <button type="button" onclick="applyThreatPreset('pim')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-purple-500 hover:text-purple-700 text-slate-700 transition flex items-center space-x-1 shadow-xs" title="PIM (Ayrıcalıklı Kimlik Yönetimi) & Riskli Oturumlar">
+                                    <i class="fa-solid fa-key text-purple-600 text-[11px]"></i>
+                                    <span class="font-semibold">PIM (Ayrıcalıklı Kimlik)</span>
+                                </button>
+                                <button type="button" onclick="applyThreatPreset('dlp')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-emerald-500 hover:text-emerald-700 text-slate-700 transition flex items-center space-x-1 shadow-xs" title="Purview DLP (Veri Kaybı Önleme) & Hassas Veri Sızıntısı">
+                                    <i class="fa-solid fa-shield-virus text-emerald-600 text-[11px]"></i>
+                                    <span class="font-semibold">DLP (Veri Sızıntısı)</span>
+                                </button>
+                                <button type="button" onclick="applyThreatPreset('tvm')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-amber-500 hover:text-amber-700 text-slate-700 transition flex items-center space-x-1 shadow-xs" title="TVM (Tehdit ve Zafiyet Yönetimi) & Exploit Riskleri">
+                                    <i class="fa-solid fa-bug text-amber-600 text-[11px]"></i>
+                                    <span class="font-semibold">TVM (Zafiyet &amp; Exploit)</span>
+                                </button>
                             </div>
                         </div>
 
@@ -751,19 +784,19 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <button type="button" onclick="applyPresetPackage('PKG-05')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
                                     <div class="text-xs font-bold text-ks-navy">PKG-05 Defender XDR Paketi</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">MDE + MDO + MDI + MDCA + XDR</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">MDE + MDO + MDI + MDCA + XDR (AIR Otonom Müdahale)</div>
                                 </button>
                                 <button type="button" onclick="applyPresetPackage('PKG-06')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
                                     <div class="text-xs font-bold text-ks-navy">PKG-06 Purview Veri Güvenliği</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">Birleşik DLP, Sınıflandırma &amp; Uyum (Tek Rapor)</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Birleşik DLP, Sınıflandırma &amp; KVKK/GDPR Uyum (Tek Rapor)</div>
                                 </button>
                                 <button type="button" onclick="applyPresetPackage('PKG-07')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
                                     <div class="text-xs font-bold text-ks-navy">PKG-07 Kimlik &amp; Cihaz Hijyeni</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">Entra ID PIM + Intune Uyum</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Entra ID (PIM Yetki Yönetimi) + Intune Cihaz Uyum</div>
                                 </button>
                                 <button type="button" onclick="applyPresetPackage('PKG-10')" class="p-3 border border-slate-200 rounded-xl hover:border-ks-navy text-left bg-slate-50 hover:bg-blue-50/50 transition">
                                     <div class="text-xs font-bold text-ks-navy">PKG-10 Full E5/E7 MSSP</div>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">Tüm Defender, Purview ve Entra Servisleri</div>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Tüm Defender, Purview ve Entra Servisleri (ZAP + AIR + TVM Dahil)</div>
                                 </button>
                             </div>
                         </div>
@@ -841,6 +874,21 @@
                             </div>
                         </div>
 
+                        <!-- Zero Trust JIT Self-Activation Banner -->
+                        <div id="jitElevationBox" class="hidden p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2.5">
+                            <div class="font-bold text-amber-900 flex items-center space-x-2">
+                                <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                                <span>Zero Trust / En Az Yetki Koruması</span>
+                            </div>
+                            <div class="text-[11px] text-amber-800 leading-relaxed">
+                                İdari roller müşteri gizli verilerine ve rapor içeriklerine otomatik erişim hakkına sahip değildir (En Az Yetki / Zero Trust). Rapor üretimini tamamlamak için bu kiracı adına tek tıkla 4 saatlik süreli (JIT) erişim yetkisi alabilirsiniz.
+                            </div>
+                            <button id="btnElevateJit" onclick="activateJitAndRetry()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center space-x-2 text-xs">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>
+                            </button>
+                        </div>
+
                         <!-- Canlı İşlem Durumu & İndirme Kartı -->
                         <div id="generationStatusBox" class="hidden bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
                             <div class="flex items-center space-x-2">
@@ -851,21 +899,6 @@
                                     <div id="generationStatusTitle" class="text-xs font-bold text-slate-800">Motor Çalışıyor...</div>
                                     <div id="generationStatusDesc" class="text-[11px] text-slate-500">KQL ve Graph telemetrisi işleniyor</div>
                                 </div>
-                            </div>
-
-                            <!-- Zero Trust JIT Self-Activation Banner -->
-                            <div id="jitElevationBox" class="hidden p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2.5">
-                                <div class="font-bold text-amber-900 flex items-center space-x-2">
-                                    <i class="fa-solid fa-shield-halved text-amber-600"></i>
-                                    <span>Zero Trust / En Az Yetki Koruması</span>
-                                </div>
-                                <div class="text-[11px] text-amber-800 leading-relaxed">
-                                    İdari roller müşteri gizli verilerine ve rapor içeriklerine otomatik erişim hakkına sahip değildir (En Az Yetki / Zero Trust). Rapor üretimini tamamlamak için bu kiracı adına tek tıkla 4 saatlik süreli (JIT) erişim yetkisi alabilirsiniz.
-                                </div>
-                                <button id="btnElevateJit" onclick="activateJitAndRetry()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center space-x-2 text-xs">
-                                    <i class="fa-solid fa-bolt"></i>
-                                    <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>
-                                </button>
                             </div>
 
                             <div id="reportActionButtons" class="hidden pt-2 space-y-2">
@@ -1174,7 +1207,7 @@
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div class="border-b border-slate-200 pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                     <div>
-                        <h1 class="text-lg font-bold text-ks-navy">Kurumsal Güvenlik Operasyonları Mühendislik Ekipleri</h1>
+                        <h1 class="text-lg font-bold text-ks-navy">Enterprise Security Operations Engineering Teams</h1>
                         <p class="text-xs text-slate-500">Servis bazlı ekip ayrımı sayesinde mühendisler ve analistler yalnızca yetkili oldukları alanları yönetir</p>
                     </div>
                     <span class="mt-2 sm:mt-0 bg-ks-navy/10 text-ks-navy text-xs font-semibold px-3 py-1 rounded-full border border-ks-navy/20">
@@ -1424,7 +1457,7 @@
                                     <th class="px-5 py-3">Departman / Ekip</th>
                                     <th class="px-5 py-3">Sistem Rolü</th>
                                     <th class="px-5 py-3">Yetki İzinleri</th>
-                                    <th class="px-5 py-3">Erişilen Kiracılar</th>
+                                    <th class="px-5 py-3">Erişilen Tenantlar</th>
                                     <th class="px-5 py-3 text-right">İşlemler</th>
                                 </tr>
                             </thead>
@@ -1713,7 +1746,7 @@
             <!-- SUBVIEW 2: MÜŞTERİLER (CUSTOMERS) -->
             <div id="rbacView-customers" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri Kiracı Envanteri</h3>
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri Tenant Envanteri</h3>
                     <button onclick="openAddTenantModal()" class="text-xs bg-ks-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-ks-navylight transition">
                         <i class="fa-solid fa-plus mr-1"></i>Müşteri Ekle
                     </button>
@@ -1885,14 +1918,31 @@
             <!-- SUBVIEW 10: DENETİM KÜTÜĞÜ (AUDIT) -->
             <div id="rbacView-audit" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 bg-slate-50">
-                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Yetkilendirme Denetim Kütüğü (Audit Log)</h3>
                     <div class="flex items-center space-x-2">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Yetkilendirme Denetim Kütüğü (Audit Trail)</h3>
+                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+                            <i class="fa-solid fa-lock text-[9px] mr-1"></i>KVKK / GDPR Kriptografik İz
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative">
+                            <input type="text" id="rbacAuditSearchInput" oninput="loadRbacAudit()" placeholder="Kullanıcı, olay veya IP ara..." class="text-xs border border-slate-300 rounded px-2.5 py-1 w-48 focus:ring-1 focus:ring-ks-navy">
+                        </div>
+                        <select id="rbacAuditTypeFilter" onchange="loadRbacAudit()" class="text-xs border border-slate-300 rounded px-2 py-1">
+                            <option value="">Tüm Olay Türleri</option>
+                            <option value="AUTH_LOGIN">AUTH_LOGIN (Oturum Açma)</option>
+                            <option value="REPORT_GENERATE">REPORT_GENERATE (Rapor Üretimi)</option>
+                            <option value="TENANT_LOGO_UPDATE">TENANT_LOGO_UPDATE (Logo Güncelleme)</option>
+                            <option value="ASSIGNMENT_CREATE">ASSIGNMENT_CREATE (Erişim Atama)</option>
+                            <option value="APPROVAL_DECISION">APPROVAL_DECISION (PIM Onayı)</option>
+                            <option value="SIMULATE_EVALUATION">SIMULATE_EVALUATION (Erişim Testi)</option>
+                        </select>
                         <select id="rbacAuditDecisionFilter" onchange="loadRbacAudit()" class="text-xs border border-slate-300 rounded px-2 py-1">
                             <option value="">Tüm Kararlar (ALLOW + DENY)</option>
                             <option value="ALLOW">Sadece ALLOW</option>
                             <option value="DENY">Sadece DENY</option>
                         </select>
-                        <button onclick="loadRbacAudit()" class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded font-bold hover:bg-slate-300">
+                        <button onclick="loadRbacAudit()" class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded font-bold hover:bg-slate-300 transition">
                             <i class="fa-solid fa-rotate mr-1"></i>Yenile
                         </button>
                     </div>
@@ -2302,6 +2352,145 @@
                     </button>
                 </div>
             </form>
+    <!-- ========================================================================= -->
+    <!-- MODAL: MÜŞTERİ KURUMSAL LOGO YÜKLEME MODALI -->
+    <!-- ========================================================================= -->
+    <div id="tenantLogoModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 bg-ks-navy text-white flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-image text-base text-ks-red"></i>
+                    <h3 class="text-sm font-bold">Müşteri Kurumsal Logosu Yükle</h3>
+                </div>
+                <button onclick="closeTenantLogoModal()" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <p class="text-slate-600">
+                    <strong id="logoModalTenantName" class="text-ks-navy">Müşteri Adı</strong> için üretilecek yönetici raporlarında ve üst bilgi alanında yer alacak kurumsal logoyu seçiniz.
+                </p>
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-ks-navy transition cursor-pointer bg-slate-50" onclick="document.getElementById('tenantLogoFileInput').click()">
+                    <input type="file" id="tenantLogoFileInput" accept="image/png,image/svg+xml" class="hidden" onchange="previewTenantLogo(event)">
+                    <div id="tenantLogoPreviewContainer" class="py-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                        <div class="font-semibold text-slate-700">PNG veya SVG Seçiniz</div>
+                        <div class="text-[10px] text-slate-400 mt-1">Maksimum 2MB &bull; Şeffaf arka plan önerilir</div>
+                    </div>
+                    <img id="tenantLogoPreviewImg" src="" alt="Önizleme" class="hidden max-h-16 mx-auto object-contain my-2 bg-white p-1 rounded border border-slate-200 shadow-sm" />
+                </div>
+                <div id="tenantLogoAlert" class="hidden p-2.5 rounded-lg text-[11px] font-semibold"></div>
+                <input type="hidden" id="logoModalTenantId" value="">
+                <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+                    <button type="button" onclick="closeTenantLogoModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg transition">
+                        Vazgeç
+                    </button>
+                    <button type="button" id="btnUploadLogo" onclick="submitTenantLogo()" class="bg-ks-navy hover:bg-ks-navylight text-white font-bold px-4 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Logoyu Kaydet</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL: CANLI GRAPH API İZİN & SAĞLIK TANISI MODALI -->
+    <!-- ========================================================================= -->
+    <div id="tenantPermissionsModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 bg-ks-navy text-white flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 p-1.5 rounded-lg">
+                        <i class="fa-solid fa-shield-virus text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold flex items-center space-x-2">
+                            <span>Pre-flight Graph API İzin &amp; Telemetri Tanısı</span>
+                            <span id="permModalStatusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-500 text-white">Canlı M365</span>
+                        </h3>
+                        <p id="permModalSubtitle" class="text-[11px] text-slate-300">Hedef Müşteri Kiracısı Yetki Denetimi</p>
+                    </div>
+                </div>
+                <button onclick="closeTenantPermissionsModal()" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-4 text-xs">
+                <!-- Üst Bilgi Kartı -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="space-y-1">
+                        <div class="text-slate-500 text-[11px]">Kimlik Doğrulama &amp; Secret Çözümleme:</div>
+                        <div class="font-bold text-slate-800 flex items-center space-x-2">
+                            <span id="permModalAuthMethod" class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono">ClientCertificate</span>
+                            <span class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>Key Vault Secret / Sertifika Doğrulandı</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-center px-3 py-1 bg-white border border-slate-200 rounded-lg">
+                            <div class="text-xs text-slate-400 uppercase font-semibold">Gereken İzin</div>
+                            <div id="permModalTotalCount" class="text-base font-extrabold text-ks-navy">12</div>
+                        </div>
+                        <div class="text-center px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <div class="text-xs text-emerald-600 uppercase font-semibold">Onaylanan</div>
+                            <div id="permModalGrantedCount" class="text-base font-extrabold text-emerald-700">12</div>
+                        </div>
+                        <div class="text-center px-3 py-1 bg-red-50 border border-red-200 rounded-lg">
+                            <div class="text-xs text-red-600 uppercase font-semibold">Bekleyen</div>
+                            <div id="permModalMissingCount" class="text-base font-extrabold text-red-700">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1-Click Admin Consent Callout -->
+                <div id="permModalConsentBox" class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div class="space-y-0.5">
+                        <div class="font-bold text-amber-900 text-xs flex items-center space-x-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                            <span>Microsoft Entra ID Genel Yönetici (Global Admin) Onayı</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800">
+                            Eksik veya güncellenen Graph API izinlerini kiracı genelinde etkinleştirmek için tek tıkla onay bağlantısını kullanın.
+                        </p>
+                    </div>
+                    <a id="permModalConsentLink" href="#" target="_blank" class="flex-shrink-0 bg-ks-navy hover:bg-ks-navylight text-white font-bold text-xs px-4 py-2 rounded-lg transition flex items-center space-x-1.5 shadow">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        <span>Entra ID Admin Consent Ver &rarr;</span>
+                    </a>
+                </div>
+
+                <!-- Tablo: 12 Servis İzin Detayları -->
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                    <div class="p-3 bg-slate-100 font-bold text-slate-700 text-xs flex justify-between items-center border-b border-slate-200">
+                        <span>Hizmet Bazlı Graph API İzin Sözleşmesi (Least Privilege)</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Salt-Okunur (Read-Only) Güvenli Kapsam</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2.5 px-4">Hizmet Kodu</th>
+                                    <th class="py-2.5 px-4">Hizmet Adı</th>
+                                    <th class="py-2.5 px-4">Gerekli Graph Kapsamı</th>
+                                    <th class="py-2.5 px-4">Tür</th>
+                                    <th class="py-2.5 px-4 text-center">Durum</th>
+                                    <th class="py-2.5 px-4">Öneri / Aksiyon</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permModalTableBody" class="divide-y divide-slate-100">
+                                <!-- JS ile doldurulacak -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button type="button" onclick="closeTenantPermissionsModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-1.5 rounded-lg transition">
+                    Kapat
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2892,8 +3081,14 @@
                     <td class="px-4 py-3 font-semibold text-slate-700">${Number(t.TotalEndpoints || 0).toLocaleString('tr-TR')}</td>
                     <td class="px-4 py-3 font-bold text-emerald-600">%${t.SecureScore !== undefined && t.SecureScore !== null ? t.SecureScore : 0}</td>
                     <td class="px-4 py-3">${svcs || '<span class="text-slate-400 text-[10px]">-</span>'}</td>
-                    <td class="px-4 py-3 text-right space-x-1">
-                        <button onclick="testTenantConnectivity('${t.Id}')" class="px-2.5 py-1 text-slate-600 hover:text-ks-navy border border-slate-200 rounded text-xs transition">
+                    <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                        <button onclick="showTenantPermissions('${t.Id}')" class="px-2 py-1 text-blue-600 hover:text-blue-800 border border-blue-200 hover:bg-blue-50 rounded text-xs transition font-semibold" title="Pre-flight Graph API Yetki &amp; Sağlık Tanısı">
+                            <i class="fa-solid fa-stethoscope text-[10px] mr-1"></i>İzin Tanısı
+                        </button>
+                        <button onclick="openTenantLogoModal('${t.Id}', '${escapeHtml(t.Name)}')" class="px-2 py-1 text-slate-600 hover:text-ks-navy border border-slate-200 hover:bg-slate-100 rounded text-xs transition" title="Kurumsal Logo Yükle">
+                            <i class="fa-solid fa-image text-[10px] mr-1"></i>Logo
+                        </button>
+                        <button onclick="testTenantConnectivity('${t.Id}')" class="px-2 py-1 text-slate-600 hover:text-ks-navy border border-slate-200 rounded text-xs transition">
                             <i class="fa-solid fa-plug text-[10px] mr-1"></i>Test
                         </button>
                         <button onclick="quickGenerateForTenant('${t.Id}')" class="px-2.5 py-1 bg-ks-navy hover:bg-ks-navylight text-white rounded text-xs transition font-semibold">
@@ -2956,13 +3151,23 @@
                         </div>
                     </div>
 
-                    <div class="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
-                        <button onclick="testTenantConnectivity('${t.Id}')" class="text-slate-600 hover:text-ks-navy transition flex items-center space-x-1">
-                            <i class="fa-solid fa-plug text-[11px]"></i>
-                            <span>Bağlantı Testi</span>
-                        </button>
-                        <div class="space-x-1">
-                            <button onclick="quickGenerateForTenant('${t.Id}')" class="bg-ks-navy hover:bg-ks-navylight text-white px-2.5 py-1 rounded text-xs transition">
+                    <div class="pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center gap-2 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="showTenantPermissions('${t.Id}')" class="text-blue-600 hover:text-blue-800 transition flex items-center space-x-1 font-semibold" title="Pre-flight Graph API Yetki &amp; Sağlık Tanısı">
+                                <i class="fa-solid fa-stethoscope text-[11px]"></i>
+                                <span>İzin Tanısı</span>
+                            </button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="openTenantLogoModal('${t.Id}', '${escapeHtml(t.Name)}')" class="text-slate-600 hover:text-ks-navy transition flex items-center space-x-1" title="Müşteri Kurumsal Logosu Yükle">
+                                <i class="fa-solid fa-image text-[11px]"></i>
+                                <span>Logo</span>
+                            </button>
+                        </div>
+                        <div class="space-x-1 flex items-center">
+                            <button onclick="testTenantConnectivity('${t.Id}')" class="text-slate-600 hover:text-ks-navy border border-slate-200 px-2 py-0.5 rounded text-[11px] transition">
+                                <i class="fa-solid fa-plug text-[10px] mr-1"></i>Test
+                            </button>
+                            <button onclick="quickGenerateForTenant('${t.Id}')" class="bg-ks-navy hover:bg-ks-navylight text-white px-2.5 py-1 rounded text-xs transition font-semibold">
                                 Raporla
                             </button>
                         </div>
@@ -3732,6 +3937,208 @@ let allUsers = [];
             } catch (e) {
                 alert('Bağlantı testi başarısız: ' + e);
             }
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ==========================================
+        // MÜŞTERİ LOGOSU YÖNETİMİ
+        // ==========================================
+        function openTenantLogoModal(tenantId, tenantName) {
+            document.getElementById('logoModalTenantId').value = tenantId;
+            document.getElementById('logoModalTenantName').textContent = tenantName || tenantId;
+            const preview = document.getElementById('tenantLogoPreviewImg');
+            const alertBox = document.getElementById('tenantLogoAlert');
+            const fileInput = document.getElementById('tenantLogoFileInput');
+            if (fileInput) fileInput.value = '';
+            if (alertBox) alertBox.className = 'hidden';
+            if (preview) {
+                preview.src = `/api/tenants/${tenantId}/logo?t=${Date.now()}`;
+                preview.classList.remove('hidden');
+            }
+            document.getElementById('tenantLogoModal').classList.remove('hidden');
+        }
+
+        function closeTenantLogoModal() {
+            document.getElementById('tenantLogoModal').classList.add('hidden');
+        }
+
+        function previewTenantLogo(event) {
+            const file = event.target.files[0];
+            const alertBox = document.getElementById('tenantLogoAlert');
+            const preview = document.getElementById('tenantLogoPreviewImg');
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                if (alertBox) {
+                    alertBox.className = 'p-2.5 rounded-lg text-[11px] font-semibold bg-red-100 text-red-800 border border-red-300';
+                    alertBox.textContent = 'Hata: Dosya boyutu maksimum 2MB olabilir.';
+                }
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function submitTenantLogo() {
+            const tenantId = document.getElementById('logoModalTenantId').value;
+            const fileInput = document.getElementById('tenantLogoFileInput');
+            const alertBox = document.getElementById('tenantLogoAlert');
+            const btn = document.getElementById('btnUploadLogo');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                if (alertBox) {
+                    alertBox.className = 'p-2.5 rounded-lg text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300';
+                    alertBox.textContent = 'Lütfen yüklemek için bir PNG veya SVG dosyası seçiniz.';
+                }
+                return;
+            }
+
+            const file = fileInput.files[0];
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-1"></i> Yükleniyor...';
+
+            try {
+                const res = await fetch(`/api/tenants/${tenantId}/logo`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': file.type || 'image/png'
+                    },
+                    body: file
+                });
+                const resData = await res.json();
+                if (res.ok && resData.success) {
+                    if (alertBox) {
+                        alertBox.className = 'p-2.5 rounded-lg text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+                        alertBox.textContent = '✅ Logo başarıyla yüklendi ve tüm rapor şablonlarına bağlandı!';
+                    }
+                    setTimeout(() => {
+                        closeTenantLogoModal();
+                        loadTenants();
+                    }, 1200);
+                } else {
+                    if (alertBox) {
+                        alertBox.className = 'p-2.5 rounded-lg text-[11px] font-semibold bg-red-100 text-red-800 border border-red-300';
+                        alertBox.textContent = `Hata: ${resData.error || 'Logo yüklenemedi'}`;
+                    }
+                }
+            } catch (err) {
+                if (alertBox) {
+                    alertBox.className = 'p-2.5 rounded-lg text-[11px] font-semibold bg-red-100 text-red-800 border border-red-300';
+                    alertBox.textContent = 'Bağlantı hatası: ' + err;
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-upload"></i> <span>Logoyu Kaydet</span>';
+            }
+        }
+
+        // ==========================================
+        // PRE-FLIGHT GRAPH API İZİN & SAĞLIK TANISI
+        // ==========================================
+        async function showTenantPermissions(tenantId) {
+            const modal = document.getElementById('tenantPermissionsModal');
+            const tbody = document.getElementById('permModalTableBody');
+            const title = document.getElementById('permModalSubtitle');
+            const authMethodSpan = document.getElementById('permModalAuthMethod');
+            const totalCount = document.getElementById('permModalTotalCount');
+            const grantedCount = document.getElementById('permModalGrantedCount');
+            const missingCount = document.getElementById('permModalMissingCount');
+            const consentLink = document.getElementById('permModalConsentLink');
+            const statusBadge = document.getElementById('permModalStatusBadge');
+
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>Graph API izinleri ve Key Vault telemetrisi sorgulanıyor...</td></tr>';
+            modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/tenants/${tenantId}/permissions`);
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-red-600 font-bold">Hata: ${data.error || 'İzin bilgisi alınamadı'}</td></tr>`;
+                    return;
+                }
+
+                if (title) title.textContent = `${data.tenantName} (${data.tenantId})`;
+                if (authMethodSpan) authMethodSpan.textContent = data.authMethod || 'ClientSecret';
+
+                if (statusBadge) {
+                    if (data.isSimulation) {
+                        statusBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-purple-600 text-white';
+                        statusBadge.textContent = '🔬 Sandbox (Simülasyon)';
+                    } else {
+                        statusBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-600 text-white';
+                        statusBadge.textContent = '🟢 Canlı M365';
+                    }
+                }
+
+                if (data.summary) {
+                    if (totalCount) totalCount.textContent = data.summary.totalRequired;
+                    if (grantedCount) grantedCount.textContent = data.summary.grantedCount;
+                    if (missingCount) missingCount.textContent = data.summary.missingCount;
+                }
+
+                if (consentLink && data.adminConsentUrl) {
+                    consentLink.href = data.adminConsentUrl;
+                }
+
+                if (tbody && data.permissions) {
+                    tbody.innerHTML = data.permissions.map(p => {
+                        let badge = '';
+                        if (p.status === 'Granted') {
+                            badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ Onaylandı</span>';
+                        } else if (p.status === 'AdminConsentRequired') {
+                            badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">⚠️ Onay Bekliyor</span>';
+                        } else {
+                            badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">❌ Eksik Kapsam</span>';
+                        }
+                        return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="py-2.5 px-4 font-mono font-bold text-xs text-ks-navy">${p.serviceCode}</td>
+                                <td class="py-2.5 px-4 text-xs font-semibold text-slate-800">${p.serviceName}</td>
+                                <td class="py-2.5 px-4 font-mono text-[11px] text-blue-700 bg-blue-50/50 rounded px-1.5 py-0.5">${p.permission}</td>
+                                <td class="py-2.5 px-4 font-mono text-[10px] text-slate-500">${p.type}</td>
+                                <td class="py-2.5 px-4 text-center font-bold">${badge}</td>
+                                <td class="py-2.5 px-4 text-xs text-slate-600">${p.recommendation || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-red-600">Bağlantı hatası: ${err}</td></tr>`;
+            }
+        }
+
+        function closeTenantPermissionsModal() {
+            document.getElementById('tenantPermissionsModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // KQL TEHDİT BAROMETRESİ PRESET SEÇİCİ
+        // ==========================================
+        function applyThreatPreset(preset) {
+            const checkboxes = document.querySelectorAll('input[name="serviceCheckbox"]');
+            if (preset === 'quishing') {
+                checkboxes.forEach(cb => cb.checked = (cb.value === 'SVC-MDO'));
+            } else if (preset === 'aitm') {
+                checkboxes.forEach(cb => cb.checked = (cb.value === 'SVC-MDO' || cb.value === 'SVC-ENTRA-ID' || cb.value === 'SVC-MDI'));
+            } else if (preset === 'pim') {
+                checkboxes.forEach(cb => cb.checked = (cb.value === 'SVC-ENTRA-ID' || cb.value === 'SVC-ENTRA-PIM'));
+            } else if (preset === 'dlp') {
+                checkboxes.forEach(cb => cb.checked = (cb.value === 'SVC-PURVIEW'));
+            } else if (preset === 'tvm') {
+                checkboxes.forEach(cb => cb.checked = (cb.value === 'SVC-MDE' || cb.value === 'SVC-INTUNE'));
+            }
+            if (typeof updateSelectedCount === 'function') updateSelectedCount();
         }
 
         function jumpToGdap(portalType, tenantId) {

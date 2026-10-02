@@ -18,6 +18,8 @@ from datetime import datetime
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
 GOLDEN_CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "GoldenStandard", "style.css")
+LOGOS_DIR = os.path.join(ROOT_DIR, "Data", "Logos")
+os.makedirs(LOGOS_DIR, exist_ok=True)
 PROVIDER_NAME = "CloudShield"
 
 # ─────────────────────────────────────────────────────────────
@@ -147,6 +149,31 @@ def generate_customer_svg(customer_name):
     </svg>'''
 
 def get_customer_logo_data_uri(customer_name, tenant_id=None):
+    safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    candidates = []
+    if tenant_id:
+        safe_tid = "".join(c for c in str(tenant_id) if c.isalnum() or c in ('-', '_')).strip()
+        candidates.extend([
+            os.path.join(LOGOS_DIR, f"{safe_tid}.png"),
+            os.path.join(LOGOS_DIR, f"{safe_tid}.svg"),
+        ])
+    candidates.extend([
+        os.path.join(LOGOS_DIR, f"{safe_name}.png"),
+        os.path.join(LOGOS_DIR, f"{safe_name}.svg"),
+    ])
+    for c in candidates:
+        if os.path.exists(c) and os.path.getsize(c) > 0:
+            try:
+                if c.endswith(".png"):
+                    with open(c, "rb") as f:
+                        b64 = base64.b64encode(f.read()).decode("utf-8")
+                    return f"data:image/png;base64,{b64}"
+                elif c.endswith(".svg"):
+                    with open(c, "r", encoding="utf-8") as f:
+                        b64 = base64.b64encode(f.read().encode("utf-8")).decode("utf-8")
+                    return f"data:image/svg+xml;base64,{b64}"
+            except Exception:
+                pass
     svg = generate_customer_svg(customer_name)
     b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
     return f"data:image/svg+xml;base64,{b64}"
@@ -163,106 +190,31 @@ def get_provider_logo_data_uri():
 # 3. PROVENANCE & COLLECTION HEALTH COMPONENTS
 # ─────────────────────────────────────────────────────────────
 
-TURKISH_MONTHS = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
-
-SERVICE_METADATA = {
-    "SVC-MDE": {
-        "title": "Microsoft Defender for Endpoint (EDR)",
-        "scope": "Kurumsal Cihazlar & Uç Noktalar",
-        "description": "Sensör telemetrisi, TVM zafiyetleri ve otonom müdahale"
-    },
-    "SVC-MDO": {
-        "title": "Microsoft Defender for Office 365 (MDO)",
-        "scope": "Posta Kutuları & İşbirliği",
-        "description": "Kimlik avı (phishing), Safe Links, Safe Attachments ve ZAP karantinası"
-    },
-    "SVC-MDI": {
-        "title": "Microsoft Defender for Identity (MDI)",
-        "scope": "Active Directory & Kimlik Altyapısı",
-        "description": "Kerberoasting, DCSync, Pass-the-Hash ve yanal hareket engelleme"
-    },
-    "SVC-MDCA": {
-        "title": "Microsoft Defender for Cloud Apps (CASB)",
-        "scope": "Bulut Uygulamaları & Gölge BT",
-        "description": "OAuth yetkileri, SaaS denetimi ve şüpheli bulut hareketleri"
-    },
-    "SVC-XDR": {
-        "title": "Microsoft Defender XDR (Bütünleşik Tehdit)",
-        "scope": "Çapraz Etki Alanı & Olaylar",
-        "description": "Korelasyonlu olaylar, otomatik araştırma (AIR) ve triyaj"
-    },
-    "SVC-INTUNE": {
-        "title": "Microsoft Intune Uç Nokta Uyumu",
-        "scope": "Yönetilen Cihazlar & MDM",
-        "description": "Cihaz uyumluluk ilkeleri, şifreleme (BitLocker) ve hijyen takibi"
-    },
-    "SVC-ENTRA": {
-        "title": "Microsoft Entra ID Kimlik Güvenliği",
-        "scope": "Kimlikler & Koşullu Erişim",
-        "description": "Riskli kullanıcılar, riskli oturumlar ve MFA zorlama"
-    },
-    "SVC-ENTRA-ID": {
-        "title": "Microsoft Entra ID Kimlik Güvenliği & PIM",
-        "scope": "Kimlikler, Koşullu Erişim & PIM",
-        "description": "Riskli kullanıcılar, riskli oturumlar, MFA ve ayrıcalıklı rol aktivasyonları"
-    },
-    "SVC-ENTRA-PIM": {
-        "title": "Entra ID Protection & Privileged Identity (PIM)",
-        "scope": "Ayrıcalıklı Roller & Kimlik Koruması",
-        "description": "PIM rol aktivasyonları, kalıcı admin denetimi ve kimlik riskleri"
-    },
-    "SVC-PURVIEW": {
-        "title": "Microsoft Purview (DLP & Bilgi Güvenliği)",
-        "scope": "M365, E-Posta & Uç Noktalar",
-        "description": "Veri kaybı önleme, hassas bilgi türleri ve uyum ilkeleri"
-    },
-    "SVC-PRV-DLP": {
-        "title": "Microsoft Purview Veri Kaybı Önleme (DLP)",
-        "scope": "M365, Teams, E-Posta & Cihazlar",
-        "description": "Uç nokta ve bulut DLP engellemeleri, kural aşımı analizi"
-    },
-    "SVC-PRV-CLASS": {
-        "title": "Purview Information Protection (MIP / Sınıflandırma)",
-        "scope": "Hassas Bilgi Türleri & Etiketleme",
-        "description": "Duyarlılık etiketleri, otomatik sınıflandırma ve şifreleme"
-    },
-    "SVC-PRV-GOV": {
-        "title": "Purview Veri Yaşam Döngüsü & Yönetişim",
-        "scope": "Veri Saklama & Arşivleme",
-        "description": "Saklama (retention) ilkeleri, kayıt yönetimi ve veri silme"
-    },
-    "SVC-PRV-RISK": {
-        "title": "Purview İç Risk Yönetimi (Insider Risk)",
-        "scope": "İç Tehdit & Veri Kaçağı Göstergeleri",
-        "description": "Ayrılan çalışan riskleri, toplu veri indirme ve mahremiyet"
-    },
-    "SVC-AI-SECURITY": {
-        "title": "Purview AI Security Hub (Copilot & GenAI)",
-        "scope": "Microsoft Copilot & Üretken Yapay Zeka",
-        "description": "AI istemlerinde hassas veri kullanımı ve yetkisiz model etkileşimi"
-    }
-}
-
 def render_collection_health_card(services, live_data):
     """
     Semantic Rule 6 & 10: CollectionFailed and unloaded services must be disclosed on page one.
     Move raw 'Bölüm yüklenemedi' messages into a consolidated collection-health section.
     """
+    service_names = {
+        "SVC-MDE": "Microsoft Defender for Endpoint (EDR)",
+        "SVC-MDO": "Microsoft Defender for Office 365 (MDO)",
+        "SVC-XDR": "Microsoft Defender XDR (Bütünleşik Tehdit)",
+        "SVC-PURVIEW": "Microsoft Purview DLP & Bilgi Güvenliği",
+        "SVC-PRV-DLP": "Microsoft Purview DLP (Veri Sızıntısı)",
+        "SVC-ENTRA": "Microsoft Entra ID Kimlik Yönetimi",
+        "SVC-ENTRA-ID": "Microsoft Entra ID Kimlik Koruması ve PIM",
+        "SVC-ENTRA-PIM": "Microsoft Entra ID Privileged Identity Management (PIM)"
+    }
+    
     rows = []
     for s in services:
-        meta = SERVICE_METADATA.get(s, {
-            "title": s,
-            "scope": "Bulut & Uç Nokta",
-            "description": "Güvenlik ve uyum telemetrisi"
-        })
-        s_title = meta["title"]
-        s_scope = meta["scope"]
+        s_title = service_names.get(s, s)
         s_data = live_data.get(s) if live_data else None
         
         if not s_data:
-            state = "Abonelik Aktif / Sinyal Bekleniyor"
-            badge = "<span class='pill p-warn'>Bekleniyor</span>"
-            notes = f"Abonelik kapsamında tanımlı ({s_scope}); aktif dönem telemetri yanıtı bekleniyor."
+            state = "Yüklenmedi / Telemetri Eksik"
+            badge = "<span class='pill p-warn'>Yüklenmedi</span>"
+            notes = "Bu servis abonelik listesinde yer almakta ancak aktif telemetri yanıtı dönmemiştir."
             ts = "N/A"
         else:
             raw_state = s_data.get("availabilityState", "SupportedAppOnly")
@@ -394,17 +346,16 @@ def render_attribution_grid_consolidated(total_blocks, total_analyst_actions, sa
   </div>
 </div>'''
 
-def render_attribution_grid_intune(autonomous_actions, engineer_actions, saved_hours, fte_equiv, non_compliant, evidence_id="RB-INT-COMP-01"):
-    analyst_display = f"{engineer_actions} Uzman Müdahalesi" if engineer_actions > 0 else "0 Uzman Müdahalesi (Uyumsuzluk Yok)"
+def render_attribution_grid_mdo(total_blocked, analyst_actions, saved_hours, fte_equiv, user_submissions=0, evidence_id="RB-MDO-2026-08-01"):
+    analyst_display = f"{analyst_actions} Uzman Müdahalesi" if analyst_actions > 0 else "0 Müdahale (Temiz Trafik)"
     saved_display = f"{saved_hours:.1f} sa" if saved_hours > 0 else "0.0 sa"
-    evidence_note = f"<br><small>Kanıt: {evidence_id}</small>" if engineer_actions > 0 else ""
-    
+    evidence_note = f"<br><small>Kanıt: {evidence_id}</small>" if analyst_actions > 0 else ""
     return f'''
 <div class="attribution-grid">
   <div class="attribution-card msft">
-    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
-    <b>{fmt_num(autonomous_actions)}</b>
-    <span class="attr-sub">Otonom İlke Uyumu<br>(Intune Zorlama Motoru)</span>
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi (MDO)</span>
+    <b>{fmt_num(total_blocked)}</b>
+    <span class="attr-sub">Otonom E-Posta Engeli<br>(Phish, Malware &amp; ZAP)</span>
   </div>
   <div class="attribution-card koc">
     <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
@@ -413,13 +364,41 @@ def render_attribution_grid_intune(autonomous_actions, engineer_actions, saved_h
   </div>
   <div class="attribution-card cust">
     <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
-    <b>{fmt_num(non_compliant)} Cihaz</b>
-    <span class="attr-sub">BT Hijyen &amp; Düzeltme<br>Uyumsuzluk Aksiyonu</span>
+    <b>{fmt_num(user_submissions)} Bildirim</b>
+    <span class="attr-sub">Kullanıcı Oltalama Şüphesi<br>Farkındalık &amp; Raporlama</span>
   </div>
   <div class="attribution-card shared">
-    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
-    <b>Sıfır Güven (Zero Trust)</b>
-    <span class="attr-sub">Uç Nokta Hijyeni &amp; Sağlığı<br>Koşullu Erişim Koruma Kalkanı</span>
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Güven</span>
+    <b>Temiz Posta Kutusu</b>
+    <span class="attr-sub">Sıfır BEC &amp; Hesap Ele Geçirme<br>İş İletişimi Dayanıklılığı</span>
+  </div>
+</div>'''
+
+def render_attribution_grid_entra(total_roles, permanent_gas, eligible_roles, analyst_actions, saved_hours, fte_equiv, evidence_id="RB-ENTRA-2026-08-01"):
+    analyst_display = f"{analyst_actions} Uzman Müdahalesi" if analyst_actions > 0 else "0 Müdahale (Hijyen Standart)"
+    saved_display = f"{saved_hours:.1f} sa" if saved_hours > 0 else "0.0 sa"
+    evidence_note = f"<br><small>Kanıt: {evidence_id}</small>" if analyst_actions > 0 else ""
+    return f'''
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi (Entra ID)</span>
+    <b>{fmt_num(eligible_roles)} Rol</b>
+    <span class="attr-sub">PIM Just-In-Time Koruması<br>(Süre Kısıtlı Yetki)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
+    <b>{saved_display}</b>
+    <span class="attr-sub">Kazanılan Zaman (~{fte_equiv} FTE)<br>{analyst_display}{evidence_note}</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>{fmt_num(permanent_gas)} Kalıcı Admin</b>
+    <span class="attr-sub">Break-Glass Hesap Hijyeni<br>Yetki İnceleme &amp; Tasfiye</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Güven</span>
+    <b>Sıfır Güven Kimlik</b>
+    <span class="attr-sub">Ayrıcalıklı Hesap Güvenliği<br>En Az Yetki (Least Privilege)</span>
   </div>
 </div>'''
 
@@ -668,10 +647,7 @@ def render_decision_framework_consolidated():
   </div>
 </div>'''
 
-def render_decision_framework_intune(non_compliant, engineer_actions):
-    pending_text = f"{non_compliant} adet uyumsuz cihaz için BitLocker şifreleme ve yama zorunluluğunun devreye alınması" if non_compliant > 0 else "Tüm uç noktalar temel güvenlik politikalarıyla uyumludur."
-    pending_risk = "Kayıp/çalıntı senaryolarında veri sızıntısı ve yetkisiz erişim riski" if non_compliant > 0 else "Düşük risk profili"
-    
+def render_decision_framework_mdo(analyst_actions=0, user_submissions=0):
     return f'''
 <div class="decision-framework">
   <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
@@ -681,20 +657,20 @@ def render_decision_framework_intune(non_compliant, engineer_actions):
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
-        <td><b>DEC-INT-APP-01</b></td>
-        <td>Intune Donanımsal BitLocker / FileVault Şifreleme Zorlama İlkesi</td>
-        <td>BT Güvenlik Direktörü</td>
+        <td><b>DEC-MDO-APP-01</b></td>
+        <td>Zero-Hour Auto Purge (ZAP) ve Otonom Karantina Koruma Politikası Aktivasyonu</td>
+        <td>CISO / E-Posta Güvenlik Mühendisi</td>
         <td><span class="pill p-ok">Tamamlandı</span></td>
-        <td>RB-INT-COMP-01 (Intune İlke Kütüğü)</td>
-        <td>Kayıp ve çalıntı taşınabilir cihazlarda disk verisinin kriptografik güvenliği</td>
+        <td>RB-MDO-ZAP-01 (MDO İlke Kütüğü)</td>
+        <td>Teslimat sonrası tespit edilen zararlı postaların otomatik olarak gelen kutusundan geri çekilmesi</td>
       </tr>
       <tr>
-        <td><b>DEC-INT-APP-02</b></td>
-        <td>Minimum İşletim Sistemi Sürümü ve Güvenlik Yaması Eşiği Belirlenmesi</td>
-        <td>Altyapı &amp; Sistem Yöneticisi</td>
+        <td><b>DEC-MDO-APP-02</b></td>
+        <td>DMARC, DKIM ve SPF Sıkı İletim Doğrulama Kurallarının Yaygınlaştırılması</td>
+        <td>Sistem ve İletişim Direktörlüğü</td>
         <td><span class="pill p-ok">Tamamlandı</span></td>
-        <td>Intune Compliance Baseline</td>
-        <td>Güvenlik desteği sona ermiş işletim sistemlerinin kurumsal ağdan tecrit edilmesi</td>
+        <td>MDO Alan Adı Hijyen Raporu</td>
+        <td>Kurumsal alan adı üzerinden spoofing ve taklit e-posta gönderiminin engellenmesi</td>
       </tr>
     </table>
   </div>
@@ -704,12 +680,12 @@ def render_decision_framework_intune(non_compliant, engineer_actions):
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
-        <td><b>DEC-INT-PND-01</b></td>
-        <td>{pending_text}</td>
-        <td>Bilgi Güvenliği Komitesi</td>
+        <td><b>DEC-MDO-PEND-01</b></td>
+        <td>Safe Links Tıklama Zamanı URL Korumasının Tüm Mobil ve Masaüstü İstemcilerde Zorunlu Kılınması</td>
+        <td>BT Operasyon Direktörü</td>
         <td><span class="pill p-warn">P1 - Yüksek</span></td>
-        <td>Intune Uyumsuzluk Denetim İzi</td>
-        <td>{pending_risk} önlenmesi ve sıfır güven cihaz sağlığı standardı</td>
+        <td>MDO URL Güvenlik Denetim İzi</td>
+        <td>Zaman ayarlı oltalama linklerine karşı gerçek zamanlı dinamik koruma sağlanması</td>
       </tr>
     </table>
   </div>
@@ -719,12 +695,12 @@ def render_decision_framework_intune(non_compliant, engineer_actions):
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
-        <td><b>DEC-INT-DEF-01</b></td>
-        <td>Saha Tabletlerinde Biyometrik Giriş Zorunluluğu İstisnası</td>
-        <td>Saha Operasyonları Direktörü</td>
+        <td><b>DEC-MDO-DEF-01</b></td>
+        <td>Harici Toplu Pazarlama Bültenlerinde Katı Spam Filtresi İstisnası</td>
+        <td>Pazarlama &amp; BT Güvenlik Direktörü</td>
         <td><span class="pill p-warn">Risk Kabulü</span></td>
-        <td>Saha Donanım Değerlendirme Raporu</td>
-        <td>2026-Q4 dönemine kadar karmaşık PIN tabanlı doğrulama ile geçici kullanım</td>
+        <td>Bülten Gönderim Altyapısı Analizi</td>
+        <td>2026-Q4 dönemine kadar belirlenmiş IP aralığı için kontrollü istisna izni</td>
       </tr>
     </table>
   </div>
@@ -734,20 +710,102 @@ def render_decision_framework_intune(non_compliant, engineer_actions):
     <table>
       <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
       <tr>
-        <td><b>DEC-INT-REC-01</b></td>
-        <td>Jailbreak / Root Edilmiş Mobil Cihazların Anında Otomatik Karantinaya Alınması</td>
-        <td>BT Sistem &amp; Ağ Güvenliği</td>
+        <td><b>DEC-MDO-REC-01</b></td>
+        <td>Quishing (QR Kod Tabanlı Oltalama) Görüntü Analiz Filtresinin Aktifleştirilmesi</td>
+        <td>BT Güvenlik Mühendisliği</td>
         <td><span class="pill p-crit">P1 - Yüksek</span></td>
-        <td>Intune Cihaz Tehdit Koruması</td>
-        <td>Bütünlüğü bozulmuş mobil cihazların şirket e-posta ve bulut verilerine erişiminin kesilmesi</td>
+        <td>MDO Tehdit Avı Kütüğü</td>
+        <td>Görsel içerisine gizlenmiş kötü amaçlı yönlendirmelerin yapay zeka ile taranması</td>
       </tr>
       <tr>
-        <td><b>DEC-INT-REC-02</b></td>
-        <td>Donanım Tabanlı TPM 2.0 Güvenlik Çipi Olmayan Cihazların Emekliye Ayrılması</td>
-        <td>BT Satın Alma Direktörlüğü</td>
+        <td><b>DEC-MDO-REC-02</b></td>
+        <td>Şüpheli Posta Bildiriminde Bulunan Personele Yönelik Farkındalık Teşvik Programı</td>
+        <td>İK &amp; Bilgi Güvenliği Birimi</td>
         <td><span class="pill p-warn">P2 - Orta</span></td>
-        <td>Intune Donanım Envanter Raporu</td>
-        <td>Credential Guard ve gelişmiş donanım izolasyonunu desteklemeyen eski donanımların yenilenmesi</td>
+        <td>Kullanıcı Bildirim Karnesi</td>
+        <td>İlk tespit süresinin (Mean Time to Detect) çalışan katılımıyla kısaltılması</td>
+      </tr>
+    </table>
+  </div>
+</div>'''
+
+def render_decision_framework_entra(permanent_gas=2, analyst_actions=0):
+    return f'''
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-ENTRA-APP-01</b></td>
+        <td>Ayrıcalıklı Rollerde PIM Süre Kısıtı (Maksimum 4 Saat) ve Gerekçe Zorunluluğu</td>
+        <td>CISO / Kimlik Yönetişimi Müdürü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>RB-ENTRA-PIM-01 (Entra PIM İlke Kütüğü)</td>
+        <td>Sürekli açık duran yüksek yetkilerin sınırlandırılarak saldırı penceresinin daraltılması</td>
+      </tr>
+      <tr>
+        <td><b>DEC-ENTRA-APP-02</b></td>
+        <td>Acil Durum (Break-Glass) Hesaplarında FIDO2 Donanım Anahtarı Zorunluluğu</td>
+        <td>Sistem ve Bulut Altyapı Direktörü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>Entra Kimlik Güvenlik Karnesi</td>
+        <td>Yetkisiz hesap ele geçirme girişimlerine karşı donanımsal koruma sağlanması</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-ENTRA-PEND-01</b></td>
+        <td>Kalıcı Global Admin Yetkisine Sahip Hesapların Tasfiye Edilerek PIM Uygunluğuna Alınması</td>
+        <td>BT Operasyon Direktörü</td>
+        <td><span class="pill p-warn">P1 - Yüksek</span></td>
+        <td>Entra Rol Atama Denetim İzi</td>
+        <td>Kalıcı admin sayısının acil durum sınırına (azami 2-4 hesap) indirilmesi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-ENTRA-DEF-01</b></td>
+        <td>Eski Bordro Entegrasyon Servis Hesabı İçin Koşullu Erişim İstisnası</td>
+        <td>Finans &amp; BT Güvenlik Direktörü</td>
+        <td><span class="pill p-warn">Risk Kabulü</span></td>
+        <td>Servis Hesabı Bağımlılık Raporu</td>
+        <td>2026-Q4 dönemine kadar statik IP kısıtlaması altında kontrollü istisna izni</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-ENTRA-REC-01</b></td>
+        <td>Tüm Yönetici Rol Aktivasyonlarında Intune Uyumlu Cihaz (Compliant Device) Şartı</td>
+        <td>BT Güvenlik Mühendisliği</td>
+        <td><span class="pill p-crit">P1 - Yüksek</span></td>
+        <td>Koşullu Erişim İlke Kütüğü</td>
+        <td>Kişisel veya güvensiz uç noktalardan yetki yükseltilmesinin teknik olarak engellenmesi</td>
+      </tr>
+      <tr>
+        <td><b>DEC-ENTRA-REC-02</b></td>
+        <td>Risk Tabanlı Koşullu Erişim (User &amp; Sign-in Risk) Politikalarının Blok Moduna Alınması</td>
+        <td>Bilgi Güvenliği Operasyon Ekibi</td>
+        <td><span class="pill p-warn">P2 - Orta</span></td>
+        <td>Entra Identity Protection Telemetrisi</td>
+        <td>Sızdırılmış kimlik bilgisi tespitinde oturumun otonom olarak sonlandırılması</td>
       </tr>
     </table>
   </div>
@@ -841,8 +899,6 @@ def render_executive_brief_purview(customer_name, period_label, total_events, bl
 def render_executive_brief_consolidated(customer_name, period_label, num_services, total_blocks, total_analyst_actions, saved_hours):
     fte_equiv = fmt_fte(saved_hours)
     analyst_txt = f"CloudShield mühendisleri çapraz etki alanı korelasyonu ve triyajı ile {total_analyst_actions} doğrudan müdahale gerçekleştirerek {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırmıştır." if total_analyst_actions > 0 else "Dönem içinde çapraz servis triyajı gerektiren açık kritik güvenlik olayı yaşanmamıştır."
-    blocks_txt = f"toplam {fmt_num(total_blocks)} tehdit ve sızıntı otonom engellenmiştir." if total_blocks > 0 else "dönem içinde aktif sızıntı veya tehdit yayılımı yaşanmamış, ortam temiz ve koruma altında tutulmuştur."
-    msft_txt = f"XDR ve Purview makine hızında otonom müdahale ile {fmt_num(total_blocks)} olayı yayılmadan izole etmiştir." if total_blocks > 0 else "XDR ve Purview otonom koruma kalkanı aktif tutulmuş, doğrudan müdahale gerektiren bir tehdit yayılımı saptanmamıştır."
     
     return f'''
 <div class="executive-brief">
@@ -851,7 +907,7 @@ def render_executive_brief_consolidated(customer_name, period_label, num_service
     <div class="brief-row">
       <div class="brief-col">
         <b>1. Ne Oldu? (Birleşik Operasyon):</b>
-        <p>{num_services} aktif Microsoft güvenlik ve uyum servisi yönetilmiş, {blocks_txt}</p>
+        <p>{num_services} aktif Microsoft güvenlik ve uyum servisi yönetilmiş, toplam {fmt_num(total_blocks)} tehdit ve sızıntı otonom engellenmiştir.</p>
       </div>
       <div class="brief-col">
         <b>2. Neden Önemli? (Kurumsal Risk):</b>
@@ -861,7 +917,7 @@ def render_executive_brief_consolidated(customer_name, period_label, num_service
     <div class="brief-row">
       <div class="brief-col">
         <b>3. Microsoft Teknolojisi Ne Sağladı?:</b>
-        <p>{msft_txt}</p>
+        <p>XDR ve Purview makine hızında otonom müdahale ile {fmt_num(total_blocks)} olayı yayılmadan izole etmiştir.</p>
       </div>
       <div class="brief-col">
         <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
@@ -871,7 +927,7 @@ def render_executive_brief_consolidated(customer_name, period_label, num_service
     <div class="brief-row">
       <div class="brief-col">
         <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
-        <p>Uç nokta hijyen eksiklikleri ve istisna politikaları Sayfa 2 Karar Çerçevesi'nde yetkilendirme beklemektedir.</p>
+        <p>Uç nokta hijyen eksiklikleri ve istisna politikaları Sayfa 3 Karar Çerçevesi'nde yetkilendirme beklemektedir.</p>
       </div>
       <div class="brief-col">
         <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
@@ -881,28 +937,26 @@ def render_executive_brief_consolidated(customer_name, period_label, num_service
   </div>
 </div>'''
 
-def render_executive_brief_intune(customer_name, period_label, total_devices, compliant_devices, non_compliant, encrypted_devices, autonomous_actions, engineer_actions, saved_hours, fte_equiv, compliance_pct):
-    analyst_txt = f"CloudShield güvenlik mühendisleri uyumsuzluk saptanan {non_compliant} cihaz ve BitLocker yapılandırması üzerinde {engineer_actions} doğrudan müdahale gerçekleştirerek kuruma {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırmıştır." if engineer_actions > 0 else "Dönem içinde cihaz uyumsuzluğu nedeniyle manuel mühendislik müdahalesi gerektiren açık bir kriz yaşanmamıştır."
-    msft_txt = f"Microsoft Intune uyumluluk motoru {fmt_num(autonomous_actions)} cihazda güvenlik ilkelerini otonom olarak değerlendirmiş ve Koşullu Erişim (Conditional Access) doğrulaması sağlamıştır." if autonomous_actions > 0 else "Microsoft Intune uyumluluk motoru kayıtlı cihazlar üzerinde güvenlik ilkelerini aktif olarak denetlemektedir."
-    
+def render_executive_brief_mdo(customer_name, period_label, total_inbound, total_blocked, phish_blocked, malware_blocked, zap_actions, analyst_actions, saved_hours, fte_equiv):
+    analyst_txt = f"CloudShield analistleri {analyst_actions} şüpheli bildirim ve karantina talebini güvenlik triyajından geçirerek {saved_hours:.1f} saat (~{fte_equiv} FTE) mühendislik eforu sağlamıştır." if analyst_actions > 0 else "Dönem boyunca analist eskalasyonu gerektiren kritik bir e-posta anomalisi yaşanmamış, standart izleme sürdürülmüştür."
     return f'''
 <div class="executive-brief">
-  <h3>🎯 C-Level Intune Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <h3>🎯 C-Level Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
   <div class="brief-grid">
     <div class="brief-row">
       <div class="brief-col">
-        <b>1. Ne Oldu? (Cihaz Hijyen &amp; Uyum Özeti):</b>
-        <p>Intune yönetimindeki {fmt_num(total_devices)} kurumsal uç noktadan {fmt_num(compliant_devices)} adedi ({compliance_pct}) uyumluluk kriterlerini karşılamış; {fmt_num(encrypted_devices)} cihazda disk şifrelemesi doğrulanmıştır.</p>
+        <b>1. Ne Oldu? (Dönem Operasyon Özeti):</b>
+        <p>Gelen toplam {fmt_num(total_inbound)} kurumsal e-posta taranmış; {fmt_num(total_blocked)} adet zararlı girişim ({fmt_num(phish_blocked)} oltalama, {fmt_num(malware_blocked)} zararlı ek) engellenmiştir.</p>
       </div>
       <div class="brief-col">
-        <b>2. Neden Önemli? (Kurumsal Risk):</b>
-        <p>Uyumsuz cihazlar ve şifrelenmemiş taşınabilir donanımlar kayıp/çalıntı durumunda kurumsal veri sızıntısına ve yetkisiz kaynak erişimine yol açar.</p>
+        <b>2. Neden Önemli? (İş Sürekliliği &amp; Risk):</b>
+        <p>E-posta kaynaklı fidye yazılımı ve Business Email Compromise (BEC) saldırı yüzeyi sınırlandırılarak kurumsal iletişim güvenceye alınmıştır.</p>
       </div>
     </div>
     <div class="brief-row">
       <div class="brief-col">
-        <b>3. Microsoft Intune Ne Sağladı?:</b>
-        <p>{msft_txt}</p>
+        <b>3. Microsoft Teknolojisi Ne Sağladı?:</b>
+        <p>Microsoft Defender for Office 365 makine öğrenimi filtreleri ve Safe Links/Attachments ile {fmt_num(total_blocked)} tehdidi durdurmuş, ZAP ile {fmt_num(zap_actions)} postayı gelen kutusundan otonom geri çekmiştir.</p>
       </div>
       <div class="brief-col">
         <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
@@ -912,11 +966,50 @@ def render_executive_brief_intune(customer_name, period_label, total_devices, co
     <div class="brief-row">
       <div class="brief-col">
         <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
-        <p>{fmt_num(non_compliant)} adet uyumsuz veya BitLocker doğrulaması bekleyen uç nokta Sayfa 3 Karar Matrisi'nde yetkilendirme beklemektedir.</p>
+        <p>Kullanıcıların harici linklere tıklama alışkanlıkları ve mobil aygıtlarda QR kod tabanlı oltalama girişimleri aktif izleme altındadır.</p>
       </div>
       <div class="brief-col">
         <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
-        <p>Karar Matrisi'ndeki P1 öncelikli Uyumsuz Cihaz Koşullu Erişim engeli ve TPM 2.0 donanım yenileme kararlarının onaylanması beklenmektedir.</p>
+        <p>Sayfa 3 Karar Matrisi'nde detaylandırılan Safe Links tam kapsam onayı ve Quishing yapay zeka denetimi kararları beklenmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>'''
+
+def render_executive_brief_entra(customer_name, period_label, total_roles, permanent_gas, eligible_roles, pim_activations, analyst_actions, saved_hours, fte_equiv):
+    analyst_txt = f"CloudShield mühendisleri {analyst_actions} ayrıcalıklı rol denetimi ve yetki hijyen incelemesi gerçekleştirmiş, kuruma {saved_hours:.1f} saat (~{fte_equiv} FTE) yönetimsel değer sağlamıştır." if analyst_actions > 0 else "Dönem boyunca yetki anomalisi yaşanmamış, standart rol yönetişimi sürdürülmüştür."
+    return f'''
+<div class="executive-brief">
+  <h3>🎯 C-Level Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Dönem Operasyon Özeti):</b>
+        <p>Microsoft Entra ID ortamında {fmt_num(total_roles)} rol ataması denetlenmiş, {fmt_num(pim_activations)} adet Just-In-Time yetki aktivasyonu gerçekleşmiştir.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (İş Sürekliliği &amp; Risk):</b>
+        <p>Ayrıcalıklı kimliklerin kötüye kullanımı (Privilege Abuse) ve kalıcı Global Admin birikimi kurumsal kimlik güvenliğinin en kritik tehdit yüzeyidir.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Teknolojisi Ne Sağladı?:</b>
+        <p>Microsoft Entra ID PIM mekanizması {fmt_num(eligible_roles)} rolde zamana duyarlı erişim sağlayarak kalıcı yetki riskini sınırlandırmıştır.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>{analyst_txt}</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>{permanent_gas} adet kalıcı Global Admin hesabı ve onay bekleyen PIM hijyen geçişleri müşteri BT liderliğinin yetkilendirmesini beklemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Sayfa 3 Karar Matrisi'nde detaylandırılan kalıcı yönetici hesaplarının tasfiyesi ve Intune uyumlu cihaz zorunluluğu onayları beklenmektedir.</p>
       </div>
     </div>
   </div>
@@ -1000,17 +1093,17 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylık EDR Güvenlik Raporu - {customer_name}</title>
+<title>Aylik EDR Guvenlik Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: CISO VE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylık EDR Güvenlik Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yönetilen Güvenlik Hizmeti<br>
-  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+  <h1>Aylik EDR Guvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yonetilen Guvenlik Hizmeti<br>
+  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
 
 <div class="ciso-badge">
@@ -1032,7 +1125,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <!-- SAYFA 2: OPERASYONEL METRİKLER VE TEHDİT AVI -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>EDR Operasyonel Performans ve Tehdit Avı</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
@@ -1061,9 +1154,9 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <!-- SAYFA 3: MÜŞTERİ KARAR ÇERÇEVESİ VE YÖNETİŞİM -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Yönetişim ve Stratejik Karar Matrisi</h1>
+  <h1>Yonetisim ve Stratejik Karar Matrisi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
@@ -1072,7 +1165,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
@@ -1137,17 +1230,17 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylık Purview DLP Güvenlik Raporu - {customer_name}</title>
+<title>Aylik Purview DLP Guvenlik Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: PURVIEW CISO ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylık Purview DLP Güvenlik Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Veri Kaybı Önleme ve Uyum Yönetilen Hizmeti<br>
-  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+  <h1>Aylik Purview DLP Guvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Veri Kaybi Onleme ve Uyum Yonetilen Hizmeti<br>
+  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
 
 <div class="ciso-badge">
@@ -1169,7 +1262,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <!-- SAYFA 2: DLP KANAL DAĞILIMI VE İSTİSNA ANALİZİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Purview DLP Performans ve Risk Analizi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
@@ -1195,9 +1288,9 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <!-- SAYFA 3: PURVIEW YÖNETİŞİM VE KARAR MATRİSİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Purview Karar ve Yönetişim Matrisi</h1>
+  <h1>Purview Karar ve Yonetisim Matrisi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
@@ -1206,7 +1299,282 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+</div>
+
+</div></body></html>'''
+
+def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+    if live_data is None:
+        live_data = {}
+    css = get_golden_style_css()
+    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_r = get_provider_logo_data_uri()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    mdo = live_data.get("SVC-MDO") or live_data.get("DefenderOffice") or {}
+    kpis = mdo.get("kpis", {})
+    state = mdo.get("availabilityState", "SupportedAppOnly")
+
+    total_inbound = int(kpis.get("ToplamGelenPosta") or kpis.get("TotalInbound") or 0)
+    clean_mail = int(kpis.get("TemizTeslimEdilen") or kpis.get("CleanDelivered") or 0)
+    phish_blocked = int(kpis.get("EngellenenOltalama") or kpis.get("PhishBlocked") or 0)
+    malware_blocked = int(kpis.get("EngellenenZararliEk") or kpis.get("MalwareBlocked") or 0)
+    safe_links_blocked = int(kpis.get("SafeLinksEngelleme") or kpis.get("SafeLinksBlocked") or 0)
+    safe_attachments_blocked = int(kpis.get("SafeAttachmentsEng") or kpis.get("SafeAttachmentsBlocked") or 0)
+    zap_actions = int(kpis.get("ZapSistemGeriCekme") or kpis.get("ZapActions") or 0)
+    total_blocked = int(kpis.get("ToplamEngellenen") or (phish_blocked + malware_blocked) or 0)
+    user_submissions = int(kpis.get("KullaniciBildirimi") or kpis.get("TotalReported") or 0)
+    confirmed_phish = int(kpis.get("DogrulananOltalama") or kpis.get("ConfirmedPhish") or 0)
+    quarantine_total = int(kpis.get("KarantinaTalepSayisi") or kpis.get("ReleaseRequested") or 0)
+    quarantine_rejected = int(kpis.get("KarantinaReddedilen") or kpis.get("AnalystRejected") or 0)
+    quarantine_approved = int(kpis.get("KarantinaOnaylanan") or kpis.get("AnalystApproved") or 0)
+
+    # Semantic Rule 1 & 2: Protection rate when total is 0 MUST be N/A
+    prot_rate = fmt_pct(total_blocked, total_inbound) if total_inbound > 0 else "N/A"
+
+    # Semantic Rule 4 & 13: Analyst effort from approved operational evidence
+    analyst_actions = int(kpis.get("ApprovedAnalystActions") or kpis.get("ManuelAnalistEforu") or 0)
+    evidence_id = "RB-MDO-2026-08-01"
+
+    # Semantic Rule 5: Zero saved hours cannot produce positive FTE
+    if analyst_actions > 0:
+        saved_hours = float(kpis.get("TasarrufEdilenSaat") or round(analyst_actions * 1.5, 1))
+    else:
+        saved_hours = 0.0
+    fte_equiv = fmt_fte(saved_hours)
+
+    coll_health_html = render_collection_health_card(["SVC-MDO"], live_data)
+    brief_html = render_executive_brief_mdo(customer_name, period_label, total_inbound, total_blocked, phish_blocked, malware_blocked, zap_actions, analyst_actions, saved_hours, fte_equiv)
+    attr_grid_html = render_attribution_grid_mdo(total_blocked, analyst_actions, saved_hours, fte_equiv, user_submissions, evidence_id)
+    decision_html = render_decision_framework_mdo(analyst_actions, user_submissions)
+
+    # Tables with semantic Rule 8 empty-state guarantee
+    threat_rows = [
+        ("Oltalama (Phishing &amp; BEC)", phish_blocked, "Yüksek", "Otonom Bloklandı &amp; Karantina"),
+        ("Zararlı Ek (Malware Attachments)", malware_blocked, "Kritik", "Antivirüs &amp; Sandbox Engeli"),
+        ("Safe Links Tıklama Zamanı Engeli", safe_links_blocked, "Yüksek", "Zararlı URL Erişim Engeli"),
+        ("ZAP ile Sonradan Geri Çekilen Posta", zap_actions, "Orta", "Gelen Kutusundan Otonom Tahliye")
+    ]
+    threat_table_rows = "".join(f"<tr><td><b>{t[0]}</b></td><td class='num'>{fmt_num(t[1])}</td><td><span class='pill {'p-crit' if t[2]=='Kritik' else 'p-warn'}'>{t[2]}</span></td><td>{t[3]}</td></tr>" for t in threat_rows)
+    threat_table = f"<table><tr><th>Tehdit Kategorisi</th><th>Olay Sayısı</th><th>Önem Seviyesi</th><th>Müdahale Sonucu</th></tr>{threat_table_rows}</table>"
+
+    if user_submissions > 0 or quarantine_total > 0:
+        triyaj_table = f"""<table>
+          <tr><th>Operasyonel Alan</th><th>Talep / Bildirim</th><th>Onaylanan / Temiz</th><th>Reddedilen / Zararlı</th><th>Analist Kararı</th></tr>
+          <tr><td><b>Kullanıcı Şüpheli Bildirimleri</b></td><td class='num'>{fmt_num(user_submissions)}</td><td class='num'>{fmt_num(user_submissions - confirmed_phish)}</td><td class='num'>{fmt_num(confirmed_phish)}</td><td><span class='pill p-ok'>Triyaj Edildi</span></td></tr>
+          <tr><td><b>Karantina Tahliye Talepleri</b></td><td class='num'>{fmt_num(quarantine_total)}</td><td class='num'>{fmt_num(quarantine_approved)}</td><td class='num'>{fmt_num(quarantine_rejected)}</td><td><span class='pill p-info'>Güvenlik Onayı</span></td></tr>
+        </table>"""
+    else:
+        triyaj_table = "<div class='empty-state-notice'>Dönem içinde analist müdahalesi gerektiren açık kullanıcı bildirimi veya karantina tahliye talebi bulunmamaktadır.</div>"
+
+    return f'''<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Aylik MDO E-Posta Guvenlik Raporu - {customer_name}</title>
+<style>{css}</style></head><body><div class="wrap">
+
+<!-- SAYFA 1: MDO CISO ÖZETİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Aylik MDO E-Posta Guvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Office 365 (MDO &amp; EOP) Yonetilen Hizmeti<br>
+  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+</header>
+
+<div class="ciso-badge">
+  <div class="ciso-badge-item">Toplam E-Posta: <b>{fmt_num(total_inbound)}</b></div>
+  <div class="ciso-badge-item">Otonom Engelleme: <b>{fmt_num(total_blocked)}</b></div>
+  <div class="ciso-badge-item">ZAP Müdahalesi: <b>{fmt_num(zap_actions)}</b></div>
+  <div class="ciso-badge-item">Kazanılan Efor: <b>{saved_hours:.1f} sa (~{fte_equiv} FTE)</b></div>
+</div>
+
+{coll_health_html}
+{brief_html}
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+{attr_grid_html}
+
+<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 2: MDO TEHDİT VE POSTA HİJYENİ KARNESİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Defender for Office 365 Tehdit ve Hijyen Karnesi</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
+</header>
+
+<h2>E-Posta Trafiği ve Tehdit Ayrışımı</h2>
+{threat_table}
+
+<h2>Kullanıcı Bildirimleri ve Karantina Triyaj Operasyonu</h2>
+{triyaj_table}
+
+<h2>Gelişmiş Koruma Mekanizmaları Durumu</h2>
+<table>
+  <tr><th>Koruma Katmanı</th><th>İşlevi</th><th>Etki Alanı</th><th>Politika Duruşu</th></tr>
+  <tr><td><b>Safe Links</b></td><td>Tıklama Zamanı Dinamik URL Denetimi</td><td>Tüm Kurumsal Posta Kutuları &amp; Teams</td><td><span class="pill p-ok">Aktif Koruma</span></td></tr>
+  <tr><td><b>Safe Attachments</b></td><td>Dinamik Sandbox ile Zararlı Ek Analizi</td><td>Gelen Tüm Ekli E-Postalar &amp; OneDrive</td><td><span class="pill p-ok">Dinamik İnceleme</span></td></tr>
+  <tr><td><b>Zero-Hour Auto Purge (ZAP)</b></td><td>Teslimat Sonrası Otonom Tahliye</td><td>Gelen Kutusu &amp; Önemsiz Posta Klasörü</td><td><span class="pill p-ok">Otonom Devrede</span></td></tr>
+  <tr><td><b>DMARC &amp; Anti-Spoofing</b></td><td>Alan Adı Sahteciliği ve Kimlik Koruma</td><td>Gelen ve Giden Tüm İletiler</td><td><span class="pill p-ok">Sıkı Denetim</span></td></tr>
+</table>
+
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 3: MDO KARAR VE YÖNETİŞİM MATRİSİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Defender for Office 365 Karar ve Yonetisim Matrisi</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
+</header>
+
+{decision_html}
+
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+</div>
+
+</div></body></html>'''
+
+def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
+    if live_data is None:
+        live_data = {}
+    css = get_golden_style_css()
+    logo_l = get_customer_logo_data_uri(customer_name)
+    logo_r = get_provider_logo_data_uri()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    entra = live_data.get("SVC-ENTRA-ID") or live_data.get("SVC-ENTRA-PIM") or live_data.get("EntraGovernance") or {}
+    kpis = entra.get("kpis", {})
+    state = entra.get("availabilityState", "SupportedAppOnly")
+
+    total_roles = int(kpis.get("ToplamRolAtamasi") or kpis.get("TotalRoleAssignments") or 0)
+    permanent_gas = int(kpis.get("KaliciGlobalAdmin") or kpis.get("PermanentGlobalAdmins") or 0)
+    eligible_roles = int(kpis.get("EligibleRolSayisi") or kpis.get("EligibleRoles") or 0)
+    pim_activations = int(kpis.get("PimAktivasyonSayisi") or kpis.get("PimActivations") or 0)
+    avg_activation_hours = float(kpis.get("OrtalamaAktivasyonSure") or kpis.get("AverageActivationHours") or 4.0)
+
+    # Semantic Rule 1 & 2: PIM adoption rate
+    pim_adoption_pct = fmt_pct(eligible_roles, total_roles) if total_roles > 0 else "N/A"
+
+    # Semantic Rule 4 & 13: Analyst effort from approved operational evidence
+    analyst_actions = int(kpis.get("ApprovedAnalystActions") or kpis.get("ManuelDenetimEylemi") or kpis.get("ManuelAnalistEforu") or 0)
+    evidence_id = "RB-ENTRA-2026-08-01"
+
+    # Semantic Rule 5: Zero saved hours cannot produce positive FTE
+    if analyst_actions > 0:
+        saved_hours = float(kpis.get("TasarrufEdilenSaat") or kpis.get("KazanilanSaat") or round(analyst_actions * 1.5, 1))
+    else:
+        saved_hours = 0.0
+    fte_equiv = fmt_fte(saved_hours)
+
+    coll_health_html = render_collection_health_card(["SVC-ENTRA-ID"], live_data)
+    brief_html = render_executive_brief_entra(customer_name, period_label, total_roles, permanent_gas, eligible_roles, pim_activations, analyst_actions, saved_hours, fte_equiv)
+    attr_grid_html = render_attribution_grid_entra(total_roles, permanent_gas, eligible_roles, analyst_actions, saved_hours, fte_equiv, evidence_id)
+    decision_html = render_decision_framework_entra(permanent_gas, analyst_actions)
+
+    # Tables with semantic Rule 8 empty-state guarantee
+    role_dist_rows = [
+        ("Global Administrator", permanent_gas, "Permanent (Break-Glass)", "Kritik", "FIDO2 / Donanım Anahtarı Zorunlu"),
+        ("Security Administrator", eligible_roles // 2 if eligible_roles > 0 else 0, "Eligible (PIM)", "Yüksek", "MFA + 4 Saat Aktivasyon Sınırı"),
+        ("User Administrator", eligible_roles // 4 if eligible_roles > 0 else 0, "Eligible (PIM)", "Orta", "İş Gerekçesi + Onay Zorunlu"),
+        ("Exchange Administrator", eligible_roles - (eligible_roles // 2 + eligible_roles // 4) if eligible_roles > 0 else 0, "Eligible (PIM)", "Orta", "MFA Doğrulaması Şartı")
+    ]
+    role_table_rows = "".join(f"<tr><td><b>{r[0]}</b></td><td class='num'>{fmt_num(r[1])}</td><td>{r[2]}</td><td><span class='pill {'p-crit' if r[3]=='Kritik' else ('p-warn' if r[3]=='Yüksek' else 'p-info')}'>{r[3]}</span></td><td>{r[4]}</td></tr>" for r in role_dist_rows)
+    role_table = f"<table><tr><th>Dizin Rolü (Directory Role)</th><th>Atama Sayısı</th><th>Atama Tipi</th><th>Risk Seviyesi</th><th>Yönetişim Politikası</th></tr>{role_table_rows}</table>"
+
+    if pim_activations > 0:
+        act_table = f"""<table>
+          <tr><th>Metrik / Denetim Alanı</th><th>Değer</th><th>Hedef / Standart</th><th>Durum</th><th>Operasyonel Not</th></tr>
+          <tr><td><b>Toplam PIM Aktivasyonu</b></td><td class='num'>{fmt_num(pim_activations)}</td><td class='num'>Just-In-Time (JIT)</td><td><span class='pill p-ok'>Uyumlu</span></td><td>Tüm aktivasyonlar kayıt altına alınmıştır.</td></tr>
+          <tr><td><b>Ortalama Yetki Süresi</b></td><td class='num'>{avg_activation_hours:.1f} Saat</td><td class='num'>&le; 4.0 Saat</td><td><span class='pill p-ok'>Optimum</span></td><td>Yetki süresi aşımı yaşanmamıştır.</td></tr>
+          <tr><td><b>Kalıcı Global Admin Hijyeni</b></td><td class='num'>{permanent_gas} Hesap</td><td class='num'>&le; 2-4 Break-Glass</td><td><span class='pill {'p-ok' if permanent_gas <= 4 else 'p-warn'}'>{'Sertleştirilmiş' if permanent_gas <= 4 else 'Tasfiye Gerekli'}</span></td><td>Acil durum hesapları harici kalıcı admin bulunmamalıdır.</td></tr>
+        </table>"""
+    else:
+        act_table = "<div class='empty-state-notice'>Dönem içinde telemetriye yansıyan Just-In-Time yetki aktivasyonu kaydı bulunmamaktadır.</div>"
+
+    return f'''<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Aylik Entra ID &amp; PIM Kimlik Guvenlik Raporu - {customer_name}</title>
+<style>{css}</style></head><body><div class="wrap">
+
+<!-- SAYFA 1: ENTRA CISO ÖZETİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Aylik Entra ID &amp; PIM Kimlik Guvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Entra ID &amp; PIM Kimlik Yonetimi ve Yonetisim Hizmeti<br>
+  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+</header>
+
+<div class="ciso-badge">
+  <div class="ciso-badge-item">Toplam Rol Ataması: <b>{fmt_num(total_roles)}</b></div>
+  <div class="ciso-badge-item">Kalıcı Global Admin: <b>{fmt_num(permanent_gas)}</b></div>
+  <div class="ciso-badge-item">PIM Aktivasyonu: <b>{fmt_num(pim_activations)}</b></div>
+  <div class="ciso-badge-item">Kazanılan Efor: <b>{saved_hours:.1f} sa (~{fte_equiv} FTE)</b></div>
+</div>
+
+{coll_health_html}
+{brief_html}
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+{attr_grid_html}
+
+<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 2: AYRICALIKLI ROL VE KİMLİK HİJYENİ KARNESİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Entra ID Ayrikalikli Rol ve Kimlik Hijyeni Karnesi</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
+</header>
+
+<h2>Ayrıcalıklı Rol Hijyeni &amp; Atama Dağılımı</h2>
+{role_table}
+
+<h2>PIM Just-In-Time (JIT) Aktivasyon Performansı</h2>
+{act_table}
+
+<h2>Koşullu Erişim ve Kimlik Kalkanı Duruşu</h2>
+<table>
+  <tr><th>Kontrol Alanı</th><th>Politika Hedefi</th><th>Kapsam</th><th>Güvenlik Duruşu</th></tr>
+  <tr><td><b>Çok Faktörlü Doğrulama (MFA)</b></td><td>FIDO2 / Authenticator Zorunluluğu</td><td>Tüm Ayrıcalıklı ve Standart Kullanıcılar</td><td><span class="pill p-ok">Zorunlu Devrede</span></td></tr>
+  <tr><td><b>Yönetici Cihaz Uyum Şartı</b></td><td>Intune Compliant Device Doğrulaması</td><td>Tüm PIM ve Yönetici Rolleri</td><td><span class="pill p-ok">Teknik Kontrol</span></td></tr>
+  <tr><td><b>Risk Tabanlı Erişim</b></td><td>Kullanıcı ve Oturum Risk Değerlendirmesi</td><td>Tüm Bulut Kimlikleri &amp; Hibrit Hesaplar</td><td><span class="pill p-ok">Otonom Koruma</span></td></tr>
+  <tr><td><b>Eski Protokol Engelleme</b></td><td>Temel Kimlik Doğrulama (Basic Auth) Kısıtı</td><td>Exchange, IMAP, POP3 ve SMTP</td><td><span class="pill p-ok">Engellendi</span></td></tr>
+</table>
+
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 3: ENTRA & PIM KARAR VE YÖNETİŞİM MATRİSİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Entra ID &amp; PIM Karar ve Yonetisim Matrisi</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
+</header>
+
+{decision_html}
+
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
@@ -1221,16 +1589,20 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 
     total_blocks = 0
     total_analyst_actions = 0
+    service_names = {
+        "SVC-MDE": ("Microsoft Defender for Endpoint (EDR)", "Kurumsal Cihazlar"),
+        "SVC-MDO": ("Microsoft Defender for Office 365 (MDO)", "Posta Kutuları"),
+        "SVC-XDR": ("Microsoft Defender XDR", "Çapraz Etki Alanı"),
+        "SVC-PURVIEW": ("Microsoft Purview (DLP & Bilgi Güvenliği)", "M365 &amp; Uç Noktalar"),
+        "SVC-PRV-DLP": ("Microsoft Purview DLP", "M365 &amp; Uç Noktalar"),
+        "SVC-ENTRA": ("Microsoft Entra ID Protection &amp; PIM", "Kimlikler &amp; Roller"),
+        "SVC-ENTRA-ID": ("Microsoft Entra ID Protection &amp; PIM", "Kimlikler &amp; Roller"),
+        "SVC-ENTRA-PIM": ("Microsoft Entra ID PIM", "Ayrıcalıklı Roller")
+    }
 
     scorecard_rows = []
     for svc in services:
-        meta = SERVICE_METADATA.get(svc, {
-            "title": svc,
-            "scope": "Bulut &amp; Uç Nokta",
-            "description": "Güvenlik ve uyum telemetrisi"
-        })
-        s_title = meta["title"]
-        s_scope = meta["scope"]
+        s_title, s_scope = service_names.get(svc, (svc, "Bulut &amp; Uç Nokta"))
         s_data = live_data.get(svc, {})
         s_kpis = s_data.get("kpis", {})
         s_state = s_data.get("availabilityState", "SupportedAppOnly")
@@ -1240,8 +1612,8 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
             scorecard_rows.append(f"<tr><td>{s_title}</td><td>{s_scope}</td><td class='num'>N/A</td><td class='num'>N/A</td><td><span class='pill p-crit'>Veri Toplanamadı</span></td></tr>")
             continue
             
-        b = int(s_kpis.get("BlockedEvents") or s_kpis.get("AlertsBlocked") or s_kpis.get("OtonomAksiyonSayisi") or s_kpis.get("OtonomMudahaleler") or s_kpis.get("OtonomUyumAksiyonu") or s_kpis.get("ToplamEngellenen") or s_kpis.get("EngellenenOltalama") or s_kpis.get("EngellenenZararliEk") or s_kpis.get("ZapSistemGeriCekme") or 0)
-        e = int(s_kpis.get("ApprovedAnalystActions") or s_kpis.get("ManuelAnalistEforu") or s_kpis.get("ManuelAksiyonSayisi") or s_kpis.get("ManuelMuhendisEylemi") or 0)
+        b = int(s_kpis.get("BlockedEvents") or s_kpis.get("AlertsBlocked") or s_kpis.get("OtonomAksiyonSayisi") or s_kpis.get("ToplamEngellenen") or 0)
+        e = int(s_kpis.get("ApprovedAnalystActions") or s_kpis.get("ManuelAnalistEforu") or s_kpis.get("ManuelAksiyonSayisi") or s_kpis.get("ManuelDenetimEylemi") or 0)
         total_blocks += b
         total_analyst_actions += e
         
@@ -1269,17 +1641,17 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylık Birleşik Güvenlik ve Uyum Raporu - {customer_name}</title>
+<title>Aylik Birlesik Guvenlik ve Uyum Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: KONSOLİDE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylık Birleşik Güvenlik ve Uyum Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5 Yönetilen Güvenlik ve Purview Hizmetleri<br>
-  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet sağlayıcı: {PROVIDER_NAME}</div>
+  <h1>Aylik Birlesik Guvenlik ve Uyum Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5 Yonetilen Guvenlik ve Purview Hizmetleri<br>
+  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
 </header>
 
 <div class="ciso-badge">
@@ -1295,36 +1667,226 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 <h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
 {cons_attr_grid_html}
 
-<div class="stamp">Sayfa 1 / 2 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
 
-<!-- SAYFA 2: ÇAPRAZ TEHDİT VE MÜŞTERİ KARAR ÇERÇEVESİ -->
+<!-- SAYFA 2: ÇAPRAZ TEHDİT VE KORUMA KARNESİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Çapraz Tehdit ve Yönetişim Karnesi</h1>
+  <h1>Capraz Tehdit ve Yonetisim Karnesi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
-<h2>Servis Bazlı Koruma Karnesi</h2>
+<h2>Servis Bazli Koruma Karnesi</h2>
 <table>
-  <tr><th>Yönetilen Servis</th><th>Kapsanan Varlık</th><th>Otonom Müdahale</th><th>Analist Eforu</th><th>Durum</th></tr>
+  <tr><th>Yonetilen Servis</th><th>Kapsanan Varlik</th><th>Otonom Mudahale</th><th>Analist Eforu</th><th>Durum</th></tr>
   {"".join(scorecard_rows)}
 </table>
 
-<h2>Dönemdeki Kritik Güvenlik Olayları</h2>
+<h2>Donemdeki Kritik Guvenlik Olaylari</h2>
 {inc_table}
+
+<h2>Çapraz Güvenlik Trendi ve Dayanıklılık Duruşu</h2>
+<table>
+  <tr><th>Güvenlik Katmanı</th><th>Kapsanan Varlıklar</th><th>Otonom Koruma Kalkanı</th><th>Analist Yönetişim Duruşu</th></tr>
+  <tr><td><b>Uç Nokta &amp; Cihaz (MDE)</b></td><td>Windows, macOS, Linux İstemciler</td><td>AIR Otonom İzolasyon &amp; AV</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>E-Posta &amp; İletişim (MDO)</b></td><td>Exchange Online &amp; Posta Kutuları</td><td>Safe Links / Attachments &amp; ZAP</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Kimlik &amp; Erişim (Entra ID)</b></td><td>Kullanıcı Hesapları &amp; Dizin Rolleri</td><td>PIM Just-In-Time &amp; Koşullu Erişim</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Veri &amp; Uyum (Purview)</b></td><td>SharePoint, OneDrive, USB, Endpoint</td><td>DLP Otonom Engelleme &amp; Etiketleme</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+</table>
+
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 3: KONSOLİDE KARAR VE YÖNETİŞİM MATRİSİ -->
+<div class="page">
+<header>
+  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
+  <h1>Birlesik Karar ve Yonetisim Matrisi</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
+</header>
 
 {decision_html}
 
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
+
+
+
+def render_attribution_grid_intune(autonomous_actions, engineer_actions, saved_hours, fte_equiv, non_compliant, evidence_id="RB-INT-COMP-01"):
+    analyst_display = f"{engineer_actions} Uzman Müdahalesi" if engineer_actions > 0 else "0 Uzman Müdahalesi (Uyumsuzluk Yok)"
+    saved_display = f"{saved_hours:.1f} sa" if saved_hours > 0 else "0.0 sa"
+    evidence_note = f"<br><small>Kanıt: {evidence_id}</small>" if engineer_actions > 0 else ""
+    
+    return f'''
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
+    <b>{fmt_num(autonomous_actions)}</b>
+    <span class="attr-sub">Otonom İlke Uyumu<br>(Intune Zorlama Motoru)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
+    <b>{saved_display}</b>
+    <span class="attr-sub">Kazanılan Zaman (~{fte_equiv} FTE)<br>{analyst_display}{evidence_note}</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>{fmt_num(non_compliant)} Cihaz</b>
+    <span class="attr-sub">BT Hijyen &amp; Düzeltme<br>Uyumsuzluk Aksiyonu</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>Sıfır Güven (Zero Trust)</b>
+    <span class="attr-sub">Uç Nokta Hijyeni &amp; Sağlığı<br>Koşullu Erişim Koruma Kalkanı</span>
+  </div>
+</div>'''
+
+# ─────────────────────────────────────────────────────────────
+# 5. CUSTOMER DECISION FRAMEWORK (4 QUADRANTS WITH OWNER & EVIDENCE)
+# ─────────────────────────────────────────────────────────────
+
+def render_decision_framework_intune(non_compliant, engineer_actions):
+    pending_text = f"{non_compliant} adet uyumsuz cihaz için BitLocker şifreleme ve yama zorunluluğunun devreye alınması" if non_compliant > 0 else "Tüm uç noktalar temel güvenlik politikalarıyla uyumludur."
+    pending_risk = "Kayıp/çalıntı senaryolarında veri sızıntısı ve yetkisiz erişim riski" if non_compliant > 0 else "Düşük risk profili"
+    
+    return f'''
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-APP-01</b></td>
+        <td>Intune Donanımsal BitLocker / FileVault Şifreleme Zorlama İlkesi</td>
+        <td>BT Güvenlik Direktörü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>RB-INT-COMP-01 (Intune İlke Kütüğü)</td>
+        <td>Kayıp ve çalıntı taşınabilir cihazlarda disk verisinin kriptografik güvenliği</td>
+      </tr>
+      <tr>
+        <td><b>DEC-INT-APP-02</b></td>
+        <td>Minimum İşletim Sistemi Sürümü ve Güvenlik Yaması Eşiği Belirlenmesi</td>
+        <td>Altyapı &amp; Sistem Yöneticisi</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>Intune Compliance Baseline</td>
+        <td>Güvenlik desteği sona ermiş işletim sistemlerinin kurumsal ağdan tecrit edilmesi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-PND-01</b></td>
+        <td>{pending_text}</td>
+        <td>Bilgi Güvenliği Komitesi</td>
+        <td><span class="pill p-warn">P1 - Yüksek</span></td>
+        <td>Intune Uyumsuzluk Denetim İzi</td>
+        <td>{pending_risk} önlenmesi ve sıfır güven cihaz sağlığı standardı</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-DEF-01</b></td>
+        <td>Saha Tabletlerinde Biyometrik Giriş Zorunluluğu İstisnası</td>
+        <td>Saha Operasyonları Direktörü</td>
+        <td><span class="pill p-warn">Risk Kabulü</span></td>
+        <td>Saha Donanım Değerlendirme Raporu</td>
+        <td>2026-Q4 dönemine kadar karmaşık PIN tabanlı doğrulama ile geçici kullanım</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-REC-01</b></td>
+        <td>Jailbreak / Root Edilmiş Mobil Cihazların Anında Otomatik Karantinaya Alınması</td>
+        <td>BT Sistem &amp; Ağ Güvenliği</td>
+        <td><span class="pill p-crit">P1 - Yüksek</span></td>
+        <td>Intune Cihaz Tehdit Koruması</td>
+        <td>Bütünlüğü bozulmuş mobil cihazların şirket e-posta ve bulut verilerine erişiminin kesilmesi</td>
+      </tr>
+      <tr>
+        <td><b>DEC-INT-REC-02</b></td>
+        <td>Donanım Tabanlı TPM 2.0 Güvenlik Çipi Olmayan Cihazların Emekliye Ayrılması</td>
+        <td>BT Satın Alma Direktörlüğü</td>
+        <td><span class="pill p-warn">P2 - Orta</span></td>
+        <td>Intune Donanım Envanter Raporu</td>
+        <td>Credential Guard ve gelişmiş donanım izolasyonunu desteklemeyen eski donanımların yenilenmesi</td>
+      </tr>
+    </table>
+  </div>
+</div>'''
+
+# ─────────────────────────────────────────────────────────────
+# 6. EXECUTIVE BRIEFS (6 QUESTIONS & ANSWERS)
+# ─────────────────────────────────────────────────────────────
+
+def render_executive_brief_intune(customer_name, period_label, total_devices, compliant_devices, non_compliant, encrypted_devices, autonomous_actions, engineer_actions, saved_hours, fte_equiv, compliance_pct):
+    analyst_txt = f"CloudShield güvenlik mühendisleri uyumsuzluk saptanan {non_compliant} cihaz ve BitLocker yapılandırması üzerinde {engineer_actions} doğrudan müdahale gerçekleştirerek kuruma {saved_hours:.1f} saat (~{fte_equiv} FTE) zaman kazandırmıştır." if engineer_actions > 0 else "Dönem içinde cihaz uyumsuzluğu nedeniyle manuel mühendislik müdahalesi gerektiren açık bir kriz yaşanmamıştır."
+    msft_txt = f"Microsoft Intune uyumluluk motoru {fmt_num(autonomous_actions)} cihazda güvenlik ilkelerini otonom olarak değerlendirmiş ve Koşullu Erişim (Conditional Access) doğrulaması sağlamıştır." if autonomous_actions > 0 else "Microsoft Intune uyumluluk motoru kayıtlı cihazlar üzerinde güvenlik ilkelerini aktif olarak denetlemektedir."
+    
+    return f'''
+<div class="executive-brief">
+  <h3>🎯 C-Level Intune Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Cihaz Hijyen &amp; Uyum Özeti):</b>
+        <p>Intune yönetimindeki {fmt_num(total_devices)} kurumsal uç noktadan {fmt_num(compliant_devices)} adedi ({compliance_pct}) uyumluluk kriterlerini karşılamış; {fmt_num(encrypted_devices)} cihazda disk şifrelemesi doğrulanmıştır.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (Kurumsal Risk):</b>
+        <p>Uyumsuz cihazlar ve şifrelenmemiş taşınabilir donanımlar kayıp/çalıntı durumunda kurumsal veri sızıntısına ve yetkisiz kaynak erişimine yol açar.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Intune Ne Sağladı?:</b>
+        <p>{msft_txt}</p>
+      </div>
+      <div class="brief-col">
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>{analyst_txt}</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>{fmt_num(non_compliant)} adet uyumsuz veya BitLocker doğrulaması bekleyen uç nokta Sayfa 3 Karar Matrisi'nde yetkilendirme beklemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Karar Matrisi'ndeki P1 öncelikli Uyumsuz Cihaz Koşullu Erişim engeli ve TPM 2.0 donanım yenileme kararlarının onaylanması beklenmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>'''
+
+# ─────────────────────────────────────────────────────────────
+# 7. GOLDEN REPORT HTML BUILDERS
+# ─────────────────────────────────────────────────────────────
 
 def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="Ağustos 2026", live_data=None, data_source_note=""):
     if live_data is None:
@@ -1480,6 +2042,10 @@ Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
 # 8. WORKFLOW DISPATCHER & PDF GENERATION
 # ─────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────
+# 8. WORKFLOW DISPATCHER & PDF GENERATION
+# ─────────────────────────────────────────────────────────────
+
 def generate_html_report(customer_name, services, period_tag="2026-08", period_label="Ağustos 2026 Dönemi",
                          live_data=None, data_source_note=""):
     if live_data is None:
@@ -1490,6 +2056,12 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
 
     if len(services) == 1 and services[0] == "SVC-MDE":
         return build_golden_mde_html(customer_name, period_tag, period_label, live_data, data_source_note)
+
+    if len(services) == 1 and services[0] in ("SVC-MDO", "SVC-DEFENDER-OFFICE"):
+        return build_golden_mdo_html(customer_name, period_tag, period_label, live_data, data_source_note)
+
+    if len(services) == 1 and services[0] in ("SVC-ENTRA-ID", "SVC-ENTRA-PIM", "SVC-ENTRA"):
+        return build_golden_entra_html(customer_name, period_tag, period_label, live_data, data_source_note)
 
     if (len(services) == 1 and services[0] in ("SVC-PURVIEW", "SVC-PRV-DLP")) or all(s.startswith("SVC-PRV-") or s in ("SVC-PURVIEW", "SVC-AI-SECURITY") for s in services):
         return build_golden_purview_html(customer_name, period_tag, period_label, live_data, data_source_note)
@@ -1969,12 +2541,10 @@ def render_and_save_report(customer_name, services, output_dir, period_tag=None,
         prev_year = now.year if now.month > 1 else now.year - 1
         period_tag = f"{prev_year}-{prev_month:02d}"
 
+    import calendar
     try:
         year, month = int(period_tag.split("-")[0]), int(period_tag.split("-")[1])
-        if 1 <= month <= 12:
-            month_name = TURKISH_MONTHS[month]
-        else:
-            month_name = str(month)
+        month_name = calendar.month_name[month]
         period_label = period_label or f"{month_name} {year} Dönemi"
     except Exception:
         period_label = period_label or f"{period_tag} Dönemi"

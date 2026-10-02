@@ -418,19 +418,35 @@ function loadRbacAudit() {
     const tok = localStorage.getItem('token') || '';
     const decision = document.getElementById('rbacAuditDecisionFilter')?.value || '';
     const type = document.getElementById('rbacAuditTypeFilter')?.value || '';
+    const search = document.getElementById('rbacAuditSearchInput')?.value?.toLowerCase() || '';
 
-    const url = `/api/rbac/audit?limit=100&decision=${encodeURIComponent(decision)}&type=${encodeURIComponent(type)}`;
+    const url = `/api/rbac/audit?limit=150&decision=${encodeURIComponent(decision)}&type=${encodeURIComponent(type)}`;
     fetch(url, { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
             if (!res.success) return;
             const tbody = document.getElementById('rbacAuditTbody');
             if (!tbody) return;
-            tbody.innerHTML = res.data.map(ev => `
+            let events = res.data;
+            if (search) {
+                events = events.filter(ev => 
+                    (ev.user_upn && ev.user_upn.toLowerCase().includes(search)) ||
+                    (ev.event_type && ev.event_type.toLowerCase().includes(search)) ||
+                    (ev.resource && ev.resource.toLowerCase().includes(search)) ||
+                    (ev.reason && ev.reason.toLowerCase().includes(search))
+                );
+            }
+            if (events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">Denetim kütüğünde eşleşen kayıt bulunamadı.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = events.map(ev => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td class="py-2.5 px-4 font-mono text-[11px] text-slate-500">${ev.timestamp.replace('T', ' ').slice(0, 19)}</td>
                     <td class="py-2.5 px-4 font-bold text-xs text-ks-navy">${ev.user_upn || 'Anonymous'}</td>
-                    <td class="py-2.5 px-4 font-mono text-xs font-semibold text-slate-700">${ev.event_type}</td>
+                    <td class="py-2.5 px-4 font-mono text-xs font-semibold text-slate-700">
+                        <span class="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${ev.event_type}</span>
+                    </td>
                     <td class="py-2.5 px-4 font-mono text-[11px] text-slate-500 truncate max-w-xs" title="${ev.resource}">${ev.resource}</td>
                     <td class="py-2.5 px-4 text-center font-bold">
                         <span class="px-2 py-0.5 rounded-full text-[10px] ${ev.decision === 'ALLOW' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'}">
@@ -441,7 +457,8 @@ function loadRbacAudit() {
                     <td class="py-2.5 px-4 font-mono text-[10px] text-slate-400">${ev.ip_address}</td>
                 </tr>
             `).join('');
-        });
+        })
+        .catch(err => console.error('Audit load error:', err));
 }
 
 // 11. Effective Access Simulator View
