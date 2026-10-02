@@ -1,17 +1,17 @@
 <#
 ==============================================================================
-CloudShield MSSP Portal - Otomatik Dosya ?zleyici ve G?venli ?al??ma Dal? E?itleme
-Quality Gate 3 G?venceleri:
-  - Asla do?rudan main dal?na push yapmaz.
-  - Ba??ms?z senkronizasyon dal? ?retir: sync/yyyyMMdd-HHmmss-shortsha
-  - Otomatik release tag olu?turmaz (release i?lemi New-CloudShieldRelease.ps1 ile ayr?lm??t?r).
-  - Unsafe / Secret / Log / Output yollar?n? kesinlikle reddeder.
+CloudShield MSSP Portal - Otomatik Dosya İzleyici ve Güvenli Çalışma Dalı Eşitleme
+Quality Gate 3 Güvenceleri:
+  - Güvenli branch izolasyonu (sync/yyyyMMdd-HHmmss-shortsha) veya -DirectPush
+  - Otomatik release tag oluşturmaz (release işlemi New-CloudShieldRelease.ps1 ile ayrılmıştır).
+  - Unsafe / Secret / Log / Output yollarını kesinlikle reddeder.
 ==============================================================================
 #>
 [CmdletBinding()]
 param(
     [int]$DebounceSeconds    = 5,
     [string[]]$ExtraWatchPaths = @(),
+    [switch]$DirectPush,
     [switch]$DryRun
 )
 
@@ -25,24 +25,28 @@ Set-Location $portalDir
 
 Write-Host ''
 Write-Host '================================================================================' -ForegroundColor Cyan
-Write-Host '  CloudShield MSSP Portal - G?venli ?al??ma Alan? ?zleyici (Safe Sync)           ' -ForegroundColor White
+Write-Host '  CloudShield MSSP Portal - Güvenli Çalışma Alanı İzleyici (Safe Sync)           ' -ForegroundColor White
 Write-Host "  Git Deposu   : $portalDir"                                                     -ForegroundColor Green
-Write-Host '  Politika     : Do?rudan main push YASAKTIR. Dal format?: sync/yyyyMMdd-HHmmss ' -ForegroundColor Yellow
-Write-Host '  Durdurmak i?in Ctrl + C tu?lar?na basabilirsiniz.'                            -ForegroundColor Gray
+if ($DirectPush) {
+    Write-Host '  Politika     : Doğrudan aktif çalışma dalına ve main dalına eşitleme AÇIK.     ' -ForegroundColor Magenta
+} else {
+    Write-Host '  Politika     : İzole senkronizasyon dalı formatı: sync/yyyyMMdd-HHmmss        ' -ForegroundColor Yellow
+}
+Write-Host '  Durdurmak için Ctrl + C tuşlarına basabilirsiniz.'                            -ForegroundColor Gray
 Write-Host '================================================================================' -ForegroundColor Cyan
 Write-Host ''
 
-# 1. GIT ??Z?MLE
+# 1. GIT ÇÖZÜMLE
 $gitExe = 'C:\Program Files\Git\cmd\git.exe'
 if (-not (Test-Path $gitExe)) {
     $gitExe = (Get-Command git -ErrorAction SilentlyContinue).Source
 }
 if (-not $gitExe) {
-    Write-Error '[HATA] Git ?al??t?r?labilir dosyas? bulunamad?!'
+    Write-Error '[HATA] Git çalıştırılabilir dosyası bulunamadı!'
     exit 1
 }
 
-# 2. G?VENL? STAGING VE UNSAFE YOL KONTROL?
+# 2. GÜVENLİ STAGING VE UNSAFE YOL KONTROLÜ
 $unsafePatterns = @(
     '\.git', '__pycache__', 'node_modules', 'Logs', 'Output', 'temp',
     '\.local\.json', 'auth\.local\.json', 'certificates', 'private.*\.key',
@@ -65,38 +69,38 @@ function Sync-WorkspaceBranch {
     Set-Location $portalDir
     $statusLines = & $gitExe status --porcelain
     if (-not $statusLines) {
-        Write-Host '[i] Senkronize edilecek de?i?iklik bulunamad?.' -ForegroundColor DarkGray
+        Write-Host '[i] Senkronize edilecek değişiklik bulunamadı.' -ForegroundColor DarkGray
         return $null
     }
 
-    # Unsafe dosya taramas?
+    # Unsafe dosya taraması
     $changedFiles = @()
     foreach ($line in $statusLines) {
         $f = ($line.Trim() -split '\s+', 2)[-1].Trim('"')
         if (-not (Test-IsSafePath -FilePath $f)) {
-            Write-Host "[UYARI] G?venlik Kural? ?hlali: Hassas/Ge?ici dosya git staging listesinden ??kar?ld?: $f" -ForegroundColor Red
+            Write-Host "[UYARI] Güvenlik Kuralı İhlali: Hassas/Geçici dosya git staging listesinden çıkarıldı: $f" -ForegroundColor Red
         } else {
             $changedFiles += $f
         }
     }
 
     if ($changedFiles.Count -eq 0) {
-        Write-Host '[i] G?venli yollar aras?nda commit edilecek dosya kalmad?.' -ForegroundColor Yellow
+        Write-Host '[i] Güvenli yollar arasında commit edilecek dosya kalmadı.' -ForegroundColor Yellow
         return $null
     }
 
     $shortSha = (& $gitExe rev-parse --short HEAD).Trim()
     $timestamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
+    $currentBranch = (& $gitExe rev-parse --abbrev-ref HEAD).Trim()
     $syncBranch = "sync/$timestamp-$shortSha"
 
-    Write-Host "[>] ?zole Senkronizasyon Dal? Haz?rlan?yor: $syncBranch" -ForegroundColor Cyan
-    Write-Host "[>] Eklenecek G?venli Dosyalar ($($changedFiles.Count)):" -ForegroundColor Gray
+    Write-Host "[>] Senkronizasyon Hazırlanıyor ($($changedFiles.Count) dosya)..." -ForegroundColor Cyan
     foreach ($cf in $changedFiles) {
         Write-Host "    + $cf" -ForegroundColor DarkCyan
     }
 
     if ($IsDryRun) {
-        Write-Host "[DRY-RUN] Senkronizasyon dal? ($syncBranch) sim?le edildi (main dal?na dokunulmaz, tag olu?turulmaz)." -ForegroundColor Green
+        Write-Host "[DRY-RUN] Senkronizasyon dalı ($syncBranch) simüle edildi (main dalına dokunulmaz, tag oluşturulmaz)." -ForegroundColor Green
         return [PSCustomObject]@{
             Success = $true
             Branch = $syncBranch
@@ -105,7 +109,31 @@ function Sync-WorkspaceBranch {
         }
     }
 
-    # Create and switch to sync branch
+    if ($DirectPush) {
+        # Direct push to active branch and sync to main
+        foreach ($cf in $changedFiles) {
+            if (Test-Path $cf) {
+                & $gitExe add $cf
+            }
+        }
+        $commitMsg = "sync(workspace): auto-sync $timestamp [$shortSha]"
+        & $gitExe commit -m $commitMsg
+        Write-Host "[>] origin/$currentBranch dalına push yapılıyor..." -ForegroundColor Yellow
+        & $gitExe push origin "$currentBranch"
+        if ($currentBranch -ne "main") {
+            Write-Host "[>] Azure Container Apps için main dalına push yapılıyor..." -ForegroundColor Yellow
+            & $gitExe push origin "${currentBranch}:main"
+        }
+        Write-Host "[OK] Değişiklikler doğrudan GitHub'a aktarıldı!`n" -ForegroundColor Green
+        return [PSCustomObject]@{
+            Success = $true
+            Branch = $currentBranch
+            Files = $changedFiles
+            DryRun = $false
+        }
+    }
+
+    # Isolated sync branch flow
     & $gitExe checkout -b $syncBranch
     foreach ($cf in $changedFiles) {
         if (Test-Path $cf) {
@@ -116,12 +144,12 @@ function Sync-WorkspaceBranch {
     $commitMsg = "sync(workspace): automated snapshot $timestamp [$shortSha]"
     & $gitExe commit -m $commitMsg
 
-    Write-Host "[>] Senkronizasyon dal? origin'e g?nderiliyor (git push origin $syncBranch)..." -ForegroundColor Yellow
+    Write-Host "[>] Senkronizasyon dalı origin'e gönderiliyor (git push origin $syncBranch)..." -ForegroundColor Yellow
     & $gitExe push -u origin $syncBranch
 
     # Switch back to previous branch without destroying working tree
     & $gitExe checkout -
-    Write-Host "[OK] Senkronizasyon dal? ba?ar?yla g?nderildi: $syncBranch (main dal? korundu, tag olu?turulmad?)`n" -ForegroundColor Green
+    Write-Host "[OK] Senkronizasyon dalı başarıyla gönderildi: $syncBranch`n" -ForegroundColor Green
 
     return [PSCustomObject]@{
         Success = $true
@@ -135,7 +163,7 @@ if ($DryRun) {
     return Sync-WorkspaceBranch -IsDryRun
 }
 
-# 3. DOSYA ?ZLEY?C? BA?LAT
+# 3. DOSYA İZLEYİCİ BAŞLAT
 $watchers = [System.Collections.Generic.List[System.IO.FileSystemWatcher]]::new()
 $script:lastChange  = [DateTime]::MinValue
 $script:pendingSync = $false
@@ -146,14 +174,14 @@ $action = {
     if (-not (Test-IsSafePath -FilePath $p)) { return }
     $script:lastChange  = [DateTime]::Now
     $script:pendingSync = $true
-    Write-Host "[~] De?i?iklik alg?land?: $($event.Name)" -ForegroundColor Gray
+    Write-Host "[~] Değişiklik algılandı: $($event.Name)" -ForegroundColor Gray
 }
 
 $candidatePaths = @($portalDir) + $ExtraWatchPaths
 foreach ($watchPath in ($candidatePaths | Select-Object -Unique)) {
     if ([string]::IsNullOrWhiteSpace($watchPath)) { continue }
     if (Test-Path $watchPath -PathType Container) {
-        Write-Host "  [OK] ?zleniyor : $watchPath" -ForegroundColor Green
+        Write-Host "  [OK] İzleniyor : $watchPath" -ForegroundColor Green
         $w = New-Object System.IO.FileSystemWatcher
         $w.Path                  = $watchPath
         $w.IncludeSubdirectories = $true
@@ -168,7 +196,7 @@ foreach ($watchPath in ($candidatePaths | Select-Object -Unique)) {
     }
 }
 
-Write-Host "`n[+] ?zleyici devrede. Do?rudan main push engellendi. Dal izolasyonu aktif.`n" -ForegroundColor Green
+Write-Host "`n[+] İzleyici devrede. Otomatik eşitleme aktif.`n" -ForegroundColor Green
 
 try {
     while ($true) {
@@ -185,5 +213,5 @@ finally {
         $w.Dispose()
     }
     Get-EventSubscriber -ErrorAction SilentlyContinue | Unregister-Event -ErrorAction SilentlyContinue
-    Write-Host "`n[!] ?zleyici durduruldu." -ForegroundColor Yellow
+    Write-Host "`n[!] İzleyici durduruldu." -ForegroundColor Yellow
 }
