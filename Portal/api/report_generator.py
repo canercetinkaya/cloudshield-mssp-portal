@@ -163,29 +163,101 @@ def get_provider_logo_data_uri():
 # 3. PROVENANCE & COLLECTION HEALTH COMPONENTS
 # ─────────────────────────────────────────────────────────────
 
+TURKISH_MONTHS = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+
+SERVICE_METADATA = {
+    "SVC-MDE": {
+        "title": "Microsoft Defender for Endpoint (EDR)",
+        "scope": "Kurumsal Cihazlar & Uç Noktalar",
+        "description": "Sensör telemetrisi, TVM zafiyetleri ve otonom müdahale"
+    },
+    "SVC-MDO": {
+        "title": "Microsoft Defender for Office 365 (MDO)",
+        "scope": "Posta Kutuları & İşbirliği",
+        "description": "Kimlik avı (phishing), Safe Links, Safe Attachments ve ZAP karantinası"
+    },
+    "SVC-MDI": {
+        "title": "Microsoft Defender for Identity (MDI)",
+        "scope": "Active Directory & Kimlik Altyapısı",
+        "description": "Kerberoasting, DCSync, Pass-the-Hash ve yanal hareket engelleme"
+    },
+    "SVC-MDCA": {
+        "title": "Microsoft Defender for Cloud Apps (CASB)",
+        "scope": "Bulut Uygulamaları & Gölge BT",
+        "description": "OAuth yetkileri, SaaS denetimi ve şüpheli bulut hareketleri"
+    },
+    "SVC-XDR": {
+        "title": "Microsoft Defender XDR (Bütünleşik Tehdit)",
+        "scope": "Çapraz Etki Alanı & Olaylar",
+        "description": "Korelasyonlu olaylar, otomatik araştırma (AIR) ve triyaj"
+    },
+    "SVC-INTUNE": {
+        "title": "Microsoft Intune Uç Nokta Uyumu",
+        "scope": "Yönetilen Cihazlar & MDM",
+        "description": "Cihaz uyumluluk ilkeleri, şifreleme (BitLocker) ve hijyen takibi"
+    },
+    "SVC-ENTRA": {
+        "title": "Microsoft Entra ID Kimlik Güvenliği",
+        "scope": "Kimlikler & Koşullu Erişim",
+        "description": "Riskli kullanıcılar, riskli oturumlar ve MFA zorlama"
+    },
+    "SVC-ENTRA-PIM": {
+        "title": "Entra ID Protection & Privileged Identity (PIM)",
+        "scope": "Ayrıcalıklı Roller & Kimlik Koruması",
+        "description": "PIM rol aktivasyonları, kalıcı admin denetimi ve kimlik riskleri"
+    },
+    "SVC-PURVIEW": {
+        "title": "Microsoft Purview (DLP & Bilgi Güvenliği)",
+        "scope": "M365, E-Posta & Uç Noktalar",
+        "description": "Veri kaybı önleme, hassas bilgi türleri ve uyum ilkeleri"
+    },
+    "SVC-PRV-DLP": {
+        "title": "Microsoft Purview Veri Kaybı Önleme (DLP)",
+        "scope": "M365, Teams, E-Posta & Cihazlar",
+        "description": "Uç nokta ve bulut DLP engellemeleri, kural aşımı analizi"
+    },
+    "SVC-PRV-CLASS": {
+        "title": "Purview Information Protection (MIP / Sınıflandırma)",
+        "scope": "Hassas Bilgi Türleri & Etiketleme",
+        "description": "Duyarlılık etiketleri, otomatik sınıflandırma ve şifreleme"
+    },
+    "SVC-PRV-GOV": {
+        "title": "Purview Veri Yaşam Döngüsü & Yönetişim",
+        "scope": "Veri Saklama & Arşivleme",
+        "description": "Saklama (retention) ilkeleri, kayıt yönetimi ve veri silme"
+    },
+    "SVC-PRV-RISK": {
+        "title": "Purview İç Risk Yönetimi (Insider Risk)",
+        "scope": "İç Tehdit & Veri Kaçağı Göstergeleri",
+        "description": "Ayrılan çalışan riskleri, toplu veri indirme ve mahremiyet"
+    },
+    "SVC-AI-SECURITY": {
+        "title": "Purview AI Security Hub (Copilot & GenAI)",
+        "scope": "Microsoft Copilot & Üretken Yapay Zeka",
+        "description": "AI istemlerinde hassas veri kullanımı ve yetkisiz model etkileşimi"
+    }
+}
+
 def render_collection_health_card(services, live_data):
     """
     Semantic Rule 6 & 10: CollectionFailed and unloaded services must be disclosed on page one.
     Move raw 'Bölüm yüklenemedi' messages into a consolidated collection-health section.
     """
-    service_names = {
-        "SVC-MDE": "Microsoft Defender for Endpoint (EDR)",
-        "SVC-MDO": "Microsoft Defender for Office 365 (MDO)",
-        "SVC-XDR": "Microsoft Defender XDR (Bütünleşik Tehdit)",
-        "SVC-PURVIEW": "Microsoft Purview DLP & Bilgi Güvenliği",
-        "SVC-PRV-DLP": "Microsoft Purview DLP (Veri Sızıntısı)",
-        "SVC-ENTRA": "Microsoft Entra ID Kimlik Yönetimi"
-    }
-    
     rows = []
     for s in services:
-        s_title = service_names.get(s, s)
+        meta = SERVICE_METADATA.get(s, {
+            "title": s,
+            "scope": "Bulut & Uç Nokta",
+            "description": "Güvenlik ve uyum telemetrisi"
+        })
+        s_title = meta["title"]
+        s_scope = meta["scope"]
         s_data = live_data.get(s) if live_data else None
         
         if not s_data:
-            state = "Yüklenmedi / Telemetri Eksik"
-            badge = "<span class='pill p-warn'>Yüklenmedi</span>"
-            notes = "Bu servis abonelik listesinde yer almakta ancak aktif telemetri yanıtı dönmemiştir."
+            state = "Yüklenmedi / Telemetri Bekleniyor"
+            badge = "<span class='pill p-warn'>Bekleniyor</span>"
+            notes = f"Abonelik kapsamında tanımlı ({s_scope}); aktif dönem telemetri yanıtı bekleniyor."
             ts = "N/A"
         else:
             raw_state = s_data.get("availabilityState", "SupportedAppOnly")
@@ -766,17 +838,17 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylik EDR Guvenlik Raporu - {customer_name}</title>
+<title>Aylık EDR Güvenlik Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: CISO VE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylik EDR Guvenlik Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yonetilen Guvenlik Hizmeti<br>
-  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+  <h1>Aylık EDR Güvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yönetilen Güvenlik Hizmeti<br>
+  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
 
 <div class="ciso-badge">
@@ -798,7 +870,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <!-- SAYFA 2: OPERASYONEL METRİKLER VE TEHDİT AVI -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>EDR Operasyonel Performans ve Tehdit Avı</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
@@ -827,9 +899,9 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <!-- SAYFA 3: MÜŞTERİ KARAR ÇERÇEVESİ VE YÖNETİŞİM -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Yonetisim ve Stratejik Karar Matrisi</h1>
+  <h1>Yönetişim ve Stratejik Karar Matrisi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
@@ -838,7 +910,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik bir güvenlik çıktısı olarak hazırlanmıştır. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
@@ -903,17 +975,17 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylik Purview DLP Guvenlik Raporu - {customer_name}</title>
+<title>Aylık Purview DLP Güvenlik Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: PURVIEW CISO ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylik Purview DLP Guvenlik Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Veri Kaybi Onleme ve Uyum Yonetilen Hizmeti<br>
-  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
+  <h1>Aylık Purview DLP Güvenlik Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Veri Kaybı Önleme ve Uyum Yönetilen Hizmeti<br>
+  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
 
 <div class="ciso-badge">
@@ -935,7 +1007,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <!-- SAYFA 2: DLP KANAL DAĞILIMI VE İSTİSNA ANALİZİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Purview DLP Performans ve Risk Analizi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
@@ -961,9 +1033,9 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <!-- SAYFA 3: PURVIEW YÖNETİŞİM VE KARAR MATRİSİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Purview Karar ve Yonetisim Matrisi</h1>
+  <h1>Purview Karar ve Yönetişim Matrisi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
@@ -972,7 +1044,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
@@ -987,18 +1059,16 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 
     total_blocks = 0
     total_analyst_actions = 0
-    service_names = {
-        "SVC-MDE": ("Microsoft Defender for Endpoint (EDR)", "Kurumsal Cihazlar"),
-        "SVC-MDO": ("Microsoft Defender for Office 365 (MDO)", "Posta Kutuları"),
-        "SVC-XDR": ("Microsoft Defender XDR", "Çapraz Etki Alanı"),
-        "SVC-PURVIEW": ("Microsoft Purview (DLP & Bilgi Güvenliği)", "M365 &amp; Uç Noktalar"),
-        "SVC-PRV-DLP": ("Microsoft Purview DLP", "M365 &amp; Uç Noktalar"),
-        "SVC-ENTRA": ("Microsoft Entra ID Protection &amp; PIM", "Kimlikler &amp; Roller")
-    }
 
     scorecard_rows = []
     for svc in services:
-        s_title, s_scope = service_names.get(svc, (svc, "Bulut &amp; Uç Nokta"))
+        meta = SERVICE_METADATA.get(svc, {
+            "title": svc,
+            "scope": "Bulut &amp; Uç Nokta",
+            "description": "Güvenlik ve uyum telemetrisi"
+        })
+        s_title = meta["title"]
+        s_scope = meta["scope"]
         s_data = live_data.get(svc, {})
         s_kpis = s_data.get("kpis", {})
         s_state = s_data.get("availabilityState", "SupportedAppOnly")
@@ -1037,17 +1107,17 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 
     return f'''<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Aylik Birlesik Guvenlik ve Uyum Raporu - {customer_name}</title>
+<title>Aylık Birleşik Güvenlik ve Uyum Raporu - {customer_name}</title>
 <style>{css}</style></head><body><div class="wrap">
 
 <!-- SAYFA 1: KONSOLİDE YÖNETİCİ ÖZETİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Aylik Birlesik Guvenlik ve Uyum Raporu</h1>
-  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5 Yonetilen Guvenlik ve Purview Hizmetleri<br>
-  Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet saglayici: {PROVIDER_NAME}</div>
+  <h1>Aylık Birleşik Güvenlik ve Uyum Raporu</h1>
+  <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft 365 E5 Yönetilen Güvenlik ve Purview Hizmetleri<br>
+  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Hizmet sağlayıcı: {PROVIDER_NAME}</div>
 </header>
 
 <div class="ciso-badge">
@@ -1069,19 +1139,19 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 <!-- SAYFA 2: ÇAPRAZ TEHDİT VE MÜŞTERİ KARAR ÇERÇEVESİ -->
 <div class="page">
 <header>
-  {f"<img class='logo-l' src='{logo_l}' alt='Musteri'/>" if logo_l else ""}
+  {f"<img class='logo-l' src='{logo_l}' alt='Müşteri'/>" if logo_l else ""}
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
-  <h1>Capraz Tehdit ve Yonetisim Karnesi</h1>
+  <h1>Çapraz Tehdit ve Yönetişim Karnesi</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; {period_label}</div>
 </header>
 
-<h2>Servis Bazli Koruma Karnesi</h2>
+<h2>Servis Bazlı Koruma Karnesi</h2>
 <table>
-  <tr><th>Yonetilen Servis</th><th>Kapsanan Varlik</th><th>Otonom Mudahale</th><th>Analist Eforu</th><th>Durum</th></tr>
+  <tr><th>Yönetilen Servis</th><th>Kapsanan Varlık</th><th>Otonom Müdahale</th><th>Analist Eforu</th><th>Durum</th></tr>
   {"".join(scorecard_rows)}
 </table>
 
-<h2>Donemdeki Kritik Guvenlik Olaylari</h2>
+<h2>Dönemdeki Kritik Güvenlik Olayları</h2>
 {inc_table}
 
 {decision_html}
@@ -1089,7 +1159,7 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
 <p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
 <b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
 Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
-<div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Uretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
+<div class="stamp">Sayfa 2 / 2 &nbsp;|&nbsp; Üretim: {now_str} &nbsp;|&nbsp; Tenant: {customer_name}</div>
 </div>
 
 </div></body></html>'''
@@ -1584,10 +1654,12 @@ def render_and_save_report(customer_name, services, output_dir, period_tag=None,
         prev_year = now.year if now.month > 1 else now.year - 1
         period_tag = f"{prev_year}-{prev_month:02d}"
 
-    import calendar
     try:
         year, month = int(period_tag.split("-")[0]), int(period_tag.split("-")[1])
-        month_name = calendar.month_name[month]
+        if 1 <= month <= 12:
+            month_name = TURKISH_MONTHS[month]
+        else:
+            month_name = str(month)
         period_label = period_label or f"{month_name} {year} Dönemi"
     except Exception:
         period_label = period_label or f"{period_tag} Dönemi"

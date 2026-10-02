@@ -356,9 +356,12 @@ def run_all_gates():
     print()
 
     # Test 4: Live Customer Emre-TestTenant Report Artifact Audit
-    print("--- 4. Evaluating Actual Customer Report: Rapor_Emre-TestTenant_2026-08.html ---")
-    cust_report_path = os.path.join(ROOT_DIR, "Engine", "Output", "Emre-TestTenant", "2026-08", "Rapor_Emre-TestTenant_2026-08.html")
-    cust_data_path = os.path.join(ROOT_DIR, "Engine", "Output", "Emre-TestTenant", "2026-08", "data.json")
+    tenant_out_dir = os.path.join(ROOT_DIR, "Engine", "Output", "Emre-TestTenant")
+    periods = sorted([d for d in os.listdir(tenant_out_dir) if os.path.isdir(os.path.join(tenant_out_dir, d))], reverse=True) if os.path.exists(tenant_out_dir) else []
+    target_period = periods[0] if periods else "2026-08"
+    cust_report_path = os.path.join(tenant_out_dir, target_period, f"Rapor_Emre-TestTenant_{target_period}.html")
+    cust_data_path = os.path.join(tenant_out_dir, target_period, "data.json")
+    print(f"--- 4. Evaluating Actual Customer Report: Rapor_Emre-TestTenant_{target_period}.html ---")
     cust_data = {}
     if os.path.exists(cust_data_path):
         try:

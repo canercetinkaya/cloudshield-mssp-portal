@@ -204,7 +204,7 @@
                 </button>
                 <button onclick="switchTab('tenants')" id="tabBtn-tenants" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-building-shield text-xs"></i>
-                    <span>Müşteri Tenantları</span>
+                    <span>Müşteri Kiracıları</span>
                 </button>
                 <button onclick="switchTab('studio')" id="tabBtn-studio" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-file-invoice text-xs"></i>
@@ -244,7 +244,7 @@
                 <div>
                     <div class="flex items-center space-x-2">
                         <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MSSP LIVE</span>
-                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Enterprise Managed Security Operations Overview</h1>
+                        <h1 id="dashboardBannerTitle" class="text-base font-bold">CloudShield MSSP Güvenlik ve Uyum Operasyonları</h1>
                     </div>
                     <p id="dashboardBannerDesc" class="text-xs text-slate-300 mt-1">
                         Microsoft Defender XDR ve Purview çoklu müşteri ortamlarının anlık sağlık karnesi. 
@@ -643,12 +643,12 @@
         </div>
 
         <!-- ========================================================================= -->
-        <!-- 2. MÜŞTERİ TENANTLARI YÖNETİMİ (TENANTS) -->
+        <!-- 2. MÜŞTERİ KİRACILARI YÖNETİMİ (TENANTS) -->
         <!-- ========================================================================= -->
         <div id="view-tenants" class="hidden space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 class="text-lg font-bold text-ks-navy">Müşteri Tenant Yönetim Merkezi</h1>
+                    <h1 class="text-lg font-bold text-ks-navy">Müşteri Kiracı (Tenant) Yönetim Merkezi</h1>
                     <p class="text-xs text-slate-500">CloudShield tarafından yönetilen güvenlik hizmeti alan müşterilerin entegrasyon ayarları</p>
                 </div>
                 <div class="flex items-center space-x-3">
@@ -1152,7 +1152,7 @@
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div class="border-b border-slate-200 pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                     <div>
-                        <h1 class="text-lg font-bold text-ks-navy">Enterprise Security Operations Engineering Teams</h1>
+                        <h1 class="text-lg font-bold text-ks-navy">Kurumsal Güvenlik Operasyonları Mühendislik Ekipleri</h1>
                         <p class="text-xs text-slate-500">Servis bazlı ekip ayrımı sayesinde mühendisler ve analistler yalnızca yetkili oldukları alanları yönetir</p>
                     </div>
                     <span class="mt-2 sm:mt-0 bg-ks-navy/10 text-ks-navy text-xs font-semibold px-3 py-1 rounded-full border border-ks-navy/20">
@@ -1402,7 +1402,7 @@
                                     <th class="px-5 py-3">Departman / Ekip</th>
                                     <th class="px-5 py-3">Sistem Rolü</th>
                                     <th class="px-5 py-3">Yetki İzinleri</th>
-                                    <th class="px-5 py-3">Erişilen Tenantlar</th>
+                                    <th class="px-5 py-3">Erişilen Kiracılar</th>
                                     <th class="px-5 py-3 text-right">İşlemler</th>
                                 </tr>
                             </thead>
@@ -1691,7 +1691,7 @@
             <!-- SUBVIEW 2: MÜŞTERİLER (CUSTOMERS) -->
             <div id="rbacView-customers" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri Tenant Envanteri</h3>
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Müşteri Kiracı Envanteri</h3>
                     <button onclick="openAddTenantModal()" class="text-xs bg-ks-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-ks-navylight transition">
                         <i class="fa-solid fa-plus mr-1"></i>Müşteri Ekle
                     </button>
