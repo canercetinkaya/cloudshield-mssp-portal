@@ -1,4 +1,4 @@
-﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Cloud Apps (CASB) Service Plugin.
 [CmdletBinding()]
 param()
@@ -197,7 +197,7 @@ function Get-ServiceHtmlSection {
         <span class="section-tag" style="background-color:#002B49; color:#FFFFFF;">Yönetilen Bulut Güvenliği</span>
     </div>
 
-    <!-- KOÇSİSTEM YÖNETİLEN HİZMET OPERASYONEL DEĞERİ -->
+    <!-- CLOUDSHIELD YÖNETİLEN HİZMET OPERASYONEL DEĞERİ -->
     <div style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 style="font-size:13px; font-weight:700; color:var(--ks-navy); margin:0;">
@@ -313,3 +313,4 @@ function Get-ServiceHtmlSection {
 Export-ModuleMember -Function Get-ServiceMetadata, Get-ServiceDependencies, Get-ServicePermissions, `
                               Test-ServiceConnection, Get-ServiceRawData, Get-ServiceKpis, `
                               Get-ServiceHtmlSection, Get-ServiceManagedActions
+

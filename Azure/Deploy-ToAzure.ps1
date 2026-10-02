@@ -212,7 +212,7 @@ else {
 # 6. Sonuç ve Özet
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Green
-Write-Host "  TEBRİKLER! KOÇSİSTEM MSSP PLATFORMU AZURE ÜZERİNDE BAŞARIYLA YAYINLANDI!" -ForegroundColor White
+Write-Host "  TEBRİKLER! CLOUDSHIELD MSSP PLATFORMU AZURE ÜZERİNDE BAŞARIYLA YAYINLANDI!" -ForegroundColor White
 Write-Host "================================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  [+] Canlı Portal URL (HTTPS)      : $portalUrl" -ForegroundColor Cyan

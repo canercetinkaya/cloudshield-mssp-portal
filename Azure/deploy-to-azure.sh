@@ -120,7 +120,7 @@ APP_IDENTITY=$(echo "$DEPLOY_OUTPUT" | grep -o '"containerAppPrincipalId": *{[^}
 
 echo ""
 echo "================================================================================"
-echo "  TEBRİKLER! KOÇSİSTEM MSSP PLATFORMU AZURE ÜZERİNDE BAŞARIYLA YAYINLANDI!"
+echo "  TEBRİKLER! CLOUDSHIELD MSSP PLATFORMU AZURE ÜZERİNDE BAŞARIYLA YAYINLANDI!"
 echo "================================================================================"
 echo ""
 echo "  [+] Canlı Portal URL (HTTPS)      : $PORTAL_URL"

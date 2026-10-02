@@ -1,4 +1,4 @@
-# KOÇSİSTEM SİBER GÜVENLİK YÖNETİLEN HİZMETLERİ
+# CLOUDSHIELD SİBER GÜVENLİK YÖNETİLEN HİZMETLERİ
 ## Yeni Nesil MSSP Operasyon, Çoklu Tenant Yönetimi ve Raporlama SaaS Platformu
 ### Yönetim Kurulu ve Birim Yöneticileri İçin Ürün Teklifi & Fizibilite Raporu
 
@@ -39,7 +39,7 @@ Bu proje ile geliştirilen **"CloudShield MSSP Platform"**, dağınık Windows G
 
 ```
 +---------------------------------------------------------------------------------------------------------+
-|                              KOÇSİSTEM MSSP PORTAL - FONKSİYONEL MİMARİ                                 |
+|                              CLOUDSHIELD MSSP PORTAL - FONKSİYONEL MİMARİ                                 |
 +---------------------------------------------------------------------------------------------------------+
 |                                    KULLANICI VE GÜVENLİK KATMANI                                        |
 |  [Entra ID SSO Entegrasyonu]  |  [Rol Bazlı Yetkilendirme (RBAC)]  |  [Müşteri İzolasyonu (Multi-Tenant)] |
@@ -69,7 +69,7 @@ Bu proje ile geliştirilen **"CloudShield MSSP Platform"**, dağınık Windows G
 
 ---
 
-## 4. KOÇSİSTEM YÖNETİLEN HİZMET KATALOĞU UYUMU
+## 4. CLOUDSHIELD YÖNETİLEN HİZMET KATALOĞU UYUMU
 
 Müşterilerin CloudShield'den satın alabildiği tüm bağımsız servisler platformda birebir ayrıştırılmıştır:
 
@@ -129,3 +129,4 @@ Bu platform; yalnızca bir "raporlama aracı" değil, CloudShield'in Microsoft G
 
 **Önerilen Karar:**
 Projenin CloudShield iç Azure ortamında pilot olarak devreye alınması ve MSSP operasyon ekiplerinin kullanımına açılması için onay verilmesi arz olunur.
+
