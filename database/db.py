@@ -2,6 +2,7 @@
 # Pure Python Standard Library (sqlite3, hashlib, secrets, os, json, datetime)
 
 import os
+import pathlib
 import sqlite3
 import hashlib
 import secrets
@@ -13,13 +14,33 @@ DB_PATH = os.path.join(ROOT_DIR, "Data", "cloudshield_rbac.db")
 MIGRATIONS_DIR = os.path.join(ROOT_DIR, "database", "migrations")
 
 def get_db(db_path=None):
-    path = db_path or DB_PATH
+    path = db_path or os.environ.get("DB_PATH") or DB_PATH
     dir_name = os.path.dirname(path)
     if dir_name:
         os.makedirs(dir_name, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=20.0)
+
+    # Use SQLite URI with nolock=1 to support Azure Files CIFS/SMB mounts without POSIX lock hangs
+    conn = None
+    try:
+        uri = pathlib.Path(os.path.abspath(path)).as_uri() + "?nolock=1"
+        conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+    except Exception as ex:
+        print(f"[WARN] Failed to open SQLite URI at {path} ({ex}). Trying standard path...")
+        try:
+            conn = sqlite3.connect(path, timeout=30.0)
+        except Exception as ex2:
+            print(f"[ERROR] Failed to open DB at {path} ({ex2}). Falling back to local temp database.")
+            fallback_dir = "/tmp" if os.name != "nt" else os.environ.get("TEMP", ".")
+            fallback_path = os.path.join(fallback_dir, "cloudshield_rbac.db")
+            os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
+            uri = pathlib.Path(os.path.abspath(fallback_path)).as_uri() + "?nolock=1"
+            conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
+    try:
+        conn.execute("PRAGMA foreign_keys = ON;")
+    except Exception:
+        pass
     return conn
 
 def hash_password(password, salt=None):
@@ -57,13 +78,16 @@ def init_db(db_path=None):
                 print(f"[MIGRATION] Applying {mfile}...")
                 with open(os.path.join(MIGRATIONS_DIR, mfile), "r", encoding="utf-8") as mf:
                     sql_script = mf.read()
-                cur.executescript(sql_script)
-                cur.execute(
-                    "INSERT INTO _migrations (filename, applied_at) VALUES (?, ?)",
-                    (mfile, datetime.now(timezone.utc).isoformat())
-                )
-                conn.commit()
-                print(f"[MIGRATION] Successfully applied {mfile}")
+                try:
+                    cur.executescript(sql_script)
+                    cur.execute(
+                        "INSERT INTO _migrations (filename, applied_at) VALUES (?, ?)",
+                        (mfile, datetime.now(timezone.utc).isoformat())
+                    )
+                    conn.commit()
+                    print(f"[MIGRATION] Successfully applied {mfile}")
+                except Exception as mex:
+                    print(f"[MIGRATION ERROR] Failed to apply {mfile}: {mex}")
 
     seed_default_data(conn)
     conn.close()

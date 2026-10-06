@@ -173,11 +173,21 @@ def main():
         "--image", image_tag
     ])
 
-    # 4. Wait for newly created revision to provision and route 100% traffic
+    # 4. Detect active revisions mode
+    rev_mode_res = run_cmd([
+        "az", "containerapp", "show",
+        "-n", app_name, "-g", resource_group,
+        "--query", "properties.configuration.activeRevisionsMode",
+        "-o", "tsv"
+    ], check=False)
+    active_revisions_mode = rev_mode_res.stdout.strip() if rev_mode_res.returncode == 0 and rev_mode_res.stdout.strip() else "Single"
+    print(f"[DISCOVERY] Active revisions mode: '{active_revisions_mode}'")
+
+    # 4b. Wait for newly created revision to provision
     print("=== Checking revisions and waiting for new revision to provision ===")
     latest_rev_name = "latest"
     old_rev_names = []
-    for poll_step in range(15):
+    for poll_step in range(25):
         time.sleep(6)
         rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
         if rev_res.returncode == 0 and rev_res.stdout.strip():
@@ -189,13 +199,14 @@ def main():
                     latest_rev_name = top_rev.get("name", "latest")
                     p_state = top_rev.get("properties", {}).get("provisioningState")
                     r_state = top_rev.get("properties", {}).get("runningState")
+                    h_state = top_rev.get("properties", {}).get("healthState")
                     p_err = top_rev.get("properties", {}).get("provisioningError")
                     old_rev_names = [r.get("name") for r in revs[1:] if r.get("name")]
-                    print(f"[REVISION poll {poll_step+1}/15] Top Revision: {latest_rev_name} | ProvisioningState: {p_state} | RunningState: {r_state}")
+                    print(f"[REVISION poll {poll_step+1}/25] Top Revision: {latest_rev_name} | ProvisioningState: {p_state} | RunningState: {r_state} | HealthState: {h_state}")
                     if p_err:
                         print(f"[REVISION DIAGNOSTIC ERROR] {p_err}")
-                    if p_state == "Provisioned":
-                        print(f"[OK] Revision {latest_rev_name} successfully PROVISIONED!")
+                    if p_state == "Provisioned" and (h_state == "Healthy" or r_state == "Running"):
+                        print(f"[OK] Revision {latest_rev_name} successfully PROVISIONED and ready!")
                         break
                     elif p_state == "Failed":
                         print(f"[ERROR] Revision {latest_rev_name} FAILED to provision: {p_err}")
@@ -205,19 +216,30 @@ def main():
 
     run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
 
-    print(f"=== Directing 100% traffic to revision '{latest_rev_name}' ===")
-    run_cmd([
-        "az", "containerapp", "ingress", "traffic", "set",
-        "-n", app_name, "-g", resource_group,
-        "--revision-weight", f"{latest_rev_name}=100"
-    ], check=False)
+    if active_revisions_mode.lower() == "single":
+        print("[INFO] Single revision mode: ACA automatically routes 100% traffic to the active revision.")
+        # Ensure latest revision is activated in Single mode to recover from any previous stopped state
+        if latest_rev_name and latest_rev_name != "latest":
+            print(f"=== Activating target revision '{latest_rev_name}' in Single revision mode ===")
+            run_cmd([
+                "az", "containerapp", "revision", "activate",
+                "-n", app_name, "-g", resource_group,
+                "--revision", latest_rev_name
+            ], check=False)
+    else:
+        print(f"=== Directing 100% traffic to revision '{latest_rev_name}' ===")
+        run_cmd([
+            "az", "containerapp", "ingress", "traffic", "set",
+            "-n", app_name, "-g", resource_group,
+            "--revision-weight", f"{latest_rev_name}=100"
+        ], check=False)
 
-    # Deactivate stale revisions so traffic cannot leak to old v2.5.15-PILOT
-    if old_rev_names and latest_rev_name != "latest":
-        print("=== Deactivating stale revisions to prevent old version bleed ===")
-        for old_rev in old_rev_names[:3]:
-            print(f"Deactivating stale revision: {old_rev}")
-            run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
+        # In Multiple mode, deactivate stale revisions only after new revision is provisioned
+        if old_rev_names and latest_rev_name != "latest":
+            print("=== Deactivating stale revisions in Multiple revision mode ===")
+            for old_rev in old_rev_names[:3]:
+                print(f"Deactivating stale revision: {old_rev}")
+                run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
     print("=== Ensuring scale: min=1 max=3 ===")
     run_cmd([

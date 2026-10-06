@@ -3807,7 +3807,11 @@ def run(port=None):
 
         port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", PORT))
 
-    init_db()
+    try:
+        init_db()
+    except Exception as db_err:
+        print(f"[WARN] init_db encountered an issue during startup: {db_err}")
+
     start_dispatch_scheduler()
     server_address = ("", port)
 
