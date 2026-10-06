@@ -23,7 +23,7 @@ If applicable, add redacted screenshots or sanitized API error traces.
 *(Ensure NO customer tenant names, secrets, tokens, or UPNs are visible!)*
 
 ### 💻 Environment Context
-- **Portal Version:** v2.5.0-LIVE (or specify)
+- **Portal Version:** v3.0.0-ENTERPRISE (or specify)
 - **Runtime:** Python 3.11 / PowerShell 7.4 Core
 - **Browser:** Edge / Chrome
 - **Host:** Azure Container Apps / Local Development

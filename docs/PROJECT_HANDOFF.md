@@ -1,12 +1,12 @@
 # CloudShield MSSP Platform - Comprehensive Project Handoff & Knowledge Base
-# Document Version: 2.5.15
+# Document Version: 3.0.0
 # Target Audience: Incoming AI Models, Lead Architects, and DevSecOps Engineers
 
 ---
 
 # 1. EXECUTIVE SUMMARY & PLATFORM MISSION
 
-**CloudShield MSSP Platform** (v2.5.15-PILOT) is an enterprise-grade Multi-Tenant Managed Security Service Provider (MSSP) Security & Compliance Reporting Engine and SaaS Web Portal. It was engineered specifically for **CloudShield Managed Security Services** to deliver executive-level monthly governance reports to C-level executives (CISOs, CIOs, Board Members) and SOC/SecOps teams.
+**CloudShield MSSP Platform** (v3.0.0-ENTERPRISE) is an enterprise-grade Multi-Tenant Managed Security Service Provider (MSSP) Security & Compliance Reporting Engine and SaaS Web Portal. It was engineered specifically for **CloudShield Managed Security Services** to deliver executive-level monthly governance reports to C-level executives (CISOs, CIOs, Board Members) and SOC/SecOps teams.
 
 ### Core Value Proposition
 1. **Telemetry Ingestion:** Connects via Microsoft Graph API and Defender XDR APIs to extract telemetry from Microsoft Defender (Endpoint, Office 365, Identity, Cloud Apps), Microsoft Purview (DLP, Risk & Compliance, Information Protection, Governance), and Entra ID.
@@ -14,7 +14,7 @@
 3. **Enterprise RBAC & Multi-Tenant Isolation:** Complete server-side authorization engine with 6 discrete roles, 13 granular permissions, two-dimensional isolation (Customer + Subscribed Service), Separation of Duties (SoD), and immutable audit logging.
 4. **Zero-Dependency Architecture:** Core API, web server, and RBAC engine utilize the **Python 3 Standard Library** (`http.server`, `sqlite3`, `hashlib`, etc.), eliminating external pip supply chain vulnerabilities and ensuring instant, lightweight container startup.
 5. **High-Fidelity Presentation:** Generates pixel-perfect executive HTML reports and automated headless Edge/Chrome-printed PDF documents with custom customer branding, executive summaries, and actionable decision backlogs.
-6. **Executive & Operational UI/UX (v2.5.15):** Contextually reactive single-tenant executive cockpit featuring the 4-Pillar Service Value Attribution Model, the 6-Question C-Level Executive Briefing, interactive 4-Quadrant Customer Decision Framework, 3-step Tenant Onboarding Wizard, and dual card/table fleet management views.
+6. **Executive & Operational UI/UX (v3.0.0):** Contextually reactive single-tenant executive cockpit featuring the 4-Pillar Service Value Attribution Model, the 6-Question C-Level Executive Briefing, interactive 4-Quadrant Customer Decision Framework, 3-step Tenant Onboarding Wizard, and dual card/table fleet management views.
 
 ---
 
@@ -72,7 +72,7 @@
 
 # 3. VERIFIED AND COMPLETED MODULES
 
-The following systems are implemented, tested, and operational in `v2.5.15-PILOT`:
+The following systems are implemented, tested, and operational in `v3.0.0-ENTERPRISE`:
 
 ### A. Role-Based Access Control (RBAC) Engine (`Portal/api/rbac_engine.py`)
 * **6 Production Roles:**
@@ -109,7 +109,7 @@ The following systems are implemented, tested, and operational in `v2.5.15-PILOT
   * `PurviewRiskCompliance.Plugin.psm1`: Insider risk alerts, communication compliance.
   * Additional plugins: `DefenderOffice`, `DefenderIdentity`, `DefenderCloudApps`, `EntraGovernance`, `IntuneCompliance`, `DefenderXdr`.
 
-### D. Executive & Operational UI/UX Enhancements (`Portal/web/index.html` - v2.5.15)
+### D. Executive & Operational UI/UX Enhancements (`Portal/web/index.html` - v3.0.0)
 * **Single-Tenant Executive Cockpit (F-01, F-08):** Selecting an individual tenant dynamically scopes the entire dashboard into a dedicated customer executive view featuring:
   * **4-Pillar Service Value Attribution Model:** Clearly separating Microsoft autonomous prevention from CloudShield senior engineering hours and business value saved.
   * **6-Question C-Level Executive Briefing:** Directly accessible narrative answers to executive concerns (What Happened, Business Risk, Remaining Residual Risk, Required Decisions).
@@ -131,7 +131,7 @@ CloudShieldMSSPPortal/
 |-- PROJECT_HANDOFF.md               # This authoritative handoff document
 |-- README.md                        # Platform root overview and navigation
 |-- SECURITY.md                      # Zero Trust posture, secrets policy, vulnerability SLAs
-|-- version.json                     # Canonical platform version manifest (v2.5.15-PILOT)
+|-- version.json                     # Canonical platform version manifest (v3.0.0-ENTERPRISE)
 |-- requirements.txt                 # Runtime Python dependencies specification (Standard Library)
 |-- requirements-dev.txt             # Development & testing Python dependencies (pytest, black, etc.)
 |-- .env.example                     # Environment configuration template
@@ -313,8 +313,8 @@ python3 Portal/api/server.py 8080
 
 ### Using Docker:
 ```bash
-docker build -t cloudshield-portal:v2.5.15 -f Docker/Dockerfile .
-docker run -p 8080:8080 -e PORTAL_ADMIN_PASSWORD=YourPassword123! cloudshield-portal:v2.5.15
+docker build -t cloudshield-portal:v3.0.0 -f Docker/Dockerfile .
+docker run -p 8080:8080 -e PORTAL_ADMIN_PASSWORD=YourPassword123! cloudshield-portal:v3.0.0
 ```
 
 ### Run All Unit & Security Tests:

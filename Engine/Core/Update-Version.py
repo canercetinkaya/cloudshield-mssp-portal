@@ -22,14 +22,14 @@ is_dry_run = '--dry-run' in sys.argv
 
 if not os.path.exists(version_file):
     vdata = {
-        'version': '2.5.10',
-        'release': 'v2.5.10-PILOT',
-        'build': datetime.now().strftime('%Y.%m.%d.10'),
-        'channel': 'pilot',
-        'build_number': 10,
+        'version': '3.0.0',
+        'release': 'v3.0.0-ENTERPRISE',
+        'build': datetime.now().strftime('%Y.%m.%d.1'),
+        'channel': 'production',
+        'build_number': 16,
         'last_updated': datetime.now().strftime('%Y-%m-%dT%H:%M:%S+03:00'),
-        'environment': 'pilot',
-        'productionReady': False,
+        'environment': 'production',
+        'productionReady': True,
         'agent_name': 'CloudShield DevSecOps Autonomous Agent',
         'changelog': []
     }
@@ -37,17 +37,17 @@ else:
     with open(version_file, 'r', encoding='utf-8') as f:
         vdata = json.load(f)
 
-current_ver = vdata.get('version', '2.5.10')
-channel_in = os.environ.get('CLOUDSHIELD_RELEASE_CHANNEL', vdata.get('channel', 'pilot')).upper()
+current_ver = vdata.get('version', '3.0.0')
+channel_in = os.environ.get('CLOUDSHIELD_RELEASE_CHANNEL', vdata.get('channel', 'production')).upper()
 if channel_in not in ALLOWED_CHANNELS:
-    channel_in = 'PILOT'
+    channel_in = 'PRODUCTION'
 channel_normalized = channel_in.lower()
 
 if is_check:
     payload = {
         'version': current_ver,
         'release': vdata.get('release', f'v{current_ver}-{channel_in}'),
-        'build': vdata.get('build', '2026.09.10.10'),
+        'build': vdata.get('build', '2026.10.03.1'),
         'channel': channel_normalized,
         'summary': 'version manifest check',
         'success': True
@@ -61,7 +61,7 @@ try:
     patch += 1
     new_ver = f'{major}.{minor}.{patch}'
 except Exception:
-    new_ver = '2.5.11'
+    new_ver = '3.0.1'
 
 today_str = datetime.now().strftime('%Y.%m.%d')
 current_build = vdata.get('build', '')
@@ -126,8 +126,8 @@ if not is_dry_run:
 
         readme_content = re.sub(r'badge/Release-v[\d\.]+-[A-Za-z]+-[a-zA-Z]+\.svg', f'badge/Release-{new_release}-brightgreen.svg', readme_content)
         readme_content = re.sub(r'releases/tag/v[\d\.]+-[A-Z]+', f'releases/tag/{new_release}', readme_content)
-        # Fix: was using \v (vertical tab) instead of backtick — that never matched
-        readme_content = re.sub(r'(\*\*Active Release:\*\*\s*)`v[\d\.]+-[A-Z]+-PILOT`', r'\g<1>' + f'`{new_release}`', readme_content)
+        # Match any release suffix (ENTERPRISE, PILOT, etc.)
+        readme_content = re.sub(r'(\*\*Active Release:\*\*\s*)`v[\d\.]+-[A-Z0-9-]+-[A-Z]+`', r'\g<1>' + f'`{new_release}`', readme_content)
         readme_content = re.sub(r'(\*\*Active Release:\*\*\s*)`v[\d\.]+-[A-Z]+`', r'\g<1>' + f'`{new_release}`', readme_content)
 
         recent_rows = []

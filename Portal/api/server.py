@@ -155,7 +155,7 @@ def register_report_artifact(tenant_id, customer_name, period, service_codes, ar
 
         "expiresAtUtc": (datetime.now(timezone.utc) + timedelta(days=90)).isoformat(),
 
-        "version": get_version_info().get("version", "2.5.10"),
+        "version": get_version_info().get("version", "3.0.0"),
 
         "commit": get_version_info().get("commit", "latest")
 

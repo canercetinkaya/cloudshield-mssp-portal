@@ -5,9 +5,9 @@ Security updates, vulnerability patches, and zero-day remediations are actively 
 
 | Version | Release Tag | Status | Supported |
 | :--- | :--- | :--- | :---: |
-| **v2.5.x** | `v2.5.15-PILOT` | Active Pilot Release | ✅ Supported |
-| **v2.4.x** | `v2.4.x` | Deprecated | ❌ End of Life |
-| **< v2.4** | Legacy | Deprecated | ❌ Unsupported |
+| **v3.0.x** | `v3.0.0-ENTERPRISE` | **Current GA Release** | ✅ Supported |
+| **v2.5.x** | `v2.5.15` | Previous Release | ✅ Security Patches Only |
+| **< v2.5** | Legacy | Deprecated | ❌ End of Life |
 
 ---
 
@@ -26,7 +26,7 @@ CloudShield MSSP Platform adheres to strict enterprise DevSecOps standards and M
 * **In-Memory Credential Lifecycle:** Tenant authentication tokens retrieved from Entra ID / Microsoft Graph are scoped in memory and destroyed upon report compilation. No tokens or decrypted private keys are persisted to disk.
 
 ### C. Server-Side RBAC & Session Security
-* **Mandatory Entra ID SSO in Pilot:** In the Pilot channel (`CLOUDSHIELD_RELEASE_CHANNEL=pilot`), local password authentication (`/api/auth/login`) is strictly disabled (returns `403 Forbidden` with `"ssoRequired": true`). All portal authentication requires Microsoft Entra ID OIDC SSO (`/api/auth/sso`).
+* **Mandatory Entra ID SSO in Production:** In production and enterprise channels, local password authentication (`/api/auth/login`) is strictly disabled (returns `403 Forbidden` with `"ssoRequired": true`). All portal authentication requires Microsoft Entra ID OIDC SSO. Local auth may only be re-enabled with `CLOUDSHIELD_ALLOW_LOCAL_AUTH=true` in isolated development environments.
 * **8-Stage Authorization Decision Chain:** Every incoming API request passes an 8-stage authorization pipeline evaluating identity active state, permission checks, customer scope, service scope, time bounds, separation of duties, and audit emissions (`Portal/api/rbac_engine.py`).
 * **Zero Trust Least Privilege for Administrators:** Administrative roles (`PlatformAdmin`) are strictly prohibited from automatic access to customer confidential data (reports). Platform administrators do not inherit customer-level content visibility without an explicit customer assignment or approved CloudShield JIT Temporary Access Elevation.
 * **CloudShield JIT Temporary Access Elevation:** Operators require time-bounded, approval-gated Just-In-Time access elevation (compatible with Microsoft Entra PIM zero standing privileges principles) to perform customer-specific investigations.

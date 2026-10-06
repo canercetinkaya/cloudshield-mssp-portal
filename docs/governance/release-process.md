@@ -13,7 +13,7 @@ Releases are decoupled from continuous workspace synchronization and require exe
    - Version consistency validation against \ ersion.json\.
    - UTF-8 encoding audit across all source files.
 4. **Single Source of Truth Versioning:**
-   - Active release version is dynamically governed by `version.json` (currently `v2.5.15-PILOT`, build `2026.09.16.1`).
+   - Active release version is dynamically governed by `version.json` (currently `v3.0.0-ENTERPRISE`, build `2026.10.03.1`).
    - No hardcoded version strings permitted in API endpoints.
 5. **Immutable Tagging:**
    - Release tag is created as an annotated git tag matching the version manifest without \--force\.

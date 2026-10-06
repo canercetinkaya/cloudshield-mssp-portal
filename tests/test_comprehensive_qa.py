@@ -7,14 +7,14 @@ Targets:
   1. PowerShell Reporting Engine (30 Platform Tests)
   2. Web API Layer REST Endpoints & Stage 1A Authentication Containment
   3. Multi-Tenant Concurrency & Temporary Config File Isolation
-  4. Pilot Hardening Quality Gates (Gates 1-12)
+  4. Enterprise Production Quality Gates (Gates 1-12)
 
 Stage 1A remediation note:
 This harness is retargeted to Stage 1A security reality. It boots the UNMODIFIED
 `Portal/api/server.py` against a TEMPORARY database via the shared isolated-server
 fixture and asserts the CONTAINMENT behavior that is correct after the W5/W7/W8/W11
 hardening:
-  * `POST /api/auth/login`  -> 403 (Pilot local password auth disabled; ssoRequired)
+  * `POST /api/auth/login`  -> 403 (Enterprise production: local password auth disabled; ssoRequired)
   * `POST /api/auth/sso`    -> 410 Gone, NO token is ever issued from a body identity
   * `GET  /api/users/me`    -> 401 when unauthenticated (deny-by-default, W11)
   * Protected mutations     -> 401/403 without a session
@@ -269,11 +269,11 @@ def run_api_tests():
             with open(vpath, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            return {"version": "2.5.10", "release": "v2.5.10-PILOT"}
+            return {"version": "3.0.0", "release": "v3.0.0-ENTERPRISE"}
 
     expected_v = load_version_manifest()
-    expected_ver = expected_v.get("version", "2.5.10")
-    expected_rel = expected_v.get("release", "v2.5.10-PILOT")
+    expected_ver = expected_v.get("version", "3.0.0")
+    expected_rel = expected_v.get("release", "v3.0.0-ENTERPRISE")
 
     # 2.1 GET /api/health (public)
     status, body, dur, _ = http_get("/api/health")
@@ -285,7 +285,7 @@ def run_api_tests():
     passed = status == 200 and body.get("version") == expected_ver and body.get("release") == expected_rel
     log_test("api_tests", "GET /api/version - Platform Surum ve Surum Basligi Dogrulamasi", passed, f"Status={status}, Release={body.get('release')}, ExpectedRelease={expected_rel}, Build={body.get('build')}", dur)
 
-    # 2.3 POST /api/auth/login - Pilot Modunda Yerel Parola Engeli
+    # 2.3 POST /api/auth/login - Enterprise Uretim Modunda Yerel Parola Engeli
     auth_local_file = os.path.join(ROOT_DIR, "Data", "auth.local.json")
     local_cfg = {}
     if os.path.exists(auth_local_file):
@@ -306,7 +306,7 @@ def run_api_tests():
     bad_passed = status_bad == 403 and body_bad.get("ssoRequired") is True and "CloudShield" not in str(body_bad.get("error"))
     log_test("api_tests", "POST /api/auth/login - 403 Guvenli Red & Bilgi Sizdirmama Guvencesi", bad_passed, f"Status={status_bad}, SsoRequired={body_bad.get('ssoRequired')}", dur_bad)
 
-    # 2.3.2 POST /api/auth/login - Kaldirilmis literal parolalar Pilot'ta da reddedilir
+    # 2.3.2 POST /api/auth/login - Kaldirilmis literal parolalar Enterprise modda da reddedilir
     legacy_login_ok = True
     seen = []
     for literal in _LEGACY_LITERAL_PASSWORDS:
@@ -582,11 +582,11 @@ def main():
             pass
 
     results["metadata"] = {
-        "version": vmeta.get("version", "2.5.10"),
-        "release": vmeta.get("release", "v2.5.10-PILOT"),
-        "build": vmeta.get("build", "2026.09.10.10"),
-        "channel": vmeta.get("channel", "pilot"),
-        "environment": vmeta.get("environment", "pilot"),
+        "version": vmeta.get("version", "3.0.0"),
+        "release": vmeta.get("release", "v3.0.0-ENTERPRISE"),
+        "build": vmeta.get("build", "2026.10.03.1"),
+        "channel": vmeta.get("channel", "production"),
+        "environment": vmeta.get("environment", "production"),
         "commit": vmeta.get("commit", "auto"),
         "runner": "local-test-harness",
         "completedAtUtc": datetime.now(timezone.utc).isoformat()

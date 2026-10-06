@@ -6,7 +6,7 @@
 set -e
 
 PORT=${PORT:-8080}
-VERSION=$(python3 -c "import json, os; p='/app/version.json'; print(json.load(open(p))['release']) if os.path.exists(p) else 'v2.5.15-PILOT'" 2>/dev/null || echo "v2.5.15-PILOT")
+VERSION=$(python3 -c "import json, os; p='/app/version.json'; print(json.load(open(p))['release']) if os.path.exists(p) else 'v3.0.0-ENTERPRISE'" 2>/dev/null || echo "v3.0.0-ENTERPRISE")
 
 echo "================================================================================"
 echo "  CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)"

@@ -26,7 +26,7 @@ Platform, **Sıfır Güven (Zero Trust)** ve **Tasarımda Gizlilik (Privacy-by-D
 │ 1. 100% Dynamic Telemetry│ 2. Fail-Closed Zero Trust│ 3. Privacy-by-Design  │
 │    Zero static / mock    │    Deny-by-default, strict│    k-Anonymity (k=5), │
 │    metrics; all cards    │    Entra ID SSO, no local │    salted SHA-256     │
-│    traceable to live KQL │    passwords in pilot/prod│    masking of PII     │
+│    traceable to live KQL │    passwords in production│    masking of PII     │
 ├──────────────────────────┼──────────────────────────┼───────────────────────┤
 │ 4. Provenance & Integrity│ 5. Separation of Duties  │ 6. Durable Volume     │
 │    Missing sensors render│    Independent review    │    Azure File Share   │

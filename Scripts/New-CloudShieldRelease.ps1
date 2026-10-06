@@ -8,17 +8,17 @@ Quality Gate 13:
   4. Herhangi bir kapı başarısız olursa durur.
   5. version.json üzerinden sürümü artırır.
   6. Immutable annotated tag oluşturur (asla tag -f kullanmaz).
-  7. Pilot kanalı için productionReady kesinlikle false kalır.
+  7. Production/Enterprise kanalı için productionReady=true.
 ==============================================================================
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
     [ValidateSet('DEV', 'INTERNAL', 'PILOT', 'PRODUCTION')]
-    [string]$Channel = 'PILOT',
+    [string]$Channel = 'PRODUCTION',
 
     [Parameter(Mandatory = $false)]
-    [string]$Summary = 'release: hardened pilot release candidate'
+    [string]$Summary = 'release: enterprise production GA release'
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
