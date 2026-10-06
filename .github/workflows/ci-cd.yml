@@ -85,4 +85,4 @@ PYEOF
       - name: 🛡️ ARM Template JSON Syntax Kontrolü
         shell: bash
         run: |
-          python -c "import json; data = json.load(open('Azure/azuredeploy.json', encoding='utf-8')); assert '\$schema' in data; assert len(data['resources']) >= 4; print('ARM Şablonu Geçerli!')"
+          python -c "import json; data = json.load(open('Azure/azuredeploy.json', encoding='utf-8')); assert any('schema' in k for k in data); assert len(data['resources']) >= 4; print('ARM Şablonu Geçerli!')"

@@ -132,25 +132,22 @@ def main():
 
 
     # 2. Update GHCR registry credentials so ACA can pull the new image.
-    #    CRITICAL: GITHUB_TOKEN expires after the workflow job, causing ACA ImagePullBackOff on cold-starts.
-    #    Prefer GHCR_PAT (Personal Access Token, read:packages) which is long-lived.
-    #    → Create at: GitHub Settings > Developer settings > Personal access tokens > Fine-grained
-    #      Permission: Read access to packages. Store as repo secret GHCR_PAT.
+    #    CRITICAL: GITHUB_TOKEN cannot be used as a password for user 'canercetinkaya' on ghcr.io,
+    #    and expires immediately after the job ends. Only set registry credentials if a long-lived
+    #    GHCR_PAT is provided. If not provided, do not overwrite existing credentials (or rely on public package).
     ghcr_pat = os.environ.get("GHCR_PAT", "").strip()
-    registry_token = ghcr_pat if ghcr_pat else github_token
-    token_type = "GHCR_PAT (long-lived)" if ghcr_pat else "GITHUB_TOKEN (ephemeral - may cause ImagePullBackOff on cold-start)"
-    if registry_token:
-        print(f"=== Storing GHCR credentials in ACA (using: {token_type}) ===")
+    if ghcr_pat:
+        print("=== Storing GHCR credentials in ACA (using long-lived GHCR_PAT) ===")
         run_cmd([
             "az", "containerapp", "registry", "set",
             "-n", app_name, "-g", resource_group,
             "--server", "ghcr.io",
             "--username", "canercetinkaya",
-            "--password", registry_token
+            "--password", ghcr_pat
         ], check=False)
     else:
-        print("[WARN] No GHCR credentials available — ACA may fail to pull private images!")
-        print("[WARN] Set GHCR_PAT secret or make the GHCR package public.")
+        print("[INFO] GHCR_PAT not provided. Skipping 'az containerapp registry set' to avoid overwriting with ephemeral/invalid GITHUB_TOKEN.")
+        print("[INFO] If package is public or credentials already saved in ACA, image pull proceeds normally.")
 
 
     # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
@@ -175,13 +172,31 @@ def main():
 
     # 4. Route 100% traffic to latest revision and ensure scale
     print("=== Checking active revisions ===")
+    rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
+    latest_rev_name = "latest"
+    if rev_res.returncode == 0 and rev_res.stdout.strip():
+        try:
+            revs = json.loads(rev_res.stdout)
+            revs.sort(key=lambda r: r.get("properties", {}).get("createdTime", ""), reverse=True)
+            if revs:
+                top_rev = revs[0]
+                latest_rev_name = top_rev.get("name", "latest")
+                p_state = top_rev.get("properties", {}).get("provisioningState")
+                r_state = top_rev.get("properties", {}).get("runningState")
+                p_err = top_rev.get("properties", {}).get("provisioningError")
+                print(f"[REVISION] Top Revision: {latest_rev_name} | ProvisioningState: {p_state} | RunningState: {r_state}")
+                if p_err:
+                    print(f"[REVISION DIAGNOSTIC ERROR] {p_err}")
+        except Exception as e:
+            print(f"[WARN] Error parsing revision JSON: {e}")
+
     run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
 
-    print("=== Directing 100% traffic to latest revision ===")
+    print(f"=== Directing 100% traffic to revision '{latest_rev_name}' ===")
     run_cmd([
         "az", "containerapp", "ingress", "traffic", "set",
         "-n", app_name, "-g", resource_group,
-        "--revision-weight", "latest=100"
+        "--revision-weight", f"{latest_rev_name}=100"
     ], check=False)
 
     print("=== Ensuring scale: min=1 max=3 ===")
