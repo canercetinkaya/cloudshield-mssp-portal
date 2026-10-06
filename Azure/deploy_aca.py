@@ -132,9 +132,8 @@ def main():
 
 
     # 2. Update GHCR registry credentials so ACA can pull the new image.
-    #    CRITICAL: GITHUB_TOKEN cannot be used as a password for user 'canercetinkaya' on ghcr.io,
-    #    and expires immediately after the job ends. Only set registry credentials if a long-lived
-    #    GHCR_PAT is provided. If not provided, do not overwrite existing credentials (or rely on public package).
+    #    If GHCR_PAT is provided, store it. If not, remove any stale 'ghcr.io' registry entry
+    #    so ACA pulls anonymously as a public package (avoids 401 Unauthorized from expired tokens).
     ghcr_pat = os.environ.get("GHCR_PAT", "").strip()
     if ghcr_pat:
         print("=== Storing GHCR credentials in ACA (using long-lived GHCR_PAT) ===")
@@ -146,8 +145,12 @@ def main():
             "--password", ghcr_pat
         ], check=False)
     else:
-        print("[INFO] GHCR_PAT not provided. Skipping 'az containerapp registry set' to avoid overwriting with ephemeral/invalid GITHUB_TOKEN.")
-        print("[INFO] If package is public or credentials already saved in ACA, image pull proceeds normally.")
+        print("=== GHCR package is PUBLIC: Removing any stale private registry credentials from ACA to allow anonymous pull ===")
+        run_cmd([
+            "az", "containerapp", "registry", "remove",
+            "-n", app_name, "-g", resource_group,
+            "--server", "ghcr.io"
+        ], check=False)
 
 
     # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
@@ -170,25 +173,35 @@ def main():
         "--image", image_tag
     ])
 
-    # 4. Route 100% traffic to latest revision and ensure scale
-    print("=== Checking active revisions ===")
-    rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
+    # 4. Wait for newly created revision to provision and route 100% traffic
+    print("=== Checking revisions and waiting for new revision to provision ===")
     latest_rev_name = "latest"
-    if rev_res.returncode == 0 and rev_res.stdout.strip():
-        try:
-            revs = json.loads(rev_res.stdout)
-            revs.sort(key=lambda r: r.get("properties", {}).get("createdTime", ""), reverse=True)
-            if revs:
-                top_rev = revs[0]
-                latest_rev_name = top_rev.get("name", "latest")
-                p_state = top_rev.get("properties", {}).get("provisioningState")
-                r_state = top_rev.get("properties", {}).get("runningState")
-                p_err = top_rev.get("properties", {}).get("provisioningError")
-                print(f"[REVISION] Top Revision: {latest_rev_name} | ProvisioningState: {p_state} | RunningState: {r_state}")
-                if p_err:
-                    print(f"[REVISION DIAGNOSTIC ERROR] {p_err}")
-        except Exception as e:
-            print(f"[WARN] Error parsing revision JSON: {e}")
+    old_rev_names = []
+    for poll_step in range(15):
+        time.sleep(6)
+        rev_res = run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "json"], check=False)
+        if rev_res.returncode == 0 and rev_res.stdout.strip():
+            try:
+                revs = json.loads(rev_res.stdout)
+                revs.sort(key=lambda r: r.get("properties", {}).get("createdTime", ""), reverse=True)
+                if revs:
+                    top_rev = revs[0]
+                    latest_rev_name = top_rev.get("name", "latest")
+                    p_state = top_rev.get("properties", {}).get("provisioningState")
+                    r_state = top_rev.get("properties", {}).get("runningState")
+                    p_err = top_rev.get("properties", {}).get("provisioningError")
+                    old_rev_names = [r.get("name") for r in revs[1:] if r.get("name")]
+                    print(f"[REVISION poll {poll_step+1}/15] Top Revision: {latest_rev_name} | ProvisioningState: {p_state} | RunningState: {r_state}")
+                    if p_err:
+                        print(f"[REVISION DIAGNOSTIC ERROR] {p_err}")
+                    if p_state == "Provisioned":
+                        print(f"[OK] Revision {latest_rev_name} successfully PROVISIONED!")
+                        break
+                    elif p_state == "Failed":
+                        print(f"[ERROR] Revision {latest_rev_name} FAILED to provision: {p_err}")
+                        break
+            except Exception as e:
+                print(f"[WARN] Error parsing revision JSON: {e}")
 
     run_cmd(["az", "containerapp", "revision", "list", "-n", app_name, "-g", resource_group, "-o", "table"], check=False)
 
@@ -198,6 +211,13 @@ def main():
         "-n", app_name, "-g", resource_group,
         "--revision-weight", f"{latest_rev_name}=100"
     ], check=False)
+
+    # Deactivate stale revisions so traffic cannot leak to old v2.5.15-PILOT
+    if old_rev_names and latest_rev_name != "latest":
+        print("=== Deactivating stale revisions to prevent old version bleed ===")
+        for old_rev in old_rev_names[:3]:
+            print(f"Deactivating stale revision: {old_rev}")
+            run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
     print("=== Ensuring scale: min=1 max=3 ===")
     run_cmd([
