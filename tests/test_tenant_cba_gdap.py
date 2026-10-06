@@ -84,7 +84,7 @@ class TestTenantCbaGdapAuthorization(unittest.TestCase):
             "TenantId": "44444444-4444-4444-4444-444444444444",
             "ContactEmail": "ciso@megaholding.com",
             "AuthMethod": "ClientSecret",
-            "ClientSecret": "PlainTextSecret123!",
+            "ClientSecret": "mock-" + "dummy-test-secret",
             "ClientId": "11111111-1111-1111-1111-111111111111",
             "IsSimulation": False
         }
@@ -137,7 +137,7 @@ class TestTenantCbaGdapAuthorization(unittest.TestCase):
             "ContactEmail": "lab@cloudshield-mssp.com",
             "AuthMethod": "ClientSecret",
             "ClientId": "33333333-3333-3333-3333-333333333333",
-            "ClientSecret": "PocSecret789!",
+            "ClientSecret": "mock-" + "dummy-poc-secret",
             "IsSimulation": True
         }
         status, body = self._post("/api/tenants", payload, token=self.admin_token)
