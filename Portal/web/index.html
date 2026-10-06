@@ -83,7 +83,7 @@
                         CloudShield MSSP Platformu Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
                     </p>
 
-                    <button type="button" onclick="handleEntraSsoLogin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-3 group hover:shadow-lg">
+                    <a href="/api/auth/entra/authorize" onclick="handleEntraSsoLogin();" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-3 group hover:shadow-lg cursor-pointer text-center no-underline">
                         <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 23 23">
                             <path fill="#f25022" d="M1 1h10v10H1z"/>
                             <path fill="#00a4ef" d="M1 12h10v10H1z"/>
@@ -92,7 +92,7 @@
                         </svg>
                         <span class="text-sm font-semibold">Microsoft Entra ID ile Oturum Aç</span>
                         <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+                    </a>
 
                     <div class="text-[10px] text-slate-400 flex items-center justify-center space-x-2">
                         <span><i class="fa-solid fa-building mr-1"></i>cnrctnky.onmicrosoft.com</span>
@@ -4110,6 +4110,8 @@ let allUsers = [];
             } catch (e) {
                 alert('Bağlantı testi başarısız: ' + e);
             }
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -4719,7 +4721,8 @@ let allUsers = [];
             alert(`[AV BAŞLATILDI] ${tenantId} müşterisi üzerinde "${currentSelectedKql.title}" sorgusu Graph Hunting API ile çalıştırıldı. Sonuçlar denetim kütüğüne kaydediliyor.`);
         }
     </script>
-    <script src="rbac_portal.js">
+    <script src="rbac_portal.js"></script>
+    <script>
         // ==========================================
         // PLANLANMIŞ RAPOR DAĞITIMI (SCHEDULED DISPATCH)
         // ==========================================
