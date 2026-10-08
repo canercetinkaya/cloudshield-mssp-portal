@@ -41,6 +41,8 @@ accessTokens.json
 Engine/Config/*.local.json
 Data/*.local.json
 Data/tenants.local.json
+Data/Logos/*
+!Data/Logos/.gitkeep
 
 # ------------------------------------------------------------------------------
 # 2. Logs, Diagnostic Dumps & Historical Audit Outputs

@@ -11,6 +11,7 @@ Backend REST API Server - Pure Python 3 Standard Library (Zero External Dependen
 import http.server
 
 import json
+import base64
 
 import os
 
@@ -50,7 +51,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from database.db import init_db, get_db
+from database.db import init_db, get_db, sync_customer_to_db, create_customer_portal_user
 try:
     from rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
     from rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
@@ -2310,6 +2311,100 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             })
             return
 
+        elif path == "/api/tenants/preflight-validate":
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _ = evaluate_access(_wu, "customers:view", resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Kiracı ön doğrulama yetkiniz bulunmamaktadır."
+                }, status=403)
+                return
+
+            tenant_guid = str(body.get("tenantId") or body.get("TenantId") or "").strip()
+            client_id = str(body.get("clientId") or body.get("ClientId") or "").strip()
+            auth_method = str(body.get("authMethod") or body.get("AuthMethod") or "Certificate").strip()
+            secret_exp = body.get("secretExpiryDate") or body.get("SecretExpiryDate")
+            cert_exp = body.get("certExpiryDate") or body.get("CertExpiryDate")
+
+            import re
+            guid_regex = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+            if not guid_regex.match(tenant_guid):
+                self.send_json_response({
+                    "success": False,
+                    "status": "InvalidGuidFormat",
+                    "badge": "Geçersiz GUID",
+                    "error": f"Geçersiz Microsoft 365 Tenant ID formatı: '{tenant_guid}'. 8-4-4-4-12 hex formatında standart GUID beklenmektedir."
+                }, status=400)
+                return
+
+            days_until_expiry = None
+            target_exp = cert_exp or secret_exp
+            if target_exp:
+                try:
+                    exp_clean = str(target_exp).replace("Z", "+00:00")
+                    if "T" not in exp_clean and len(exp_clean) == 10:
+                        exp_clean += "T00:00:00+00:00"
+                    exp_dt = datetime.fromisoformat(exp_clean)
+                    if exp_dt.tzinfo is None:
+                        exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                    days_until_expiry = max(0, (exp_dt - datetime.now(timezone.utc)).days)
+                except Exception:
+                    pass
+
+            t0 = time.time()
+            entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
+            try:
+                req = urllib.request.Request(
+                    entra_url,
+                    headers={"User-Agent": "CloudShield-MSSP-Portal/3.0.0 (Onboarding-Preflight)"}
+                )
+                with urllib.request.urlopen(req, timeout=6.0) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                    latency_ms = int((time.time() - t0) * 1000)
+
+                issuer = resp_data.get("issuer", "")
+                token_endpoint = resp_data.get("token_endpoint", "")
+                auth_endpoint = resp_data.get("authorization_endpoint", "")
+
+                self.send_json_response({
+                    "success": True,
+                    "status": "PreflightVerified",
+                    "badge": "Canlı Entra ID Doğrulandı",
+                    "tenantId": tenant_guid,
+                    "latencyMs": latency_ms,
+                    "issuer": issuer,
+                    "tokenEndpoint": token_endpoint,
+                    "authEndpoint": auth_endpoint,
+                    "authMethod": auth_method,
+                    "daysUntilExpiry": days_until_expiry,
+                    "message": f"Microsoft Entra ID kiracı uç noktası ({tenant_guid[:8]}...) başarıyla doğrulandı ({latency_ms}ms). Canlı kiracı bağlantısı ve OpenID federasyonu aktif."
+                }, status=200)
+                return
+            except urllib.error.HTTPError as h_err:
+                latency_ms = int((time.time() - t0) * 1000)
+                self.send_json_response({
+                    "success": False,
+                    "status": "TenantNotFound",
+                    "badge": "Kiracı Bulunamadı",
+                    "error": f"Microsoft Entra ID üzerinde '{tenant_guid}' kimlikli kiracı bulunamadı (HTTP {h_err.code}). Lütfen Tenant Directory GUID değerini kontrol ediniz.",
+                    "latencyMs": latency_ms
+                }, status=400)
+                return
+            except Exception as net_err:
+                latency_ms = int((time.time() - t0) * 1000)
+                self.send_json_response({
+                    "success": False,
+                    "status": "NetworkError",
+                    "badge": "Bağlantı Hatası",
+                    "error": f"Microsoft Entra ID uç noktasına ulaşılamadı ({latency_ms}ms): {str(net_err)}",
+                    "latencyMs": latency_ms
+                }, status=502)
+                return
+
         elif path == "/api/tenants":
 
             # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
@@ -2325,13 +2420,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             tenants = load_json_file(TENANTS_FILE, [])
 
-            new_id = f"tenant-{len(tenants)+1:03d}"
-
+            new_id = body.get("Id") or f"tenant-{len(tenants)+1:03d}"
             body["Id"] = new_id
 
             # Auth Normalization & Production Zero Trust Policy Enforcement
             auth_raw = body.get("Auth") if isinstance(body.get("Auth"), dict) else {}
-            auth_method_str = body.get("AuthMethod") or auth_raw.get("Method") or "ClientSecret"
+            auth_method_str = body.get("AuthMethod") or auth_raw.get("Method") or "Certificate"
             if auth_method_str in ("ClientCertificate", "Certificate", "CBA"):
                 normalized_auth_method = "Certificate"
             elif auth_method_str in ("GDAP_Delegated", "GDAP"):
@@ -2351,6 +2445,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 }, status=400)
                 return
 
+            cert_exp = body.get("CertExpiryDate") or auth_raw.get("CertExpiryDate") or ""
+            secret_exp = body.get("SecretExpiryDate") or auth_raw.get("SecretExpiryDate") or ""
+
             auth_block = {
                 "Method": normalized_auth_method,
                 "ClientId": body.get("ClientId") or auth_raw.get("ClientId", ""),
@@ -2359,71 +2456,111 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "PartnerTenantId": body.get("PartnerTenantId") or auth_raw.get("PartnerTenantId", ""),
                 "DelegatedAdminRole": body.get("DelegatedAdminRole") or auth_raw.get("DelegatedAdminRole", "Security Reader"),
                 "ClientSecret": (body.get("ClientSecret") or auth_raw.get("ClientSecret", "")) if is_test_tenant else "",
-                "KeyVaultSecretName": auth_raw.get("KeyVaultSecretName", "")
+                "KeyVaultSecretName": auth_raw.get("KeyVaultSecretName", ""),
+                "CertExpiryDate": cert_exp,
+                "SecretExpiryDate": secret_exp
             }
             body["Auth"] = auth_block
             body["AuthMethod"] = normalized_auth_method
 
+            # Smart Enterprise Fields
+            body["Industry"] = body.get("Industry", "Teknoloji & Bilişim")
+            body["ServiceSlaTier"] = body.get("ServiceSlaTier", "Gold")
+            body["ReportLanguage"] = body.get("ReportLanguage", "TR")
+            body["ReportMode"] = body.get("ReportMode", "Consolidated")
+            body["SelectedPackage"] = body.get("SelectedPackage", "PKG-10")
             body["HealthStatus"] = body.get("HealthStatus", "Healthy")
-
+            body["ConnectionStatus"] = body.get("ConnectionStatus", "LiveConnected")
             body["TotalEndpoints"] = int(body.get("TotalEndpoints", 120))
-
             body["GhostDevices"] = int(body.get("GhostDevices", 0))
-
             body["OpenHighAlerts"] = int(body.get("OpenHighAlerts", 0))
-
             body["SecureScore"] = float(body.get("SecureScore", 78.5))
-
             body["LastReportDate"] = datetime.now().strftime("%Y-%m-%d")
+            body["ActiveServices"] = body.get("ActiveServices", ["SVC-MDE", "SVC-MDO", "SVC-XDR", "SVC-PRV-DLP"])
 
-            body["ActiveServices"] = body.get("ActiveServices", ["SVC-MDE", "SVC-MDO"])
+            # Handle Logo upload if Base64 string is provided in body
+            logo_data = body.pop("LogoData", None)
+            safe_tid = "".join(c for c in str(new_id) if c.isalnum() or c in ('-', '_')).strip()
+            if logo_data and isinstance(logo_data, str) and len(logo_data) > 20:
+                try:
+                    ext = "png"
+                    if "data:image/svg+xml;base64," in logo_data or "<svg" in logo_data:
+                        ext = "svg"
+                    b64_content = logo_data.split(",", 1)[1] if "," in logo_data else logo_data
+                    logo_bytes = base64.b64decode(b64_content)
+                    if len(logo_bytes) <= 2 * 1024 * 1024:
+                        out_logo_path = os.path.join(LOGOS_DIR, f"{safe_tid}.{ext}")
+                        with open(out_logo_path, "wb") as lf:
+                            lf.write(logo_bytes)
+                except Exception as log_ex:
+                    print(f"[WARN] Failed to save onboarded logo for {new_id}: {log_ex}")
+
+            body["LogoUrl"] = f"/api/tenants/{new_id}/logo"
 
             if "IsSimulation" not in body:
-
                 body["IsSimulation"] = False
-
             if "ScheduleFrequency" not in body:
-
                 body["ScheduleFrequency"] = "Monthly"
-
             if "DispatchDay" not in body:
-
                 body["DispatchDay"] = 1
-
             if "DispatchTime" not in body:
-
                 body["DispatchTime"] = "09:00"
-
             if "RecipientEmails" not in body:
-
                 contact = body.get("ContactEmail")
-
                 recips = [contact] if contact else []
-
                 if "mssp-reporting@cloudshield-mssp.com" not in recips:
-
                     recips.append("mssp-reporting@cloudshield-mssp.com")
-
                 body["RecipientEmails"] = recips
-
             if "AttachPdf" not in body:
-
                 body["AttachPdf"] = True
-
             if "AttachHtml" not in body:
-
                 body["AttachHtml"] = True
-
             if "IsDispatchActive" not in body:
-
                 body["IsDispatchActive"] = True
 
-            tenants.append(body)
+            # Calculate Credential Health
+            body["CredentialHealth"] = self.compute_credential_health(body)
 
+            # Persist to tenants.json
+            tenants.append(body)
             save_json_file(TENANTS_FILE, tenants)
 
-            self.send_json_response({"success": True, "tenant": body}, status=201)
+            # Persist atomically to Relational SQLite DB
+            try:
+                sync_customer_to_db(body)
+            except Exception as sex:
+                print(f"[WARN] sync_customer_to_db error during onboarding: {sex}")
 
+            # Optional: Provision Isolated Customer Portal User
+            if body.get("CreateCustomerUser"):
+                cu = body.get("CustomerUser") if isinstance(body.get("CustomerUser"), dict) else {}
+                cu_name = cu.get("displayName") or f"{body.get('Name')} Yönetici"
+                cu_email = cu.get("email") or body.get("ContactEmail")
+                cu_role = cu.get("role", "CustomerCISO")
+                try:
+                    create_customer_portal_user(new_id, cu_name, cu_email, role=cu_role)
+                except Exception as cuex:
+                    print(f"[WARN] create_customer_portal_user error during onboarding: {cuex}")
+
+            record_audit_event(
+                "CUSTOMER_ONBOARD",
+                user_id=_wu.get("id") if _wu else None,
+                user_upn=_wu.get("upn") if _wu else None,
+                customer_id=new_id,
+                resource=path,
+                decision="ALLOW",
+                reason="TenantSuccessfullyOnboarded",
+                ip_address=_wip,
+                details={
+                    "tenantId": new_id,
+                    "name": body.get("Name"),
+                    "services": body.get("ActiveServices"),
+                    "authMethod": normalized_auth_method,
+                    "slaTier": body.get("ServiceSlaTier")
+                }
+            )
+
+            self.send_json_response({"success": True, "tenant": body}, status=201)
             return
 
         elif path == "/api/dispatch/schedule":

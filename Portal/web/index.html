@@ -2045,62 +2045,74 @@
     </main>
 
         <!-- ========================================================================= -->
-    <!-- MODAL 1: YENİ MÜŞTERİ / TENANT ONBOARDING WIZARD (3 ADIMLI SİHİRBAZ) -->
+    <!-- MODAL 1: YENİ MÜŞTERİ / AKILLI TENANT ONBOARDING SİHİRBAZI (4 ADIMLI) -->
     <!-- ========================================================================= -->
     <div id="addTenantModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto flex flex-col">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto flex flex-col">
             <!-- Modal Header -->
             <div class="px-6 py-4 bg-ks-navy text-white rounded-t-2xl flex justify-between items-center flex-shrink-0">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-building-circle-check text-base text-ks-red"></i>
-                    <h3 class="text-sm font-bold">Müşteri Tenant Onboarding Sihirbazı</h3>
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-ks-red font-bold text-sm">
+                        <i class="fa-solid fa-building-circle-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold">Akıllı Kurumsal Müşteri Onboarding Motoru</h3>
+                        <p class="text-[10px] text-slate-300">Microsoft Entra ID, Servis Kataloğu, SLA &amp; Raporlama Entegrasyonu</p>
+                    </div>
                 </div>
-                <button onclick="closeAddTenantModal()" class="text-slate-300 hover:text-white text-lg">
+                <button type="button" onclick="closeAddTenantModal()" class="text-slate-300 hover:text-white text-lg transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- Wizard Stepper Header -->
+            <!-- Wizard Stepper Header (4 Steps) -->
             <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
                 <div class="flex items-center space-x-2 wizard-step-btn cursor-pointer" onclick="setAddTenantStep(1)">
                     <span id="wizardBadge1" class="w-6 h-6 rounded-full bg-ks-navy text-white text-xs font-bold flex items-center justify-center shadow-xs">1</span>
-                    <span id="wizardText1" class="text-xs font-bold text-ks-navy">Kurum &amp; Kiracı</span>
+                    <span id="wizardText1" class="text-xs font-bold text-ks-navy">Kurum &amp; Marka</span>
                 </div>
-                <div class="w-8 h-px bg-slate-300"></div>
+                <div class="w-6 h-px bg-slate-300"></div>
                 <div class="flex items-center space-x-2 wizard-step-btn cursor-pointer" onclick="setAddTenantStep(2)">
                     <span id="wizardBadge2" class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">2</span>
-                    <span id="wizardText2" class="text-xs font-medium text-slate-500">Entra ID &amp; İzinler</span>
+                    <span id="wizardText2" class="text-xs font-medium text-slate-500">Entra &amp; Doğrulama</span>
                 </div>
-                <div class="w-8 h-px bg-slate-300"></div>
+                <div class="w-6 h-px bg-slate-300"></div>
                 <div class="flex items-center space-x-2 wizard-step-btn cursor-pointer" onclick="setAddTenantStep(3)">
                     <span id="wizardBadge3" class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">3</span>
-                    <span id="wizardText3" class="text-xs font-medium text-slate-500">Paketler &amp; Atama</span>
+                    <span id="wizardText3" class="text-xs font-medium text-slate-500">Servisler &amp; SLA</span>
+                </div>
+                <div class="w-6 h-px bg-slate-300"></div>
+                <div class="flex items-center space-x-2 wizard-step-btn cursor-pointer" onclick="setAddTenantStep(4)">
+                    <span id="wizardBadge4" class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">4</span>
+                    <span id="wizardText4" class="text-xs font-medium text-slate-500">Rapor &amp; Portal</span>
                 </div>
             </div>
 
             <form id="addTenantForm" onsubmit="handleSaveTenant(event)" class="p-6 space-y-4 text-xs flex-1 flex flex-col justify-between">
                 
-                <!-- ADIM 1: KURUMSAL BİLGİLER -->
+                <!-- ADIM 1: KURUMSAL KİMLİK & MARKA -->
                 <div id="addTenantStep1" class="space-y-4">
-                    <div class="bg-blue-50/60 p-3.5 rounded-xl border border-blue-100 text-blue-900 text-[11px] flex items-center space-x-2">
-                        <i class="fa-solid fa-info-circle text-blue-600 text-sm flex-shrink-0"></i>
-                        <span>Müşterinin ticari ünvanını, sektörünü ve Microsoft 365 Tenant ID GUID değerini giriniz.</span>
+                    <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-100 text-blue-900 text-[11px] flex items-center space-x-2.5">
+                        <i class="fa-solid fa-circle-info text-blue-600 text-sm flex-shrink-0"></i>
+                        <span>Müşterinin ticari ünvanını, sektörünü, Microsoft 365 Tenant GUID değerini ve kurumsal logosunu tanımlayınız.</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold text-slate-700 uppercase mb-1">Müşteri Ticari Ünvanı *</label>
-                            <input type="text" id="tenantName" required placeholder="Örn: Acme Holding A.Ş." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-ks-navy">
+                            <input type="text" id="tenantName" required placeholder="Örn: Acme Holding A.Ş." oninput="updateLogoMonogramPreview()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-ks-navy">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Sektör / Kategori</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Sektör / Faaliyet Alanı</label>
                             <select id="tenantIndustry" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
                                 <option value="Finans & Bankacılık">Finans &amp; Bankacılık</option>
-                                <option value="Lojistik & Tedarik">Lojistik &amp; Tedarik</option>
-                                <option value="Perakende & Mağazacılık">Perakende &amp; Mağazacılık</option>
-                                <option value="Teknoloji & Bilişim">Teknoloji &amp; Bilişim</option>
                                 <option value="Holding & Çoklu Şirket">Holding &amp; Çoklu Şirket</option>
-                                <option value="Enerji & Üretim">Enerji &amp; Üretim</option>
+                                <option value="Perakende & E-Ticaret">Perakende &amp; E-Ticaret</option>
+                                <option value="Savunma & Havacılık">Savunma &amp; Havacılık</option>
+                                <option value="Teknoloji & Telekomünikasyon">Teknoloji &amp; Telekomünikasyon</option>
+                                <option value="Enerji & Altyapı">Enerji &amp; Altyapı</option>
+                                <option value="Sağlık & İlaç">Sağlık &amp; İlaç</option>
+                                <option value="Üretim & Sanayi">Üretim &amp; Sanayi</option>
                             </select>
                         </div>
                     </div>
@@ -2111,23 +2123,48 @@
                             <span id="tenantGuidValidationMsg" class="text-[10px] font-semibold text-slate-400">GUID Biçimi Bekleniyor</span>
                         </div>
                         <input type="text" id="tenantGuid" oninput="validateTenantGuidInput()" required placeholder="c9c0ee10-6398-473c-9681-d2fffaa55531" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
-                        <p class="text-[10px] text-slate-400 mt-1">Microsoft Entra Yönetim Merkezi > Genel Bakış > Kiracı Kimliği alanından kopyalayabilirsiniz.</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Microsoft Entra Yönetim Merkezi > Genel Bakış > Kiracı Kimliği (Tenant ID) değerini giriniz.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase mb-1">Birincil Güvenlik &amp; CISO İrtibat E-Postası *</label>
+                        <input type="email" id="tenantContactEmail" required placeholder="ciso@acme.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-ks-navy">
+                    </div>
+
+                    <!-- Kurumsal Logo & Monogram Yükleme Alanı -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block font-bold text-slate-700 uppercase text-[11px]">Kurumsal Logo &amp; Monogram (PNG / SVG)</label>
+                            <span class="text-[10px] text-slate-400">Maks. 2MB (Opsiyonel)</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <!-- Önizleme Kutusu -->
+                            <div id="tenantLogoPreviewContainer" class="w-14 h-14 rounded-xl border border-slate-300 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs">
+                                <span id="tenantMonogramPreview" class="text-sm font-bold text-ks-navy">LOGO</span>
+                                <img id="tenantLogoImgPreview" class="hidden w-full h-full object-contain p-1" alt="Logo">
+                            </div>
+                            <div class="flex-1 space-y-1">
+                                <input type="file" id="tenantLogoFileInput" accept="image/png,image/svg+xml" onchange="handleTenantLogoFileSelect(event)" class="text-[11px] file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-ks-navy file:text-white hover:file:bg-ks-navylight cursor-pointer">
+                                <p class="text-[10px] text-slate-500">Logo yüklenmezse müşteri baş harflerinden otomatik vektörel monogram üretilir.</p>
+                            </div>
+                        </div>
+                        <input type="hidden" id="tenantLogoBase64" value="">
                     </div>
                 </div>
 
-                <!-- ADIM 2: ENTRA ID & İZİNLER -->
+                <!-- ADIM 2: ENTRA ID & DOĞRULAMA (PREFLIGHT) -->
                 <div id="addTenantStep2" class="hidden space-y-4">
-                    <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-100 text-amber-900 text-[11px] flex items-center space-x-2">
+                    <div class="bg-amber-50/70 p-3.5 rounded-xl border border-amber-100 text-amber-900 text-[11px] flex items-center space-x-2.5">
                         <i class="fa-solid fa-key text-amber-600 text-sm flex-shrink-0"></i>
-                        <span>En Az Yetki (Least Privilege) modeliyle Graph API ve Defender XDR erişim yetkilerini tanımlayınız.</span>
+                        <span>Zero Trust mimarisi uyarınca Canlı Müşterilerde RFC 7523 Sertifika (CBA) veya GDAP kullanımı zorunludur.</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block font-bold text-slate-700 uppercase mb-1">Kimlik Doğrulama Yöntemi</label>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Kimlik Doğrulama Modeli *</label>
                             <select id="tenantAuthMethod" onchange="toggleAuthFields(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
-                                <option value="ClientCertificate">Certificate CBA (Kurumsal Prod - Tavsiye Edilen)</option>
-                                <option value="GDAP_Delegated">GDAP (Granular Delegated Admin - MSP)</option>
+                                <option value="ClientCertificate">Certificate CBA (Kurumsal Prod - RFC 7523 mTLS)</option>
+                                <option value="GDAP_Delegated">GDAP (Granular Delegated Admin - Microsoft MSP)</option>
                                 <option value="ClientSecret">Client Secret (Yalnızca Test / Sandbox)</option>
                             </select>
                         </div>
@@ -2137,18 +2174,24 @@
                         </div>
                     </div>
 
-                    <div id="certFieldsDiv" class="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                        <label class="block font-bold text-slate-700 uppercase mb-1 text-[11px]">Sertifika Thumbprint veya Azure Key Vault Sertifika Adı</label>
-                        <input type="text" id="tenantCertThumbprint" placeholder="Örn: 9F8E7D6C5B4A... veya cs-kv-tenant-cert" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
-                        <div class="text-[10px] text-slate-500 mt-1">Canlı müşteri kiracılarında RFC 7523 mTLS / CBA kimlik doğrulaması uygulanır.</div>
+                    <div id="certFieldsDiv" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1 text-[11px]">Sertifika Thumbprint / Key Vault Adı</label>
+                            <input type="text" id="tenantCertThumbprint" placeholder="Örn: 9F8E7D6C... veya cs-kv-tenant-cert" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1 text-[11px]">Sertifika / Gizli Bilgi Bitiş Tarihi</label>
+                            <input type="date" id="tenantExpiryDate" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs">
+                            <span class="text-[9px] text-slate-500 mt-0.5 block">Yaşam döngüsü izleyicisi için bitiş tarihi</span>
+                        </div>
                     </div>
 
                     <!-- Otomatik Yönetici Onay Linki Üretici -->
-                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-slate-800 flex items-center space-x-1.5">
                                 <i class="fa-brands fa-microsoft text-blue-600"></i>
-                                <span>Entra ID Admin Consent Link Oluşturucu</span>
+                                <span>Entra ID Admin Consent Onay Bağlantısı</span>
                             </span>
                             <button type="button" onclick="generateEntraConsentUrl()" class="text-[11px] bg-ks-navy text-white px-2.5 py-1 rounded-md font-semibold hover:bg-ks-navylight transition">
                                 🔗 Onay Linki Oluştur
@@ -2157,35 +2200,49 @@
                         <div id="consentUrlBox" class="hidden text-[10px] bg-white p-2.5 rounded-lg border border-slate-300 font-mono text-slate-700 break-all"></div>
                     </div>
 
-                    <!-- Canlı Bağlantı Testi -->
-                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <div>
-                            <div class="font-bold text-slate-800">Canlı OAuth / Graph API Doğrulaması</div>
-                            <div class="text-[10px] text-slate-500">Tenant bağlantısını ve API izinlerini kaydetmeden önce test edin.</div>
+                    <!-- Canlı Preflight Doğrulaması (Gerçek Microsoft Entra ID Uç Noktası) -->
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-satellite-dish text-blue-600"></i>
+                                    <span>Canlı Entra ID Preflight Uç Nokta Doğrulaması</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500">Microsoft Entra OpenID Configuration uç noktasını canlı sorgulayarak kiracıyı onaylar.</div>
+                            </div>
+                            <button type="button" id="btnRunPreflight" onclick="testNewTenantConnection()" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-xs">
+                                <i class="fa-solid fa-play text-xs text-blue-600"></i>
+                                <span>Canlı Ön-Kontrol Yap</span>
+                            </button>
                         </div>
-                        <button type="button" onclick="testNewTenantConnection()" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-xs">
-                            <i class="fa-solid fa-plug text-xs"></i>
-                            <span>Bağlantıyı Test Et</span>
-                        </button>
+                        <div id="tenantTestAlert" class="hidden p-3 rounded-lg text-xs font-medium"></div>
                     </div>
-
-                    <div id="tenantTestAlert" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
                 </div>
 
-                <!-- ADIM 3: HİZMET PAKETLERİ & ATAMA -->
+                <!-- ADIM 3: SERVİSLER & SLA DÜZEYİ -->
                 <div id="addTenantStep3" class="hidden space-y-4">
-                    <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 text-emerald-900 text-[11px] flex items-center space-x-2">
-                        <i class="fa-solid fa-cubes text-emerald-600 text-sm flex-shrink-0"></i>
-                        <span>Müşterinin sözleşmesine göre hizmet paketini ve sorumlu CloudShield mühendislik ekibini atayınız.</span>
+                    <div class="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-100 text-emerald-900 text-[11px] flex items-center space-x-2.5">
+                        <i class="fa-solid fa-layer-group text-emerald-600 text-sm flex-shrink-0"></i>
+                        <span>Sözleşmeye uygun servis kataloğunu, SLA taahhüt seviyesini ve operasyonel mühendislik ekibini belirleyiniz.</span>
                     </div>
 
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase mb-1">Atanan Operasyon Ekibi</label>
-                        <select id="tenantAssignedTeam" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
-                            <option value="Core-MSSP">Core-MSSP (EDR &amp; Uç Nokta)</option>
-                            <option value="XDR-Team">XDR-Team (Bütünleşik Tehdit Yönetimi)</option>
-                            <option value="Compliance-Team">Compliance-Team (Purview &amp; Uyum)</option>
-                        </select>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Sorumlu Operasyon Ekibi</label>
+                            <select id="tenantAssignedTeam" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
+                                <option value="Core-MSSP">Core-MSSP (EDR &amp; XDR Mühendisliği)</option>
+                                <option value="Compliance-Team">Compliance-Team (Veri Güvenliği &amp; Purview Uyum)</option>
+                                <option value="CISO-Executive">CISO-Executive (Müşteri Yönetici Gözetimi)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Hizmet Seviyesi Taahhüdü (SLA Tier)</label>
+                            <select id="tenantSlaTier" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold">
+                                <option value="Gold">Gold SLA (15 dk Kritik Müdahale / 7x24 Yönetim)</option>
+                                <option value="Silver">Silver SLA (1 Saat Müdahale / 8x5 Uzman Desteği)</option>
+                                <option value="Bronze">Bronze SLA (4 Saat Müdahale / Standart Hizmet)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Paket Hızlı Seçim Butonları -->
@@ -2197,70 +2254,184 @@
                                 <span>•</span>
                                 <button type="button" onclick="setWizardPackagePreset('PKG-06')" class="text-blue-600 font-semibold hover:underline">PKG-06 Purview</button>
                                 <span>•</span>
-                                <button type="button" onclick="setWizardPackagePreset('PKG-10')" class="text-emerald-600 font-bold hover:underline">PKG-10 Full</button>
+                                <button type="button" onclick="setWizardPackagePreset('PKG-10')" class="text-emerald-600 font-bold hover:underline">PKG-10 Core</button>
+                                <span>•</span>
+                                <button type="button" onclick="setWizardPackagePreset('PKG-12')" class="text-purple-600 font-bold hover:underline">PKG-12 Enterprise (14 Servis)</button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-52 overflow-y-auto">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-MDE" checked class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Defender for Endpoint</span>
+                                <span class="text-slate-800 font-medium">SVC-MDE: Defender for Endpoint</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-MDO" checked class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Defender for Office 365</span>
+                                <span class="text-slate-800 font-medium">SVC-MDO: Defender for Office 365</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-MDI" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Defender for Identity</span>
+                                <span class="text-slate-800 font-medium">SVC-MDI: Defender for Identity</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-MDCA" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Defender for Cloud Apps</span>
+                                <span class="text-slate-800 font-medium">SVC-MDCA: Defender Cloud Apps</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-XDR" checked class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Defender XDR Incident</span>
+                                <span class="text-slate-800 font-medium">SVC-XDR: Defender XDR Incident</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
+                                <input type="checkbox" name="tenantServices" value="SVC-INTUNE" class="rounded text-ks-red focus:ring-ks-red">
+                                <span class="text-slate-800 font-medium">SVC-INTUNE: Intune Cihaz Uyumu</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
+                                <input type="checkbox" name="tenantServices" value="SVC-ENTRA-PIM" class="rounded text-ks-red focus:ring-ks-red">
+                                <span class="text-slate-800 font-medium">SVC-ENTRA-PIM: Ayrıcalıklı Kimlik (PIM)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
+                                <input type="checkbox" name="tenantServices" value="SVC-ENTRA-ID" class="rounded text-ks-red focus:ring-ks-red">
+                                <span class="text-slate-800 font-medium">SVC-ENTRA-ID: Kimlik &amp; Koşullu Erişim</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-PRV-DLP" checked class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Purview DLP</span>
+                                <span class="text-slate-800 font-medium">SVC-PRV-DLP: Purview DLP</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-PRV-CLASS" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Purview Sınıflandırma</span>
+                                <span class="text-slate-800 font-medium">SVC-PRV-CLASS: Veri Sınıflandırma</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-PRV-GOV" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Purview Veri Yaşam Döngüsü</span>
+                                <span class="text-slate-800 font-medium">SVC-PRV-GOV: Yaşam Döngüsü &amp; Arşiv</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-PRV-RISK" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Purview İç Tehdit (IRM)</span>
+                                <span class="text-slate-800 font-medium">SVC-PRV-RISK: İç Tehdit (IRM)</span>
                             </label>
-                            <label class="flex items-center space-x-2 cursor-pointer">
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
                                 <input type="checkbox" name="tenantServices" value="SVC-AI-SECURITY" class="rounded text-ks-red focus:ring-ks-red">
-                                <span class="text-slate-700 font-medium">Purview AI Güvenliği</span>
+                                <span class="text-slate-800 font-medium">SVC-AI-SECURITY: Purview AI Hub &amp; Copilot</span>
                             </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white rounded">
+                                <input type="checkbox" name="tenantServices" value="SVC-PURVIEW" class="rounded text-ks-red focus:ring-ks-red">
+                                <span class="text-slate-800 font-medium">SVC-PURVIEW: Purview Uyum Yöneticisi</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADIM 4: RAPORLAMA, DAĞITIM & MÜŞTERİ PORTALI -->
+                <div id="addTenantStep4" class="hidden space-y-4">
+                    <div class="bg-purple-50/70 p-3.5 rounded-xl border border-purple-100 text-purple-900 text-[11px] flex items-center space-x-2.5">
+                        <i class="fa-solid fa-paper-plane text-purple-600 text-sm flex-shrink-0"></i>
+                        <span>Otomatik zamanlanmış rapor dağıtımını ve opsiyonel müşteri self-service portal kullanıcısını yapılandırınız.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Rapor Formatı</label>
+                            <select id="tenantReportMode" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs">
+                                <option value="Consolidated">Bütünleşik Yönetici Raporu (Tekil İcra Paneli)</option>
+                                <option value="Modular">Modüler Servis Raporları (Ayrı Ayrı Dosyalar)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Rapor Dili</label>
+                            <select id="tenantReportLanguage" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold">
+                                <option value="TR">Türkçe (Resmi KVKK &amp; MSSP Şablonu)</option>
+                                <option value="EN">English (Global Executive CISO Template)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Otomatik Zamanlanmış Rapor Dağıtımı -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-[11px] flex items-center space-x-1.5">
+                                <i class="fa-solid fa-clock-rotate-left text-ks-navy"></i>
+                                <span>Otomatik Rapor Dağıtım Planı (Scheduled Dispatch)</span>
+                            </span>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-[10px] text-slate-600 font-medium flex items-center space-x-1">
+                                    <input type="checkbox" id="tenantAttachPdf" checked class="rounded text-ks-red">
+                                    <span>Vektörel PDF Ekle</span>
+                                </label>
+                                <label class="text-[10px] text-slate-600 font-medium flex items-center space-x-1">
+                                    <input type="checkbox" id="tenantAttachHtml" checked class="rounded text-ks-red">
+                                    <span>HTML Rapor Ekle</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Sıklık</label>
+                                <select id="tenantDispatchFrequency" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                                    <option value="Monthly">Aylık</option>
+                                    <option value="Weekly">Haftalık</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Dağıtım Günü</label>
+                                <input type="number" id="tenantDispatchDay" min="1" max="28" value="1" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Saat (UTC/TSİ)</label>
+                                <input type="time" id="tenantDispatchTime" value="09:00" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Alıcı E-Posta Dağıtım Listesi (Virgülle Ayrılmış)</label>
+                            <input type="text" id="tenantRecipientEmails" placeholder="ciso@acme.com, soc-lead@acme.com" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Müşteri Portalı Self-Service Kullanıcısı -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="tenantCreateCustomerUser" onchange="toggleCustomerUserFields(this.checked)" class="rounded text-ks-navy focus:ring-ks-navy">
+                            <span class="text-xs font-bold text-slate-800">Müşteri Yetkilisi İçin İzolasyonlu Portal Kullanıcısı Oluştur</span>
+                        </label>
+                        <p class="text-[10px] text-slate-500">Bu yetkili yalnızca kendi tenant verilerini görebilir, diğer müşteriler ve sistem yönetimi tamamen izoledir.</p>
+
+                        <div id="customerUserFieldsDiv" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Yetkili Adı Soyadı</label>
+                                <input type="text" id="customerUserDisplayName" placeholder="Canan Kaya" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Kurumsal E-Posta</label>
+                                <input type="email" id="customerUserEmail" placeholder="canan.kaya@acme.com" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold mb-0.5">Portal Rolü</label>
+                                <select id="customerUserRole" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+                                    <option value="CustomerCISO">CustomerCISO (Pano &amp; Rapor Onaylama)</option>
+                                    <option value="CustomerViewer">CustomerViewer (Salt-Okunur İnceleme)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Wizard Navigasyon Butonları -->
                 <div class="pt-4 border-t border-slate-200 flex justify-between items-center flex-shrink-0">
-                    <button type="button" id="wizardBtnPrev" onclick="stepAddTenantWizard(-1)" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-arrow-left mr-1"></i> Geri
+                    <button type="button" id="wizardBtnPrev" onclick="stepAddTenantWizard(-1)" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-lg transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-arrow-left text-xs"></i>
+                        <span>Geri</span>
                     </button>
                     <button type="button" onclick="closeAddTenantModal()" id="wizardBtnCancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg transition">
                         Vazgeç
                     </button>
                     <div class="flex space-x-2">
                         <button type="button" id="wizardBtnNext" onclick="stepAddTenantWizard(1)" class="bg-ks-navy hover:bg-ks-navylight text-white font-bold px-4 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
-                            <span>İleri: Entra ID</span>
+                            <span id="wizardBtnNextText">İleri: Entra ID</span>
                             <i class="fa-solid fa-arrow-right text-xs"></i>
                         </button>
                         <button type="submit" id="wizardBtnSubmit" class="hidden bg-ks-red hover:bg-red-700 text-white font-bold px-5 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
                             <span>Kaydet ve Müşteriyi Ekle</span>
                         </button>
                     </div>
@@ -3890,72 +4061,138 @@ let allUsers = [];
 
         function setAddTenantStep(step) {
             currentAddTenantStep = step;
-            [1, 2, 3].forEach(s => {
+            [1, 2, 3, 4].forEach(s => {
                 const elStep = document.getElementById(`addTenantStep${s}`);
-                const elBadge = document.getElementById(`stepBadge${s}`);
-                const elIndicator = document.getElementById(`wizardStepIndicator${s}`);
+                const elBadge = document.getElementById(`wizardBadge${s}`);
+                const elText = document.getElementById(`wizardText${s}`);
 
                 if (elStep) {
                     if (s === step) elStep.classList.remove('hidden');
                     else elStep.classList.add('hidden');
                 }
 
-                if (elBadge && elIndicator) {
+                if (elBadge && elText) {
                     if (s === step) {
-                        elBadge.className = 'w-6 h-6 rounded-full bg-ks-navy text-white font-bold flex items-center justify-center text-xs shadow';
-                        elIndicator.className = 'text-xs font-bold text-ks-navy';
-                    } else if (s < step) {
-                        elBadge.className = 'w-6 h-6 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs';
-                        elBadge.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
-                        elIndicator.className = 'text-xs font-semibold text-slate-600';
-                    } else {
-                        elBadge.className = 'w-6 h-6 rounded-full bg-slate-200 text-slate-500 font-bold flex items-center justify-center text-xs';
+                        elBadge.className = 'w-6 h-6 rounded-full bg-ks-navy text-white text-xs font-bold flex items-center justify-center shadow-xs';
                         elBadge.innerText = s;
-                        elIndicator.className = 'text-xs font-medium text-slate-400';
+                        elText.className = 'text-xs font-bold text-ks-navy';
+                    } else if (s < step) {
+                        elBadge.className = 'w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center';
+                        elBadge.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+                        elText.className = 'text-xs font-semibold text-slate-700';
+                    } else {
+                        elBadge.className = 'w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center';
+                        elBadge.innerText = s;
+                        elText.className = 'text-xs font-medium text-slate-500';
                     }
                 }
             });
 
-            const btnBack = document.getElementById('btnAddTenantBack');
-            const btnNext = document.getElementById('btnAddTenantNext');
-            const btnSubmit = document.getElementById('btnAddTenantSubmit');
+            const btnPrev = document.getElementById('wizardBtnPrev');
+            const btnNext = document.getElementById('wizardBtnNext');
+            const btnSubmit = document.getElementById('wizardBtnSubmit');
+            const btnNextText = document.getElementById('wizardBtnNextText');
 
-            if (btnBack) {
-                if (step === 1) btnBack.classList.add('hidden');
-                else btnBack.classList.remove('hidden');
+            if (btnPrev) {
+                if (step === 1) btnPrev.classList.add('hidden');
+                else btnPrev.classList.remove('hidden');
             }
 
             if (btnNext && btnSubmit) {
-                if (step === 3) {
+                if (step === 4) {
                     btnNext.classList.add('hidden');
                     btnSubmit.classList.remove('hidden');
                 } else {
                     btnNext.classList.remove('hidden');
                     btnSubmit.classList.add('hidden');
+                    if (btnNextText) {
+                        if (step === 1) btnNextText.innerText = 'İleri: Entra ID';
+                        else if (step === 2) btnNextText.innerText = 'İleri: Servisler & SLA';
+                        else if (step === 3) btnNextText.innerText = 'İleri: Rapor & Portal';
+                    }
                 }
             }
         }
 
         function stepAddTenantWizard(delta) {
-            if (delta > 0 && currentAddTenantStep === 1) {
-                const name = document.getElementById('tenantName').value.trim();
-                const guid = document.getElementById('tenantGuid').value.trim();
-                const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (delta > 0) {
+                if (currentAddTenantStep === 1) {
+                    const name = (document.getElementById('tenantName')?.value || '').trim();
+                    const guid = (document.getElementById('tenantGuid')?.value || '').trim();
+                    const email = (document.getElementById('tenantContactEmail')?.value || '').trim();
+                    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-                if (!name) {
-                    alert('Lütfen müşteri ticari ünvanını giriniz!');
-                    return;
-                }
-                if (!guid || !guidRegex.test(guid)) {
-                    alert('Lütfen geçerli bir Microsoft 365 Tenant GUID değeri giriniz!\nÖrnek: 72f988bf-86f1-41af-91ab-2d7cd011db47');
-                    return;
+                    if (!name) {
+                        alert('Lütfen müşteri ticari ünvanını giriniz!');
+                        return;
+                    }
+                    if (!guid || !guidRegex.test(guid)) {
+                        alert('Lütfen geçerli bir Microsoft 365 Tenant ID GUID değeri giriniz!\nÖrnek: c9c0ee10-6398-473c-9681-d2fffaa55531');
+                        return;
+                    }
+                    if (!email || !email.includes('@')) {
+                        alert('Lütfen geçerli bir güvenlik / CISO irtibat e-postası giriniz!');
+                        return;
+                    }
+                } else if (currentAddTenantStep === 2) {
+                    const clientId = (document.getElementById('tenantClientId')?.value || '').trim();
+                    if (!clientId) {
+                        alert('Lütfen Entra App (Client) ID değerini giriniz!');
+                        return;
+                    }
                 }
             }
 
             const target = currentAddTenantStep + delta;
-            if (target >= 1 && target <= 3) {
+            if (target >= 1 && target <= 4) {
                 setAddTenantStep(target);
             }
+        }
+
+        function updateLogoMonogramPreview() {
+            const name = (document.getElementById('tenantName')?.value || '').trim();
+            const b64 = document.getElementById('tenantLogoBase64')?.value || '';
+            const monogram = document.getElementById('tenantMonogramPreview');
+            const img = document.getElementById('tenantLogoImgPreview');
+
+            if (!b64 && monogram && img) {
+                img.classList.add('hidden');
+                monogram.classList.remove('hidden');
+                if (name) {
+                    const words = name.split(/\s+/).filter(Boolean);
+                    const initials = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+                    monogram.innerText = initials;
+                } else {
+                    monogram.innerText = 'LOGO';
+                }
+            }
+        }
+
+        function handleTenantLogoFileSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Logo dosyası boyutu 2MB sınırını aşamaz!');
+                e.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const b64 = evt.target.result;
+                const b64Input = document.getElementById('tenantLogoBase64');
+                const img = document.getElementById('tenantLogoImgPreview');
+                const monogram = document.getElementById('tenantMonogramPreview');
+
+                if (b64Input) b64Input.value = b64;
+                if (img) {
+                    img.src = b64;
+                    img.classList.remove('hidden');
+                }
+                if (monogram) monogram.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
         }
 
         function validateTenantGuidInput() {
@@ -3982,9 +4219,9 @@ let allUsers = [];
         }
 
         function generateEntraConsentUrl() {
-            const guid = document.getElementById('tenantGuid').value.trim();
-            const clientId = document.getElementById('tenantClientId') ? document.getElementById('tenantClientId').value.trim() : '';
-            const appClientId = clientId || '9b604e3d-82c5-4318-8f5b-6f8e70a41d99';
+            const guid = (document.getElementById('tenantGuid')?.value || '').trim();
+            const clientId = (document.getElementById('tenantClientId')?.value || '').trim();
+            const appClientId = clientId || '15b69eff-dc1e-4bf3-9d72-ebda8d7fff40';
 
             if (!guid) {
                 alert('Lütfen önce 1. Adımda geçerli bir Tenant GUID giriniz!');
@@ -3993,16 +4230,118 @@ let allUsers = [];
 
             const redirectUri = encodeURIComponent(window.location.origin + '/api/auth/entra/callback');
             const consentUrl = `https://login.microsoftonline.com/${guid}/adminconsent?client_id=${appClientId}&redirect_uri=${redirectUri}`;
+
+            const box = document.getElementById('consentUrlBox');
+            if (box) {
+                box.innerHTML = `<span class="text-slate-500 select-all">${consentUrl}</span> <a href="${consentUrl}" target="_blank" class="ml-2 text-blue-600 font-bold underline">Yeni Sekmede Aç ↗</a>`;
+                box.classList.remove('hidden');
+            }
             window.open(consentUrl, '_blank');
+        }
+
+        async function testNewTenantConnection() {
+            const tenantGuid = (document.getElementById('tenantGuid')?.value || '').trim();
+            const clientId = (document.getElementById('tenantClientId')?.value || '').trim();
+            const authMethod = document.getElementById('tenantAuthMethod')?.value || 'ClientCertificate';
+            const expiryDate = document.getElementById('tenantExpiryDate')?.value || '';
+            const alertBox = document.getElementById('tenantTestAlert');
+
+            if (!tenantGuid) {
+                alert('Lütfen önce 1. Adımda geçerli bir Tenant GUID giriniz!');
+                setAddTenantStep(1);
+                return;
+            }
+
+            if (!alertBox) return;
+
+            alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 flex items-center space-x-2 border border-blue-200';
+            alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-blue-600"></i><span>Microsoft Entra ID uç noktası canlı sorgulanıyor (Preflight Check)...</span>';
+            alertBox.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/tenants/preflight-validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenantId: tenantGuid,
+                        clientId: clientId,
+                        authMethod: authMethod,
+                        certExpiryDate: expiryDate ? expiryDate + 'T00:00:00Z' : ''
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    let expiryText = '';
+                    if (data.daysUntilExpiry !== null && data.daysUntilExpiry !== undefined) {
+                        expiryText = ` • Kalan Süre: <b>${data.daysUntilExpiry} gün</b>`;
+                    }
+                    alertBox.className = 'p-3 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-900 border border-emerald-200 space-y-1';
+                    alertBox.innerHTML = `
+                        <div class="flex items-center space-x-1.5 font-bold text-emerald-800">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>${data.badge || 'Doğrulandı'} (Gecikme: ${data.latencyMs}ms)</span>
+                        </div>
+                        <div class="text-[11px] text-emerald-700">${data.message}${expiryText}</div>
+                        <div class="text-[10px] text-emerald-600 font-mono truncate">Token Endpoint: ${data.tokenEndpoint || 'Doğrulandı'}</div>
+                    `;
+                } else {
+                    alertBox.className = 'p-3 rounded-lg text-xs font-medium bg-rose-50 text-rose-900 border border-rose-200 space-y-1';
+                    alertBox.innerHTML = `
+                        <div class="flex items-center space-x-1.5 font-bold text-rose-800">
+                            <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                            <span>${data.badge || 'Doğrulama Başarısız'} (${data.latencyMs || 0}ms)</span>
+                        </div>
+                        <div class="text-[11px] text-rose-700">${data.error || 'Kiracı uç noktasına ulaşılamadı.'}</div>
+                    `;
+                }
+            } catch (err) {
+                alertBox.className = 'p-3 rounded-lg text-xs font-medium bg-rose-50 text-rose-900 border border-rose-200';
+                alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1.5"></i>Ağ hatası: ${err.message}`;
+            }
         }
 
         function setWizardPackagePreset(pkg) {
             const svcs = document.querySelectorAll('input[name="tenantServices"]');
             svcs.forEach(cb => {
-                if (pkg === 'all') cb.checked = true;
-                else if (pkg === 'defender') cb.checked = ['SVC-MDE', 'SVC-MDO', 'SVC-MDI', 'SVC-MDCA', 'SVC-XDR'].includes(cb.value);
-                else if (pkg === 'purview') cb.checked = ['SVC-PURVIEW'].includes(cb.value);
+                if (pkg === 'PKG-05') {
+                    cb.checked = ['SVC-MDE', 'SVC-MDO', 'SVC-MDI', 'SVC-MDCA', 'SVC-XDR'].includes(cb.value);
+                } else if (pkg === 'PKG-06') {
+                    cb.checked = ['SVC-PRV-DLP', 'SVC-PRV-CLASS', 'SVC-PRV-GOV', 'SVC-PRV-RISK', 'SVC-AI-SECURITY'].includes(cb.value);
+                } else if (pkg === 'PKG-10') {
+                    cb.checked = ['SVC-MDE', 'SVC-MDO', 'SVC-MDI', 'SVC-MDCA', 'SVC-XDR', 'SVC-INTUNE', 'SVC-ENTRA-PIM', 'SVC-ENTRA-ID', 'SVC-PRV-DLP', 'SVC-PURVIEW'].includes(cb.value);
+                } else if (pkg === 'PKG-12') {
+                    cb.checked = true;
+                }
             });
+        }
+
+        function toggleAuthFields(val) {
+            const certDiv = document.getElementById('certFieldsDiv');
+            if (certDiv) {
+                if (val === 'ClientCertificate' || val === 'Certificate' || val === 'ClientSecret') {
+                    certDiv.classList.remove('hidden');
+                } else {
+                    certDiv.classList.add('hidden');
+                }
+            }
+        }
+
+        function toggleCustomerUserFields(checked) {
+            const div = document.getElementById('customerUserFieldsDiv');
+            if (div) {
+                if (checked) {
+                    div.classList.remove('hidden');
+                    const cEmail = document.getElementById('tenantContactEmail')?.value || '';
+                    const cName = document.getElementById('tenantName')?.value || '';
+                    const userEmailInput = document.getElementById('customerUserEmail');
+                    const userNameInput = document.getElementById('customerUserDisplayName');
+                    if (userEmailInput && !userEmailInput.value) userEmailInput.value = cEmail;
+                    if (userNameInput && !userNameInput.value) userNameInput.value = cName ? cName + ' Bilgi Güvenliği Yöneticisi' : '';
+                } else {
+                    div.classList.add('hidden');
+                }
+            }
         }
 
         function openAddTenantModal() {
@@ -4010,6 +4349,7 @@ let allUsers = [];
             if (modal) {
                 modal.classList.remove('hidden');
                 setAddTenantStep(1);
+                updateLogoMonogramPreview();
             }
         }
 
@@ -4020,60 +4360,107 @@ let allUsers = [];
             if (form) form.reset();
             const alertBox = document.getElementById('tenantTestAlert');
             if (alertBox) alertBox.classList.add('hidden');
+            const consentBox = document.getElementById('consentUrlBox');
+            if (consentBox) consentBox.classList.add('hidden');
             const msg = document.getElementById('tenantGuidValidationMsg');
             if (msg) {
                 msg.innerText = 'GUID Biçimi Bekleniyor';
                 msg.className = 'text-[10px] font-semibold text-slate-400';
             }
-            setAddTenantStep(1);
-        }
-
-        async function testNewTenantConnection() {
-            const alertBox = document.getElementById('tenantTestAlert');
-            alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 flex items-center space-x-2';
-            alertBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Microsoft Graph ve Defender API bağlantısı test ediliyor...</span>';
-            alertBox.classList.remove('hidden');
-
-            setTimeout(() => {
-                alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 flex items-center space-x-2';
-                alertBox.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Bağlantı Başarılı! (Ping: 78ms - GDAP ve Graph İzinleri Doğrulandı)</span>';
-            }, 800);
-        }
-
-        function toggleAuthFields(val) {
-            const certDiv = document.getElementById('certFieldsDiv');
-            if (certDiv) {
-                if (val === 'ClientCertificate' || val === 'Certificate') {
-                    certDiv.classList.remove('hidden');
-                } else {
-                    certDiv.classList.add('hidden');
-                }
+            const b64Input = document.getElementById('tenantLogoBase64');
+            if (b64Input) b64Input.value = '';
+            const img = document.getElementById('tenantLogoImgPreview');
+            if (img) {
+                img.src = '';
+                img.classList.add('hidden');
             }
+            const monogram = document.getElementById('tenantMonogramPreview');
+            if (monogram) {
+                monogram.innerText = 'LOGO';
+                monogram.classList.remove('hidden');
+            }
+            setAddTenantStep(1);
         }
 
         async function handleSaveTenant(e) {
             e.preventDefault();
             const checkedServices = Array.from(document.querySelectorAll('input[name="tenantServices"]:checked')).map(c => c.value);
-            const contactEmail = document.getElementById('tenantContactEmail') ? document.getElementById('tenantContactEmail').value : 'ciso@musteri.com';
-            const authMethod = document.getElementById('tenantAuthMethod') ? document.getElementById('tenantAuthMethod').value : 'ClientCertificate';
-            const certThumb = document.getElementById('tenantCertThumbprint') ? document.getElementById('tenantCertThumbprint').value.trim() : '';
+            const contactEmail = (document.getElementById('tenantContactEmail')?.value || 'ciso@musteri.com').trim();
+            const authMethod = document.getElementById('tenantAuthMethod')?.value || 'ClientCertificate';
+            const certThumb = (document.getElementById('tenantCertThumbprint')?.value || '').trim();
+            const expiryDate = document.getElementById('tenantExpiryDate')?.value || '';
+            const industry = document.getElementById('tenantIndustry')?.value || 'Teknoloji & Telekomünikasyon';
+            const slaTier = document.getElementById('tenantSlaTier')?.value || 'Gold';
+            const assignedTeam = document.getElementById('tenantAssignedTeam')?.value || 'Core-MSSP';
+            const reportMode = document.getElementById('tenantReportMode')?.value || 'Consolidated';
+            const reportLanguage = document.getElementById('tenantReportLanguage')?.value || 'TR';
+            const dispatchFreq = document.getElementById('tenantDispatchFrequency')?.value || 'Monthly';
+            const dispatchDay = parseInt(document.getElementById('tenantDispatchDay')?.value || '1', 10);
+            const dispatchTime = document.getElementById('tenantDispatchTime')?.value || '09:00';
+            const attachPdf = document.getElementById('tenantAttachPdf')?.checked ?? true;
+            const attachHtml = document.getElementById('tenantAttachHtml')?.checked ?? true;
+            const logoData = document.getElementById('tenantLogoBase64')?.value || '';
+
+            let recipients = (document.getElementById('tenantRecipientEmails')?.value || '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            if (!recipients.includes(contactEmail)) recipients.unshift(contactEmail);
+            if (!recipients.includes('mssp-reporting@cloudshield-mssp.com')) {
+                recipients.push('mssp-reporting@cloudshield-mssp.com');
+            }
+
+            const createCustomerUser = document.getElementById('tenantCreateCustomerUser')?.checked || false;
+            let customerUserObj = null;
+            if (createCustomerUser) {
+                customerUserObj = {
+                    displayName: (document.getElementById('customerUserDisplayName')?.value || '').trim() || (document.getElementById('tenantName')?.value + ' Yönetici'),
+                    email: (document.getElementById('customerUserEmail')?.value || contactEmail).trim(),
+                    role: document.getElementById('customerUserRole')?.value || 'CustomerCISO'
+                };
+            }
+
+            const selectedPkg = checkedServices.length >= 14 ? 'PKG-12' : (checkedServices.length >= 10 ? 'PKG-10' : (checkedServices.some(s => s.includes('PRV')) ? 'PKG-06' : 'PKG-05'));
 
             const payload = {
-                Name: document.getElementById('tenantName').value,
-                TenantId: document.getElementById('tenantGuid').value,
+                Name: (document.getElementById('tenantName')?.value || '').trim(),
+                TenantId: (document.getElementById('tenantGuid')?.value || '').trim(),
                 ContactEmail: contactEmail,
+                Industry: industry,
+                ServiceSlaTier: slaTier,
+                AssignedTeam: assignedTeam,
+                SelectedPackage: selectedPkg,
                 AuthMethod: authMethod,
-                ClientId: document.getElementById('tenantClientId') ? document.getElementById('tenantClientId').value : '',
+                ClientId: (document.getElementById('tenantClientId')?.value || '').trim(),
                 CertificateThumbprint: certThumb,
                 KeyVaultCertificateName: certThumb,
+                CertExpiryDate: expiryDate ? expiryDate + 'T00:00:00Z' : '',
+                SecretExpiryDate: (authMethod === 'ClientSecret' && expiryDate) ? expiryDate + 'T00:00:00Z' : '',
                 ActiveServices: checkedServices,
-                RecipientEmails: [contactEmail, "mssp-reporting@cloudshield-mssp.com"],
-                HealthStatus: "Healthy",
+                ReportMode: reportMode,
+                ReportLanguage: reportLanguage,
+                ScheduleFrequency: dispatchFreq,
+                DispatchDay: dispatchDay,
+                DispatchTime: dispatchTime,
+                RecipientEmails: recipients,
+                AttachPdf: attachPdf,
+                AttachHtml: attachHtml,
+                IsDispatchActive: true,
+                HealthStatus: 'Healthy',
                 TotalEndpoints: 150,
-                GhostDevices: 2,
+                GhostDevices: 0,
                 OpenHighAlerts: 0,
-                SecureScore: 82.0
+                SecureScore: 82.0,
+                LogoData: logoData,
+                CreateCustomerUser: createCustomerUser,
+                CustomerUser: customerUserObj
             };
+
+            const submitBtn = document.getElementById('wizardBtnSubmit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>Sisteme Kaydediliyor...</span>';
+            }
 
             try {
                 const res = await fetch('/api/tenants', {
@@ -4085,12 +4472,18 @@ let allUsers = [];
                 if (res.ok && resData.success) {
                     closeAddTenantModal();
                     await loadTenants();
-                    alert(`✅ Müşteri (${payload.Name}) başarıyla sisteme eklendi!`);
+                    const userMsg = createCustomerUser ? `\n👤 Müşteri Portalı Kullanıcısı (${customerUserObj.email}) başarıyla tanımlandı.` : '';
+                    alert(`✅ Müşteri (${payload.Name}) başarıyla sisteme eklendi!\n🛡️ Servis Sayısı: ${checkedServices.length}\n⭐ SLA Seviyesi: ${slaTier}${userMsg}`);
                 } else {
                     alert(`❌ Müşteri ekleme hatası: ${resData.error || 'İşlem başarısız'}`);
                 }
             } catch (err) {
-                alert('Müşteri ekleme hatası: ' + err);
+                alert('Müşteri ekleme hatası: ' + err.message);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Kaydet ve Müşteriyi Ekle</span>';
+                }
             }
         }
 

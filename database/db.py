@@ -609,5 +609,202 @@ def get_tenant_credential_health(tenant_id, db_path=None):
     finally:
         conn.close()
 
+def sync_customer_to_db(tenant_dict, db_path=None):
+    """
+    Synchronizes tenant onboarding data from dictionary (tenants.json structure)
+    into SQLite relational tables:
+    - customers
+    - customer_services
+    - tenant_credential_health
+    - tenant_historical_metrics (seeds baseline snapshot if none exists)
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    cid = tenant_dict.get("Id") or f"tenant-{secrets.token_hex(3)}"
+    t_guid = tenant_dict.get("TenantId", cid)
+    c_name = tenant_dict.get("Name", "Unknown Customer")
+    c_email = tenant_dict.get("ContactEmail", "security-lead@cloudshield-mssp.com")
+    c_mode = tenant_dict.get("ReportMode", "Consolidated")
+    c_pkg = tenant_dict.get("SelectedPackage", "PKG-10")
+    c_conn = tenant_dict.get("ConnectionStatus", "LiveConnected")
+    c_hlth = tenant_dict.get("HealthStatus", "Healthy")
+    c_score = float(tenant_dict.get("SecureScore", 45.0))
+
+    try:
+        # 1. Upsert into customers
+        cur.execute("SELECT id FROM customers WHERE id = ? OR tenant_id = ?", (cid, t_guid))
+        crow = cur.fetchone()
+        if crow:
+            actual_id = crow["id"]
+            cur.execute("""
+                UPDATE customers SET
+                    tenant_id = ?,
+                    name = ?,
+                    contact_email = ?,
+                    report_mode = ?,
+                    selected_package = ?,
+                    connection_status = ?,
+                    health_status = ?,
+                    secure_score = ?
+                WHERE id = ?
+            """, (t_guid, c_name, c_email, c_mode, c_pkg, c_conn, c_hlth, c_score, actual_id))
+            cid = actual_id
+        else:
+            cur.execute("""
+                INSERT INTO customers (id, tenant_id, name, contact_email, report_mode, selected_package,
+                                       connection_status, health_status, secure_score, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (cid, t_guid, c_name, c_email, c_mode, c_pkg, c_conn, c_hlth, c_score, now))
+
+        # 2. Sync customer_services
+        active_svcs = tenant_dict.get("ActiveServices", [])
+        sla_tier = tenant_dict.get("ServiceSlaTier", "Gold")
+        for asvc in active_svcs:
+            cur.execute("SELECT id FROM services WHERE code = ?", (asvc,))
+            srow = cur.fetchone()
+            if srow:
+                svc_id = srow["id"]
+                cs_id = f"{cid}_{svc_id}"
+                cur.execute("SELECT id FROM customer_services WHERE customer_id = ? AND service_id = ?", (cid, svc_id))
+                cs_row = cur.fetchone()
+                if cs_row:
+                    cur.execute("""
+                        UPDATE customer_services SET
+                            service_level = ?,
+                            status = 'Onboarded',
+                            updated_at = ?
+                        WHERE id = ?
+                    """, (sla_tier, now, cs_row["id"]))
+                else:
+                    cur.execute("""
+                        INSERT INTO customer_services (id, customer_id, service_id, service_level, status, onboarded_at, updated_at)
+                        VALUES (?, ?, ?, ?, 'Onboarded', ?, ?)
+                    """, (cs_id, cid, svc_id, sla_tier, now, now))
+
+        # 3. Upsert tenant_credential_health
+        auth_data = tenant_dict.get("Auth", {}) if isinstance(tenant_dict.get("Auth"), dict) else {}
+        auth_method = tenant_dict.get("AuthMethod") or auth_data.get("Method", "Certificate")
+        secret_exp = auth_data.get("SecretExpiryDate") or tenant_dict.get("SecretExpiryDate")
+        cert_exp = auth_data.get("CertExpiryDate") or tenant_dict.get("CertExpiryDate")
+
+        days_left = None
+        target_exp = cert_exp or secret_exp
+        if target_exp:
+            try:
+                exp_clean = str(target_exp).replace("Z", "+00:00")
+                if "T" not in exp_clean and len(exp_clean) == 10:
+                    exp_clean += "T00:00:00+00:00"
+                exp_dt = datetime.fromisoformat(exp_clean)
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                days_left = max(0, (exp_dt - datetime.now(timezone.utc)).days)
+            except Exception:
+                pass
+
+        health_badge = "Healthy"
+        if days_left is not None:
+            if days_left <= 15:
+                health_badge = "Critical"
+            elif days_left <= 30:
+                health_badge = "Warning"
+
+        cur.execute("""
+            INSERT OR REPLACE INTO tenant_credential_health
+            (tenant_id, auth_type, secret_expiry_date, cert_expiry_date, last_preflight_check,
+             last_preflight_status, days_until_expiry, health_status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            cid,
+            auth_method,
+            secret_exp,
+            cert_exp,
+            now,
+            "Onboarding Preflight Verified",
+            days_left,
+            health_badge,
+            now
+        ))
+
+        # 4. Seed baseline monthly snapshot in tenant_historical_metrics if none exists
+        period_now = datetime.now(timezone.utc).strftime("%Y-%m")
+        cur.execute("SELECT COUNT(*) as cnt FROM tenant_historical_metrics WHERE tenant_id = ?", (cid,))
+        cnt_row = cur.fetchone()
+        if not cnt_row or cnt_row["cnt"] == 0:
+            cur.execute("""
+                INSERT OR REPLACE INTO tenant_historical_metrics
+                (tenant_id, period, service_code, secure_score, threats_blocked, critical_incidents,
+                 dlp_violations, phishing_blocked, pim_activations, device_compliance_pct, hours_saved,
+                 cost_avoidance_usd, recorded_at, raw_summary_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                cid, period_now, "CONSOLIDATED", c_score, 0, 0, 0, 0, 0, 100.0, 0.0, 0.0, now,
+                json.dumps({"period": period_now, "score": c_score, "source": "onboarding_baseline"})
+            ))
+
+        conn.commit()
+        return True
+    except Exception as ex:
+        print(f"[DB ERROR] sync_customer_to_db failed for {cid}: {ex}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def create_customer_portal_user(customer_id, display_name, email, role="CustomerCISO", password=None, db_path=None):
+    """
+    Provisions a customer-scoped self-service portal user (CustomerCISO or CustomerViewer)
+    and binds access assignment directly to the customer_id.
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    clean_email = email.strip().lower()
+    uid = f"usr-{secrets.token_hex(4)}"
+
+    role_id = "role-customer-ciso" if role == "CustomerCISO" else "role-customer-viewer"
+
+    try:
+        # Check if user already exists
+        cur.execute("SELECT id FROM users WHERE LOWER(upn) = ? OR LOWER(email) = ?", (clean_email, clean_email))
+        existing = cur.fetchone()
+        if existing:
+            user_id = existing["id"]
+        else:
+            user_id = uid
+            pwd_hash = None
+            pwd_salt = None
+            if password:
+                pwd_hash, pwd_salt = hash_password(password)
+            cur.execute("""
+                INSERT INTO users (id, organization_id, upn, display_name, email, department,
+                                   password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
+                VALUES (?, 'org-cloudshield', ?, ?, ?, 'Müşteri Bilgi Güvenliği', ?, ?, 1, 0, 'Local', ?)
+            """, (user_id, clean_email, display_name, clean_email, pwd_hash, pwd_salt, now))
+
+        # Assign role to this customer
+        asgn_id = f"asgn-{user_id}-{customer_id}"
+        cur.execute("""
+            INSERT OR REPLACE INTO access_assignments
+            (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+             service_scope, service_id, valid_from, is_temporary, is_active, created_by, created_at)
+            VALUES (?, 'User', ?, ?, 'Specific', ?, 'ALL', NULL, ?, 0, 1, 'system_onboarding', ?)
+        """, (asgn_id, user_id, role_id, customer_id, now, now))
+
+        # Membership in team-ciso-board
+        cur.execute("""
+            INSERT OR IGNORE INTO team_memberships (id, team_id, user_id, role_in_team, joined_at)
+            VALUES (?, 'team-ciso-board', ?, 'Executive', ?)
+        """, (f"tm-{user_id}-ciso", user_id, now))
+
+        conn.commit()
+        return {"userId": user_id, "email": clean_email, "role": role, "customerId": customer_id}
+    except Exception as ex:
+        print(f"[DB ERROR] create_customer_portal_user failed: {ex}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     init_db()
