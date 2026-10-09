@@ -1,0 +1,9 @@
+{
+  "ServiceCode": "SVC-MDC",
+  "Name": "DefenderCloud",
+  "DisplayName": "Microsoft Defender for Cloud (CSPM & CWPP)",
+  "Category": "CloudSecurity",
+  "Version": "1.0.0",
+  "Author": "CloudShield MSSP Automation Team",
+  "Description": "Defender for Cloud CSPM Güvenlik Skoru (Secure Score), kritik güvenlik önerileri, çoklu bulut duruş denetimi ve mevzuat uyum eklentisi."
+}

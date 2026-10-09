@@ -327,6 +327,21 @@
         "SVC-AI-SECURITY"
       ],
       "officialDocs": "https://learn.microsoft.com/en-us/graph/api/resources/auditlogroot"
+    },
+    "PERM-MDC-001": {
+      "id": "PERM-MDC-001",
+      "resource": "Azure Resource Manager / Microsoft.Security",
+      "resourceAppId": "797fba4c-4c70-4611-a7ff-47665453d9d0",
+      "permission": "Security Reader / Reader",
+      "type": "AzureRBAC",
+      "authProfile": "CoreSecurityReporting",
+      "requiresAdminConsent": false,
+      "licenseRequired": "Microsoft Defender for Cloud (Defender CSPM / Foundational CSPM)",
+      "reason": "Defender for Cloud Secure Score, güvenlik önerileri ve çoklu bulut duruş denetimi",
+      "services": [
+        "SVC-MDC"
+      ],
+      "officialDocs": "https://learn.microsoft.com/en-us/azure/defender-for-cloud/permissions"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "catalogVersion": "2.0.0",
-  "lastUpdated": "2026-09-09",
+  "catalogVersion": "3.1.0",
+  "lastUpdated": "2026-10-09",
   "queries": {
     "QRY-GRAPH-SECURE-SCORE": {
       "id": "QRY-GRAPH-SECURE-SCORE",
@@ -44,7 +44,7 @@
     },
     "QRY-GRAPH-THREAT-HUNTING": {
       "id": "QRY-GRAPH-THREAT-HUNTING",
-      "name": "Microsoft Graph Threat Hunting KQL Query",
+      "name": "Microsoft Graph Threat Hunting KQL Query Execution",
       "target": "Graph",
       "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
       "apiVersion": "v1.0",
@@ -68,11 +68,108 @@
       "rateLimit": "100 requests/min",
       "pagination": "@odata.nextLink"
     },
+    "QRY-GRAPH-DEVICE-ASR": {
+      "id": "QRY-GRAPH-DEVICE-ASR",
+      "name": "Defender for Endpoint ASR Rule Events",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "DeviceEvents | where ActionType startswith 'Asr' | summarize Blocks=countif(ActionType endswith 'Blocked'), Audits=countif(ActionType endswith 'Audited') by Rule=tostring(AdditionalFields.RuleName)",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-TVM-VULNS": {
+      "id": "QRY-GRAPH-TVM-VULNS",
+      "name": "MDE Vulnerability Exposure and CISA KEV",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "DeviceTvmSoftwareVulnerabilities | summarize DistinctDevices=dcount(DeviceId) by CveId | top 10 by DistinctDevices desc",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-EMAIL-EVENTS": {
+      "id": "QRY-GRAPH-EMAIL-EVENTS",
+      "name": "Defender for Office 365 Inbound Threat Events",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "EmailEvents | summarize Total=count(), Blocked=countif(DeliveryAction == 'Blocked'), Phish=countif(ThreatTypes has 'Phish'), Malware=countif(ThreatTypes has 'Malware') by DeliveryAction",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-EMAIL-POST-DELIVERY": {
+      "id": "QRY-GRAPH-EMAIL-POST-DELIVERY",
+      "name": "Defender for Office 365 ZAP Actions",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "EmailPostDeliveryEvents | where ActionType has 'ZAP' | summarize ZapSuccess=countif(ActionResult == 'Success'), ZapFailed=countif(ActionResult != 'Success')",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-URL-CLICKS": {
+      "id": "QRY-GRAPH-URL-CLICKS",
+      "name": "Defender for Office 365 Safe Links Click Protection",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "UrlClickEvents | summarize TotalClicks=count(), Blocked=countif(ActionType == 'ClickBlocked'), Warned=countif(ActionType == 'ClickWarning') by ActionType",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-IDENTITY-LOGON": {
+      "id": "QRY-GRAPH-IDENTITY-LOGON",
+      "name": "Defender for Identity Insecure Protocols (NTLMv1 / LDAP)",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "IdentityLogonEvents | where Protocol in ('NTLMv1', 'Ntlm') or FailureReason has 'LDAP' | summarize InsecureLogons=count(), DistinctDevices=dcount(DeviceName) by Protocol",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-GRAPH-CLOUD-APP-EVENTS": {
+      "id": "QRY-GRAPH-CLOUD-APP-EVENTS",
+      "name": "Defender for Cloud Apps Shadow IT & Upload Volumes",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+      "kql": "CloudAppEvents | where ActionType in ('Upload', 'FileUploaded') | summarize TotalUploadBytes=sum(tolong(AdditionalFields.BytesUploaded)), Users=dcount(AccountName) by Application | top 10 by TotalUploadBytes desc",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "POST",
+      "availabilityState": "SupportedAdvancedHunting"
+    },
+    "QRY-MDC-SECURE-SCORE": {
+      "id": "QRY-MDC-SECURE-SCORE",
+      "name": "Defender for Cloud CSPM Secure Score",
+      "target": "Azure Management / Graph",
+      "endpoint": "https://management.azure.com/providers/Microsoft.Security/secureScores?api-version=2020-01-01-preview",
+      "apiVersion": "2020-01-01-preview",
+      "status": "GA",
+      "method": "GET",
+      "availabilityState": "SupportedAppOnly"
+    },
+    "QRY-MDC-RECOMMENDATIONS": {
+      "id": "QRY-MDC-RECOMMENDATIONS",
+      "name": "Defender for Cloud Security Recommendations",
+      "target": "Azure Management",
+      "endpoint": "https://management.azure.com/providers/Microsoft.Security/assessments?api-version=2021-06-01",
+      "apiVersion": "2021-06-01",
+      "status": "GA",
+      "method": "GET",
+      "availabilityState": "SupportedAppOnly"
+    },
     "QRY-INTUNE-DEVICES": {
       "id": "QRY-INTUNE-DEVICES",
       "name": "Intune Managed Devices Inventory",
       "target": "Graph",
-      "endpoint": "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=id,deviceName,complianceState,operatingSystem,osVersion,lastSyncDateTime&$top=100",
+      "endpoint": "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=id,deviceName,complianceState,operatingSystem,osVersion,isEncrypted,lastSyncDateTime,managedDeviceOwnerType&$top=500",
       "apiVersion": "v1.0",
       "status": "GA",
       "method": "GET",
@@ -119,6 +216,26 @@
       "maxLookbackDays": 0,
       "rateLimit": "300 requests/min",
       "pagination": "@odata.nextLink"
+    },
+    "QRY-PRV-DLP-ALERTS": {
+      "id": "QRY-PRV-DLP-ALERTS",
+      "name": "Purview Data Loss Prevention Security Alerts",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=serviceSource eq 'dataLossPrevention'&$top=100",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "GET",
+      "availabilityState": "SupportedAppOnly"
+    },
+    "QRY-PRV-IRM-ALERTS": {
+      "id": "QRY-PRV-IRM-ALERTS",
+      "name": "Purview Insider Risk Management Alerts",
+      "target": "Graph",
+      "endpoint": "https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=serviceSource eq 'insiderRisk'&$top=100",
+      "apiVersion": "v1.0",
+      "status": "GA",
+      "method": "GET",
+      "availabilityState": "SupportedAppOnly"
     }
   }
 }

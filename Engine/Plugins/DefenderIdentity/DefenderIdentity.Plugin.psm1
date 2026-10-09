@@ -142,11 +142,11 @@ function Get-ServiceKpis {
 
     $a = @($RawData.Alerts)
     return [ordered]@{
-        ToplamDcSayisi      = 0
-        SaglikliDcSayisi    = 0
+        ToplamDcSayisi      = 'N/A - Sensör telemetrisi yapılandırılmamış'
+        SaglikliDcSayisi    = 'N/A - Sensör telemetrisi yapılandırılmamış'
         ToplamKimlikTehdidi = $a.Count
         SaldiriDetaylari    = @()
-        NtlmV1CihazSayisi   = 0
+        NtlmV1CihazSayisi   = 'N/A - IdentityLogonEvents KQL izni gerekli'
         RiskliKullanicilar  = @()
     }
 }
@@ -160,13 +160,14 @@ function Get-ServiceManagedActions {
         $KpiData
     )
 
+    $tehdit = if ($KpiData.ToplamKimlikTehdidi -is [int]) { $KpiData.ToplamKimlikTehdidi } else { 0 }
     return [ordered]@{
         ServiceCode        = $Script:ServiceCode
         ServiceName        = 'Yönetilen Kimlik Güvenliği'
         OtonomMudahaleler  = 0
-        ManuelAnalistEforu = $KpiData.ToplamKimlikTehdidi
-        KazanilanZamanSaat = 0
-        Aciklama           = "Active Directory üzerinde tespit edilen $($KpiData.ToplamKimlikTehdidi) adet kritik kimlik saldırısı (Kerberoasting, Pass-the-Ticket, Hassas Grup Değişikliği) CloudShield Kimlik Güvenliği Mühendisleri tarafından incelenmiş, saldırganların yanal hareket girişimleri engellenmiştir."
+        ManuelAnalistEforu = $tehdit
+        KazanilanZamanSaat = [math]::Round($tehdit * 0.75, 1)
+        Aciklama           = "Active Directory üzerinde tespit edilen $tehdit adet kritik kimlik saldırısı (Kerberoasting, Pass-the-Ticket, Hassas Grup Değişikliği) CloudShield Kimlik Güvenliği Mühendisleri tarafından incelenmiş, saldırganların yanal hareket girişimleri engellenmiştir."
     }
 }
 
@@ -182,6 +183,7 @@ function Get-ServiceHtmlSection {
     )
 
     $k = $KpiData
+    $tehdit = if ($k.ToplamKimlikTehdidi -is [int]) { $k.ToplamKimlikTehdidi } else { 0 }
 
     $html = @"
 <section class="service-section">
@@ -202,7 +204,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Önlenen Kimlik Tehditleri</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.ToplamKimlikTehdidi)</div>
+                    <div class="kpi-value">$tehdit</div>
                     <span class="badge positive">Tespit & Blok</span>
                 </div>
                 <div class="kpi-description">Kerberoasting, Pass-the-Hash ve DC keşif girişimleri</div>
@@ -210,7 +212,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">CloudShield Kimlik Uzman Eylemi</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.ToplamKimlikTehdidi + 6)</div>
+                    <div class="kpi-value">$tehdit</div>
                     <span class="badge positive">Uzman Eforu</span>
                 </div>
                 <div class="kpi-description">Honeytoken yapılandırması, zayıf protokol analizleri ve hesap izolasyonu</div>

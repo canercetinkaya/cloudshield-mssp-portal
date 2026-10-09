@@ -147,14 +147,14 @@ function Get-ServiceKpis {
 
     $a = @($RawData.Alerts)
     return [ordered]@{
-        ToplamKesfedilenUygulama = 0
-        YuksekRiskliUygulama     = 0
-        EngellenenOnaysizApp     = 0
-        OnayliKurumsalApp        = 0
+        ToplamKesfedilenUygulama = 'N/A - CloudAppEvents KQL izni gerekli'
+        YuksekRiskliUygulama     = if ($a.Count -gt 0) { $a.Count } else { 'N/A - Telemetri yapılandırılmamış' }
+        EngellenenOnaysizApp     = 'N/A - MDE Entegrasyonu gerekli'
+        OnayliKurumsalApp        = 'N/A - MDCA App Catalog yapılandırılmamış'
         EnRiskliYuklemeler       = @()
-        YuksekYetkiliOAuth       = 0
-        SupheliOAuthApp          = 0
-        SaaSAnomalileri          = @()
+        YuksekYetkiliOAuth       = 'N/A - Application.Read.All izni gerekli'
+        SupheliOAuthApp          = 'N/A - OAuth App Governance izni gerekli'
+        SaaSAnomalileri          = @($a)
     }
 }
 
@@ -167,13 +167,18 @@ function Get-ServiceManagedActions {
         $KpiData
     )
 
+    $engellenen = if ($KpiData.EngellenenOnaysizApp -is [int]) { $KpiData.EngellenenOnaysizApp } else { 0 }
+    $riskliApp   = if ($KpiData.YuksekRiskliUygulama -is [int]) { $KpiData.YuksekRiskliUygulama } else { 0 }
+    $oauthApp    = if ($KpiData.YuksekYetkiliOAuth -is [int]) { $KpiData.YuksekYetkiliOAuth } else { 0 }
+    $manuel      = $riskliApp + $oauthApp
+
     return [ordered]@{
         ServiceCode        = $Script:ServiceCode
         ServiceName        = 'Yönetilen Bulut Güvenliği (CASB)'
-        OtonomMudahaleler  = $KpiData.EngellenenOnaysizApp
-        ManuelAnalistEforu = $KpiData.YuksekRiskliUygulama + $KpiData.YuksekYetkiliOAuth
-        KazanilanZamanSaat = [math]::Round(($KpiData.EngellenenOnaysizApp * 20) / 60.0, 1)
-        Aciklama           = "Ağda tespit edilen $($KpiData.ToplamKesfedilenUygulama) bulut servisinden $($KpiData.EngellenenOnaysizApp) onaysız uygulama MDE üzerinden otonom engellenmiş, CloudShield analistleri $($KpiData.YuksekRiskliUygulama) adet yüksek riskli servisi ve $($KpiData.YuksekYetkiliOAuth) adet yüksek yetkili OAuth uygulamasını güvenlik denetiminden geçirmiştir."
+        OtonomMudahaleler  = $engellenen
+        ManuelAnalistEforu = $manuel
+        KazanilanZamanSaat = [math]::Round(($engellenen * 20) / 60.0, 1)
+        Aciklama           = "Ağda tespit edilen bulut servisleri ve SaaS anomalileri incelenmiş, CloudShield analistleri riskli servisleri ve yüksek yetkili OAuth uygulamalarını güvenlik denetiminden geçirmiştir."
     }
 }
 

@@ -76,11 +76,36 @@ function Get-ServiceRawData {
         }
     }
 
+    # Canlı modda Purview Insider Risk Alarmları
+    $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'SensitiveComplianceReporting'
+    $startZ = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    $endZ   = $EndDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    $filter = "serviceSource eq 'insiderRisk' and createdDateTime ge $startZ and createdDateTime lt $endZ"
+    $uri = "https://graph.microsoft.com/v1.0/security/alerts_v2?`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=50"
+
+    $alerts = @()
+    $availabilityState = 'SupportedAppOnly'
+    try {
+        $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
+        $alerts = if ($resp.value) { @($resp.value) } else { @() }
+        if ($alerts.Count -eq 0) {
+            $availabilityState = 'NoData'
+        }
+    }
+    catch {
+        $errMsg = $_.Exception.Message
+        $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                             elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                             else { 'CollectionFailed' }
+    }
+
     return [pscustomobject]@{
+        Alerts                  = $alerts
         InsiderRiskAlerts       = @()
         CommunicationCompliance = $null
         StartDate               = $StartDate
         EndDate                 = $EndDate
+        AvailabilityState       = $availabilityState
         IsMock                  = $false
     }
 }
@@ -96,17 +121,30 @@ function Get-ServiceKpis {
         [string] $Mode = 'Monthly'
     )
 
-    $irm = @($RawData.InsiderRiskAlerts)
-    $toplamIrm = 0
-    foreach ($row in $irm) { $toplamIrm += [int]$row.AlertCount }
+    if ($RawData.IsMock) {
+        $irm = @($RawData.InsiderRiskAlerts)
+        $toplamIrm = 0
+        foreach ($row in $irm) { $toplamIrm += [int]$row.AlertCount }
+        $cc = $RawData.CommunicationCompliance
 
-    $cc = $RawData.CommunicationCompliance
+        return [ordered]@{
+            ToplamIcTehditAlarmi  = $toplamIrm
+            IrmPolitikalari       = $irm
+            IletisimDenetimSayisi = if ($cc) { $cc.TotalFlaggedMessages } else { 0 }
+            HukukaEskaleEdilen    = if ($cc) { $cc.EscalatedToLegal } else { 0 }
+            AvailabilityState     = 'DirectAndVerified'
+        }
+    }
+
+    $a = @($RawData.Alerts)
+    $hasAlerts = $a.Count -gt 0
 
     return [ordered]@{
-        ToplamIcTehditAlarmi = $toplamIrm
-        IrmPolitikalari      = $irm
-        IletisimDenetimSayisi = if ($cc) { $cc.TotalFlaggedMessages } else { 0 }
-        HukukaEskaleEdilen    = if ($cc) { $cc.EscalatedToLegal } else { 0 }
+        ToplamIcTehditAlarmi  = if ($hasAlerts) { $a.Count } else { 'N/A - İzin veya lisans bulunmuyor' }
+        IrmPolitikalari       = @()
+        IletisimDenetimSayisi = 'N/A - İletişim Uyumu API yapılandırılmamış'
+        HukukaEskaleEdilen    = 0
+        AvailabilityState     = if ($hasAlerts) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
     }
 }
 

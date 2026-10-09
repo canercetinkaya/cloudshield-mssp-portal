@@ -169,9 +169,9 @@ function Get-ServiceKpis {
     $actCount = $acts.Count
     $avgHours = 4.0
 
-    $otonomJit = [math]::Max($actCount, 12)
-    $manuel = 8
-    $kazanilan = [math]::Round($otonomJit * 0.5 + $manuel * 0.75)
+    $otonomJit = $actCount
+    $manuel = if ($kaliciGa -gt 0) { $kaliciGa } else { 0 }
+    $kazanilan = if ($otonomJit -gt 0) { [math]::Round($otonomJit * 0.5, 1) } else { 0.0 }
 
     return [ordered]@{
         AvailabilityState      = $state

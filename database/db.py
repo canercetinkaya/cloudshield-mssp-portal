@@ -855,5 +855,114 @@ def create_customer_portal_user(customer_id, display_name, email, role="Customer
     finally:
         conn.close()
 
+def record_managed_activity(activity_dict, db_path=None):
+    """Inserts a verifiable managed service activity record."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    aid = activity_dict.get("activity_id") or f"ACT-{secrets.token_hex(4).upper()}"
+    try:
+        cur.execute("""
+            INSERT OR REPLACE INTO managed_service_activities
+            (activity_id, tenant_id, service_code, period, category, description,
+             ticket_ref, engineer_role, started_at, completed_at, status, related_risk,
+             related_target, requires_approval, approved_by, outcome, evidence_ref,
+             hours_spent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            aid,
+            activity_dict.get("tenant_id", "ALL"),
+            activity_dict.get("service_code", "GEN"),
+            activity_dict.get("period", ""),
+            activity_dict.get("category", "İnceleme"),
+            activity_dict.get("description", ""),
+            activity_dict.get("ticket_ref", ""),
+            activity_dict.get("engineer_role", "Senior SecOps Engineer"),
+            activity_dict.get("started_at", now),
+            activity_dict.get("completed_at", now),
+            activity_dict.get("status", "Tamamlandı"),
+            activity_dict.get("related_risk", ""),
+            activity_dict.get("related_target", ""),
+            1 if activity_dict.get("requires_approval") else 0,
+            activity_dict.get("approved_by"),
+            activity_dict.get("outcome", ""),
+            activity_dict.get("evidence_ref", ""),
+            float(activity_dict.get("hours_spent", 1.0)),
+            now
+        ))
+        conn.commit()
+        return aid
+    finally:
+        conn.close()
+
+def get_managed_activities(tenant_id, period=None, service_code=None, db_path=None):
+    """Retrieves verified managed service activities for tenant and period."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        query = "SELECT * FROM managed_service_activities WHERE (tenant_id = ? OR tenant_id = 'ALL')"
+        params = [tenant_id]
+        if period:
+            query += " AND period = ?"
+            params.append(period)
+        if service_code:
+            query += " AND service_code = ?"
+            params.append(service_code)
+        query += " ORDER BY completed_at DESC"
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def record_kpi_provenance(record_dict, db_path=None):
+    """Records the provenance and trust metadata of a generated KPI."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        cur.execute("""
+            INSERT INTO kpi_provenance_records
+            (tenant_id, period, service_code, kpi_id, metric_value, source_api,
+             query_used, data_freshness, trust_level, collected_at, completeness_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            record_dict.get("tenant_id"),
+            record_dict.get("period"),
+            record_dict.get("service_code"),
+            record_dict.get("kpi_id"),
+            str(record_dict.get("metric_value", "N/A")),
+            record_dict.get("source_api", "Unknown"),
+            record_dict.get("query_used", ""),
+            record_dict.get("data_freshness", "Real-Time"),
+            record_dict.get("trust_level", "Doğrudan ve kesin veri"),
+            record_dict.get("collected_at", now),
+            record_dict.get("completeness_status", "Tam veri")
+        ))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_kpi_provenance(tenant_id, period=None, service_code=None, db_path=None):
+    """Retrieves KPI provenance records."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        query = "SELECT * FROM kpi_provenance_records WHERE tenant_id = ?"
+        params = [tenant_id]
+        if period:
+            query += " AND period = ?"
+            params.append(period)
+        if service_code:
+            query += " AND service_code = ?"
+            params.append(service_code)
+        query += " ORDER BY collected_at DESC"
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     init_db()
