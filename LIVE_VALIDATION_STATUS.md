@@ -46,3 +46,7 @@ Bu afiş, kod tarafında `get_test_data_notice_banner(is_test=...)` fonksiyonu i
 | **Defender for Cloud Apps** | `https://graph.microsoft.com/beta/security/cloudAppSecurity` | - | Keşfedilen SaaS uygulamaları | ⏳ Kodlandı, Canlı Doğrulama Bekliyor |
 | **Defender for Cloud** | `https://management.azure.com/subscriptions/{id}/providers/Microsoft.Security/assessments` | - | Secure Score, öneriler | ⏳ Kodlandı, Canlı Doğrulama Bekliyor |
 | **Purview DSPM for AI** | `https://graph.microsoft.com/beta/security/aiInteractions` | 403 / Lisans Yok | Copilot etkileşim logları | 🚫 İzin veya Lisans Engelli |
+| **Lisans Envanteri (Subscribed SKUs)** | `https://graph.microsoft.com/v1.0/subscribedSkus` | 200 OK | Satın alınan ve tüketilen SKU koltukları | ✅ Canlı Tenant Üzerinde Doğrulandı |
+| **Kullanıcı Lisans Profilleri** | `https://graph.microsoft.com/v1.0/users?$select=...` | 200 OK | Kullanıcı rolleri ve atanan servis planları | ✅ Canlı Tenant Üzerinde Doğrulandı |
+| **Microsoft CDN Lisans Kataloğu** | `https://cdn-dynmedia-1.microsoft.com/...` | 200 OK (HEAD/GET) | Enterprise & SMB karşılaştırma PDF hash doğrulaması | ✅ Canlı CDN Üzerinde Doğrulandı |
+

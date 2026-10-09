@@ -46,7 +46,13 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from database.db import init_db, get_db, sync_customer_to_db, create_customer_portal_user
+from database.db import (
+    init_db, get_db, sync_customer_to_db, create_customer_portal_user,
+    save_license_inventory, get_license_inventory, save_user_license_profiles,
+    get_user_license_profiles, save_license_value_summary, get_license_value_summary,
+    save_workload_reconciliation, get_workload_reconciliation, save_license_snapshot,
+    get_license_snapshot, list_license_snapshots
+)
 try:
     from rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
     from rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
@@ -54,14 +60,29 @@ except ImportError:
     from Portal.api.rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
     from Portal.api.rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
 
+try:
+    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+except ImportError:
+    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
 
 try:
-
-    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
-
+    from license_intelligence import (
+        load_license_catalog, classify_user_persona, analyze_user_license_entitlements,
+        reconcile_workload_5_layers, check_smb_user_cap, compute_overall_value_index,
+        compare_license_snapshots, WORKLOADS_DEF
+    )
+    from license_collector import collect_tenant_license_intelligence
+    from license_report_generator import generate_license_health_report, render_license_pdf
+    from license_catalog_updater import check_remote_feed, get_feed_status
 except ImportError:
-
-    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+    from Portal.api.license_intelligence import (
+        load_license_catalog, classify_user_persona, analyze_user_license_entitlements,
+        reconcile_workload_5_layers, check_smb_user_cap, compute_overall_value_index,
+        compare_license_snapshots, WORKLOADS_DEF
+    )
+    from Portal.api.license_collector import collect_tenant_license_intelligence
+    from Portal.api.license_report_generator import generate_license_health_report, render_license_pdf
+    from Portal.api.license_catalog_updater import check_remote_feed, get_feed_status
 
 PORT = int(os.environ.get("PORT", 8080))
 
@@ -1450,6 +1471,212 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "credentialHealth": health
         })
 
+    def handle_licenses_get(self, path, query):
+        user = self.get_current_user()
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+
+        if path == "/api/licenses/catalog":
+            allow, _ = evaluate_access(user, "licenses:view", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "services:view", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Lisans kataloğunu görüntüleme yetkiniz bulunmamaktadır."}, status=403)
+                return
+            cat = load_license_catalog()
+            feed = get_feed_status()
+            self.send_json_response({"success": True, "catalog": cat, "feedStatus": feed})
+            return
+
+        elif path == "/api/licenses/catalog/feed-status":
+            allow, _ = evaluate_access(user, "licenses:view", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "services:view", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden)."}, status=403)
+                return
+            feed = get_feed_status()
+            self.send_json_response({"success": True, "feedStatus": feed})
+            return
+
+        tenant_id = query.get("tenantId", [None])[0]
+        if not tenant_id:
+            self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
+            return
+
+        allow, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+        if not allow:
+            self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' lisans verilerini görüntüleme yetkiniz yoktur."}, status=403)
+            return
+
+        if user:
+            assigned = user.get("AssignedTenants", ["ALL"])
+            if "ALL" not in assigned and tenant_id not in assigned:
+                self.send_json_response({"success": False, "error": "Bu müşteri kiracısının lisans verilerine erişim yetkiniz yoktur."}, status=403)
+                return
+
+        snapshot_date = query.get("snapshotDate", [None])[0]
+        period = query.get("period", [None])[0]
+
+        if path == "/api/licenses/inventory":
+            inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
+            if not inv:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "inventory": inv, "count": len(inv)})
+            return
+
+        elif path == "/api/licenses/users":
+            filter_val = query.get("filter", [None])[0]
+            users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
+            if not users_list:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "users": users_list, "count": len(users_list)})
+            return
+
+        elif path == "/api/licenses/value-summary":
+            summary = get_license_value_summary(tenant_id, period=period)
+            if not summary:
+                res = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                summary = res.get("summary")
+            self.send_json_response({"success": True, "tenantId": tenant_id, "summary": summary})
+            return
+
+        elif path == "/api/licenses/reconciliation":
+            recs = get_workload_reconciliation(tenant_id, period=period)
+            if not recs:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                recs = get_workload_reconciliation(tenant_id, period=period)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "reconciliations": recs, "count": len(recs)})
+            return
+
+        elif path == "/api/licenses/snapshots":
+            if period:
+                snap = get_license_snapshot(tenant_id, period)
+                if not snap:
+                    snap = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                self.send_json_response({"success": True, "tenantId": tenant_id, "snapshot": snap})
+            else:
+                snaps = list_license_snapshots(tenant_id)
+                if not snaps:
+                    collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                    snaps = list_license_snapshots(tenant_id)
+                self.send_json_response({"success": True, "tenantId": tenant_id, "snapshots": snaps})
+            return
+
+        elif path == "/api/licenses/diff":
+            from_p = query.get("fromPeriod", [None])[0]
+            to_p = query.get("toPeriod", [None])[0]
+            if not from_p or not to_p:
+                self.send_json_response({"success": False, "error": "Parametre eksik: fromPeriod ve toPeriod gereklidir."}, status=400)
+                return
+            s_from = get_license_snapshot(tenant_id, from_p)
+            s_to = get_license_snapshot(tenant_id, to_p)
+            diff = compare_license_snapshots(s_from, s_to)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "diff": diff})
+            return
+
+        elif path == "/api/licenses/report/html":
+            snap = get_license_snapshot(tenant_id, period) if period else None
+            if not snap:
+                data = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+            else:
+                data = snap.get("payload", {})
+            tenants = load_json_file(TENANTS_FILE, [])
+            t_meta = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            html = generate_license_health_report(data, t_meta)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            html_bytes = html.encode("utf-8")
+            self.send_header("Content-Length", str(len(html_bytes)))
+            self.end_headers()
+            self.wfile.write(html_bytes)
+            return
+
+        elif path == "/api/licenses/report/pdf":
+            allow_dl, _ = evaluate_access(user, "reports:download", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow_dl:
+                allow_dl, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow_dl:
+                self.send_json_response({"success": False, "error": "Rapor indirme yetkiniz bulunmamaktadır."}, status=403)
+                return
+
+            snap = get_license_snapshot(tenant_id, period) if period else None
+            if not snap:
+                data = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+            else:
+                data = snap.get("payload", {})
+            tenants = load_json_file(TENANTS_FILE, [])
+            t_meta = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            html = generate_license_health_report(data, t_meta)
+
+            cur_period = period or data.get("period", datetime.now().strftime("%Y-%m"))
+            out_pdf = os.path.join(OUTPUT_DIR, tenant_id, f"CloudShield_License_Report_{tenant_id}_{cur_period}.pdf")
+            ok, pdf_path = render_license_pdf(html, out_pdf)
+            if not ok or not os.path.exists(out_pdf):
+                self.send_json_response({"success": False, "error": f"PDF üretimi başarısız: {pdf_path}"}, status=500)
+                return
+
+            with open(out_pdf, "rb") as pf:
+                pdf_bytes = pf.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/pdf")
+            self.send_header("Content-Disposition", f'attachment; filename="CloudShield_License_Report_{cur_period}.pdf"')
+            self.send_header("Content-Length", str(len(pdf_bytes)))
+            self.end_headers()
+            self.wfile.write(pdf_bytes)
+            return
+
+        self.send_json_response({"success": False, "error": "Bilinmeyen lisans API yolu."}, status=404)
+
+    def handle_licenses_post(self, path, body):
+        user = self.get_current_user()
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+
+        if path == "/api/licenses/catalog/check-updates":
+            allow, _ = evaluate_access(user, "licenses:manage", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "PlatformAdmin", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Lisans kataloğu güncelleme kontrolü yetkiniz bulunmamaktadır."}, status=403)
+                return
+            force = body.get("force", True)
+            res = check_remote_feed(force=force)
+            record_audit_event("LICENSE_CATALOG_CHECK", user_id=user.get("id") if user else None,
+                               resource=path, decision="ALLOW", reason="CatalogUpdateCheckTriggered",
+                               ip_address=client_ip, details=res)
+            self.send_json_response({"success": True, "feedCheck": res})
+            return
+
+        elif path == "/api/licenses/collect":
+            tenant_id = body.get("tenantId")
+            if not tenant_id:
+                self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
+                return
+
+            allow, _ = evaluate_access(user, "licenses:manage", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' için lisans analizi çalıştırma yetkiniz yoktur."}, status=403)
+                return
+
+            if user:
+                assigned = user.get("AssignedTenants", ["ALL"])
+                if "ALL" not in assigned and tenant_id not in assigned:
+                    self.send_json_response({"success": False, "error": "Bu müşteri kiracısının lisanslarını yönetme yetkiniz yoktur."}, status=403)
+                    return
+
+            period = body.get("period")
+            dry_run = body.get("dryRun", True)
+
+            result = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=dry_run)
+            record_audit_event("LICENSE_INTELLIGENCE_COLLECT", user_id=user.get("id") if user else None,
+                               resource=path, decision="ALLOW", reason="LicenseIntelligenceCollected",
+                               ip_address=client_ip, details={"tenantId": tenant_id, "isLive": result.get("is_live", False)})
+            self.send_json_response({"success": True, "result": result})
+            return
+
+        self.send_json_response({"success": False, "error": "Bilinmeyen lisans API işlemi."}, status=404)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -1461,6 +1688,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         if path.startswith("/api/rbac/"):
             handle_rbac_get(self, path, query)
+            return
+
+        if path.startswith("/api/licenses/"):
+            self.handle_licenses_get(path, query)
             return
 
 
@@ -2310,6 +2541,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         if path.startswith("/api/rbac/"):
             handle_rbac_post(self, path, body)
+            return
+
+        if path.startswith("/api/licenses/"):
+            self.handle_licenses_post(path, body)
             return
 
 

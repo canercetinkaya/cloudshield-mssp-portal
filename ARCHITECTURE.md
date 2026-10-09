@@ -1,8 +1,8 @@
 # Sistem Mimarisi ve Teknik Şartname (ARCHITECTURE.md)
 ## CloudShield Security Reporting & Managed Services Visibility Platform
 
-**Belge Sürümü:** `3.1.0`  
-**Sürüm Başlığı:** `v3.1.0-REPORTING-VISIBILITY` (Build: 2026.10.09.1)  
+**Belge Sürümü:** `3.2.0`  
+**Sürüm Başlığı:** `v3.2.0-LICENSE-INTELLIGENCE` (Build: 2026.10.09.2)  
 **Sınıflandırma:** Kurumsal Sistem Mimarisi ve Güvenlik Spesifikasyonu  
 **Durum:** Kontrollü Pilot (Controlled Pilot Architecture)  
 **Çalışma Mimarisi:** Çift Motor (Python 3.11 Standart Kütüphane REST API + PowerShell 7.4 Telemetri Motoru)  
@@ -118,3 +118,22 @@ flowchart TD
 - **Veri Katmanı:** SQLite'tan **Azure Database for PostgreSQL (Flexible Server)**'a geçiş.
 - **Önbellek & Hız Sınırı:** Bellek içi sayaçtan **Azure Cache for Redis**'e geçiş.
 - **Ağ Güvenliği:** Azure Key Vault ve Container App altyapısının **VNet Entegrasyonu ve Private Endpoint** arkasına alınması.
+
+---
+
+## 5. Lisans Zekâsı ve Güvenlik Değer Gerçekleştirme Modülü (License Intelligence Engine)
+
+Sürüm 3.2.0 ile platforma eklenen bağımsız Lisans Zekâsı modülü, satın alınan Microsoft lisanslarının gerçek güvenlik değeri üretip üretmediğini 5 kademeli zincirde denetler:
+
+```
+[1. Hak Sahipliği] ➔ [2. Kullanıcı Ataması] ➔ [3. Servis Planı] ➔ [4. İlke Kapsamı] ➔ [5. Telemetri Kanıtı]
+```
+
+### Temel Bileşenler:
+1. **5 Katmanlı Mutabakat Motoru (`Portal/api/license_intelligence.py`):** 15 kurumsal iş yükünü 14 kanonik teknik statüyle etiketler.
+2. **Resmi Katalog ve CDN İzleyicisi (`Portal/api/license_catalog_updater.py`):** Microsoft Enterprise ve SMB karşılaştırma PDF dokümanlarını periyodik olarak SHA-256 hash kontrolleriyle izler.
+3. **Persona ve Hijyen Denetçisi:** Yönetici, Finans, İK, Admin ve Ön Hat profilleri bazında gereksiz atamaları, mükerrer hakları (E5+E3, E5+E5 Sec), ön koşulsuz eklentileri ve pasif kullanıcıları tespit eder.
+4. **Azure Tüketim Modeli İzolasyonu:** Defender for Cloud sunucu/bulut kaynaklarını kullanıcı koltuk modelinden ayrıştırarak raporlar.
+5. **Veritabanı Katmanı (Migrasyon 005):** `tenant_license_inventory`, `tenant_user_license_profiles`, `license_value_realization_summary`, `workload_license_reconciliation` ve `license_snapshots` tabloları.
+6. **20 Bölümlü Sağlık Raporu (`Portal/api/license_report_generator.py`):** Yönetici ve mühendislik seviyesinde HTML ve vektörel A4 PDF çıktıları üretir.
+

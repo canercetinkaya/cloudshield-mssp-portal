@@ -3,7 +3,7 @@
 > **Microsoft Güvenlik ve Uyumluluk İş Yükleri İçin Aylık Raporlama, Yönetilen Hizmet Görünürlüğü ve Denetim Platformu**
 
 [![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
-[![Sürüm](https://img.shields.io/badge/Sürüm-v3.1.0--REPORTING--VISIBILITY-blue.svg)](RELEASE_NOTES.md)
+[![Sürüm](https://img.shields.io/badge/Sürüm-v3.2.0--LICENSE--INTELLIGENCE-blue.svg)](RELEASE_NOTES.md)
 [![Durum](https://img.shields.io/badge/Durum-Kontrollü%20Pilot-orange.svg)](CONTROLLED_PILOT.md)
 [![Python](https://img.shields.io/badge/Python-3.11%20StdLib-green.svg)](Portal/api/)
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.4%20Core-blue.svg)](Engine/)
@@ -38,6 +38,7 @@ Platform, doğrulanmış kod yetenekleriyle şu işlevleri icra eder:
 5. **Gözlemlenen Değişiklikleri Raporlama:** Bilet veya form doldurma yükü olmadan, tenant konfigürasyonundaki somut iyileştirmeleri denetim izlerinden otomatik gösterir.
 6. **Çift Format Çıktı:** Vektörel HTML5 ve baskıya hazır A4 PDF çıktısı üretir; SHA-256 kriptografik mühür ile rapor bütünlüğü sağlar.
 7. **Zero Trust Kiracı İzolasyonu:** Müşterilerin yalnızca kendi raporlarına erişebileceği katı izolasyon duvarı uygular.
+8. **Lisans Zekâsı ve Güvenlik Değer Gerçekleştirme:** Satın alınan lisansların gerçek güvenlik değeri üretip üretmediğini 5 katmanda (Hak Sahipliği -> Atama -> Servis Planı -> İlke Kapsamı -> Telemetri Kanıtı) doğrular; 14 kanonik statü ve 20 bölümlü aylık sağlık raporu üretir.
 
 ---
 
@@ -135,16 +136,17 @@ flowchart TD
 ```
 ├── .github/                  # CI/CD iş akışları, issue ve pull request şablonları
 ├── Azure/                    # Azure Container Apps Bicep ve dağıtım betikleri
-├── config/                   # Merkezi KPI, sorgu, izin ve servis katalogları
+├── config/                   # Merkezi KPI, sorgu, izin ve lisanslama katalogları
+│   └── catalog/              # license-catalog.json ve catalog-feed-state.json
 ├── Data/                     # Kiracı tanımları, versiyon bilgisi ve şablon yapılandırmaları
-├── database/                 # SQLite şeması ve artımlı migrasyon dosyaları (001-004)
+├── database/                 # SQLite şeması ve artımlı migrasyon dosyaları (001-005)
 ├── Docker/                   # Hardened multi-stage Dockerfile ve entrypoint betiği
-├── docs/                     # Sistem mimarisi, güvenlik, uyumluluk dokümanları
+├── docs/                     # Sistem mimarisi, lisans zekâsı, güvenlik ve uyumluluk dokümanları
 │   └── samples/              # Sentetik etiketli HTML ve PDF örnek raporlar
 ├── Engine/                   # PowerShell 7.4 telemetri kolektörleri ve KQL motoru
-├── Portal/                   # Python 3.11 REST API, RBAC motoru, raporlama motoru ve web arayüzü
+├── Portal/                   # Python 3.11 REST API, RBAC motoru, lisans motoru, raporlama ve web UI
 ├── Scripts/                  # Kurulum, test ve örnek rapor üretim yardımcı betikleri
-└── tests/                    # Birim, güvenlik, kalite kapısı ve mutabakat testleri
+└── tests/                    # Birim, lisans zekâsı, güvenlik, kalite kapısı ve mutabakat testleri
 ```
 
 ---
@@ -176,8 +178,8 @@ Tarayıcınızda `http://localhost:8080` adresini açınız.
 
 ### Container ile Çalıştırma
 ```bash
-docker build -t cloudshield-reporting-platform:3.1.0 -f Docker/Dockerfile .
-docker run -d -p 8080:8080 --name cloudshield-app -e ENVIRONMENT=production -e MAX_REPLICAS=1 cloudshield-reporting-platform:3.1.0
+docker build -t cloudshield-reporting-platform:3.2.0 -f Docker/Dockerfile .
+docker run -d -p 8080:8080 --name cloudshield-app -e ENVIRONMENT=production -e MAX_REPLICAS=1 cloudshield-reporting-platform:3.2.0
 ```
 
 ---
@@ -198,9 +200,10 @@ docker run -d -p 8080:8080 --name cloudshield-app -e ENVIRONMENT=production -e M
 
 ## 11. Test ve Kalite Kapıları
 
-Platformda 4 kademeli otomatik test güvencesi bulunmaktadır:
-- **Birim ve Güvenlik Testleri (`tests/`):** 92 otomatik test (`python -m unittest discover tests`).
-- **Kapsamlı QA Test Paketi (`tests/test_comprehensive_qa.py`):** 60 platform kalite kapısı.
+Platformda 5 kademeli otomatik test güvencesi bulunmaktadır:
+- **Birim ve Güvenlik Testleri (`tests/`):** 119 otomatik test (`python -m unittest discover tests`).
+- **Lisans Zekâsı Test Paketi (`tests/test_license_intelligence.py`):** 27 kapsamlı 5-katmanlı mutabakat ve denetim testi.
+- **Kapsamlı QA Test Paketi (`tests/test_comprehensive_qa.py`):** 61 platform kalite kapısı.
 - **Kolektör-Rapor Mutabakat Testi (`tests/test_collector_to_report_reconciliation.py`):** 9 iş yükü mutabakat testi.
 - **Veri Doğruluk Kapıları (`tests/test_data_accuracy_gates.py`):** Sentetik çarpan ve bilet referansı yasağı kontrolleri.
 

@@ -16,7 +16,7 @@ Bu belge, CloudShield platformunun veri kalitesi mühendisliği ilkelerini, sent
 5. **Doğrulanmamış Formül Yasaktır:** Her KPI'ın arkasında açıkça dokümante edilmiş bir KQL sorgusu veya Graph API endpoint'i bulunmalıdır.
 6. **Microsoft Aksiyonları Ayrıştırılır:** Microsoft yerel mekanizmalarının yaptığı engellemeler (AIR, ZAP), CloudShield mühendislerinin işi gibi sunulamaz.
 7. **Kolektör Doğrulaması:** Kolektör tarafından doğrulanmayan hiçbir veri rapora aktarılamaz.
-8. **Mali Tasarruf ve Önlenen İhlal İddiası Yasaktır:** Gerçek zarara ve adli denetime dayanmayan kurgusal ROI veya dolar tasarrufu iddiaları rapordan kaldırılmıştır.
+8. **Mali Tasarruf ve Önlenen İhlal İddiası Yasaktır (Zero Fake Financial ROI):** Gerçek zarara, müşteriyle mutabık kalınmış fiyat listesine ve adli denetime dayanmayan kurgusal ROI, dolar/TL tasarruf veya "önlenen finansal zarar" iddiaları rapordan kaldırılmıştır. Lisans analizinde değer; para birimiyle değil, doğrudan hak sahipliği, aktif servis planı, ilke kapsamı ve doğrulanmış telemetri kanıtı ile ölçülür.
 9. **Kolektör-Rapor Mutabakatı:** Ham kolektör çıktısı ile HTML/PDF çıktısındaki sayılar arasında birebir eşleşme (`test_collector_to_report_reconciliation.py`) sağlanmalıdır.
 10. **Test Filigranı Güvencesi:** Canlı tenant üzerinde doğrulanmamış her rapor, üst kısmında belirgin bir test filigranı ile mühürlenir.
 

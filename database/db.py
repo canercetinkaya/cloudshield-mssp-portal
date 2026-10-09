@@ -176,7 +176,9 @@ def seed_default_data(conn):
         ("approvals:request", "Süreli (JIT) Erişim Talep Et", "approvals", "Zaman kısıtlı ve onay zorunlu süreli (JIT) erişim talebi (Entra PIM Sıfır Sürekli Yetki prensibi)"),
         ("approvals:decide", "Süreli (JIT) Erişim Taleplerini Onayla/Reddet", "approvals", "Bekleyen süreli yetki taleplerini SoD gözeterek yanıtlama"),
         ("audit:view", "Yetkilendirme Denetim Kütüğünü Gör", "audit", "Allow/Deny kararları ve güvenlik denetim izi"),
-        ("simulator:run", "Erişim Simülatörünü Çalıştır", "simulator", "Kullanıcı-Müşteri-Servis karar zinciri simülasyonu")
+        ("simulator:run", "Erişim Simülatörünü Çalıştır", "simulator", "Kullanıcı-Müşteri-Servis karar zinciri simülasyonu"),
+        ("licenses:view", "Lisans İstihbaratını Görüntüle", "licenses", "Lisans envanteri, 5 katmanlı değer gerçekleştirme ve optimizasyon analizlerini görüntüleme"),
+        ("licenses:manage", "Lisans Yönetimi ve Analizi", "licenses", "Lisans envanterini toplama, analiz çalıştırma ve snapshot yönetimi")
     ]
 
     for p_code, p_name, p_dom, p_desc in permissions_data:
@@ -215,22 +217,24 @@ def seed_default_data(conn):
         "PlatformAdmin": list(perm_map.keys()),
         "SecurityEngineer": [
             "reports:view", "reports:generate", "reports:download", "reports:review",
-            "customers:view", "services:view", "matrix:view", "teams:view", "approvals:request", "simulator:run"
+            "customers:view", "services:view", "matrix:view", "teams:view", "approvals:request", "simulator:run",
+            "licenses:view", "licenses:manage"
         ],
         "ComplianceSpecialist": [
             "reports:view", "reports:generate", "reports:download", "reports:review",
-            "customers:view", "services:view", "matrix:view", "teams:view", "approvals:request", "simulator:run"
+            "customers:view", "services:view", "matrix:view", "teams:view", "approvals:request", "simulator:run",
+            "licenses:view", "licenses:manage"
         ],
         "CustomerCISO": [
             "reports:view", "reports:download", "reports:review", "reports:approve",
-            "customers:view", "services:view", "matrix:view"
+            "customers:view", "services:view", "matrix:view", "licenses:view"
         ],
         "CustomerViewer": [
-            "reports:view", "reports:download", "customers:view"
+            "reports:view", "reports:download", "customers:view", "licenses:view"
         ],
         "Auditor": [
             "reports:view", "reports:download", "audit:view", "customers:view",
-            "services:view", "roles:view", "assignments:view", "teams:view", "matrix:view"
+            "services:view", "roles:view", "assignments:view", "teams:view", "matrix:view", "licenses:view"
         ],
         "ServiceOperator": [
             "reports:view", "customers:view", "services:view", "matrix:view"
@@ -969,6 +973,385 @@ def get_kpi_provenance(tenant_id, period=None, service_code=None, db_path=None):
             params.append(service_code)
         query += " ORDER BY collected_at DESC"
         cur.execute(query, params)
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+# ==============================================================================
+# CloudShield License Intelligence & Security Value Realization DB Helpers
+# ==============================================================================
+
+def save_license_inventory(tenant_id, snapshot_date, items, db_path=None):
+    """
+    Saves or updates tenant license inventory items for a given snapshot date.
+    Each item must contain: sku_id, sku_part_number, display_name, prepaid_units,
+    consumed_units, suspended_units, warning_units, capability_status.
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        for item in items:
+            cur.execute("""
+                INSERT INTO tenant_license_inventory
+                (tenant_id, snapshot_date, sku_id, sku_part_number, display_name,
+                 prepaid_units, consumed_units, suspended_units, warning_units,
+                 capability_status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(tenant_id, snapshot_date, sku_id) DO UPDATE SET
+                    sku_part_number = excluded.sku_part_number,
+                    display_name = excluded.display_name,
+                    prepaid_units = excluded.prepaid_units,
+                    consumed_units = excluded.consumed_units,
+                    suspended_units = excluded.suspended_units,
+                    warning_units = excluded.warning_units,
+                    capability_status = excluded.capability_status
+            """, (
+                tenant_id,
+                snapshot_date,
+                item.get("sku_id"),
+                item.get("sku_part_number", "Unknown"),
+                item.get("display_name", "Unknown SKU"),
+                int(item.get("prepaid_units", 0)),
+                int(item.get("consumed_units", 0)),
+                int(item.get("suspended_units", 0)),
+                int(item.get("warning_units", 0)),
+                item.get("capability_status", "Enabled"),
+                now
+            ))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_license_inventory(tenant_id, snapshot_date=None, db_path=None):
+    """Retrieves license inventory for a tenant, optionally filtered by snapshot_date."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        if snapshot_date:
+            cur.execute("""
+                SELECT * FROM tenant_license_inventory
+                WHERE tenant_id = ? AND snapshot_date = ?
+                ORDER BY sku_part_number ASC
+            """, (tenant_id, snapshot_date))
+        else:
+            cur.execute("""
+                SELECT * FROM tenant_license_inventory
+                WHERE tenant_id = ?
+                ORDER BY snapshot_date DESC, sku_part_number ASC
+            """, (tenant_id,))
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def save_user_license_profiles(tenant_id, snapshot_date, profiles, db_path=None):
+    """
+    Saves or updates user license profiles for persona classification and audit.
+    Each profile includes: user_id, user_principal_name, account_enabled, user_type,
+    department, job_title, usage_location, assigned_skus_json, assigned_plans_json,
+    assigned_by_group, persona_type, risk_indicators_json, value_status.
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        for p in profiles:
+            skus_json = p.get("assigned_skus_json")
+            if isinstance(skus_json, (list, dict)):
+                skus_json = json.dumps(skus_json)
+            plans_json = p.get("assigned_plans_json")
+            if isinstance(plans_json, (list, dict)):
+                plans_json = json.dumps(plans_json)
+            risk_json = p.get("risk_indicators_json")
+            if isinstance(risk_json, (list, dict)):
+                risk_json = json.dumps(risk_json)
+
+            cur.execute("""
+                INSERT INTO tenant_user_license_profiles
+                (tenant_id, snapshot_date, user_id, user_principal_name, account_enabled,
+                 user_type, department, job_title, usage_location, assigned_skus_json,
+                 assigned_plans_json, assigned_by_group, persona_type, risk_indicators_json,
+                 value_status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(tenant_id, snapshot_date, user_id) DO UPDATE SET
+                    user_principal_name = excluded.user_principal_name,
+                    account_enabled = excluded.account_enabled,
+                    user_type = excluded.user_type,
+                    department = excluded.department,
+                    job_title = excluded.job_title,
+                    usage_location = excluded.usage_location,
+                    assigned_skus_json = excluded.assigned_skus_json,
+                    assigned_plans_json = excluded.assigned_plans_json,
+                    assigned_by_group = excluded.assigned_by_group,
+                    persona_type = excluded.persona_type,
+                    risk_indicators_json = excluded.risk_indicators_json,
+                    value_status = excluded.value_status
+            """, (
+                tenant_id,
+                snapshot_date,
+                p.get("user_id"),
+                p.get("user_principal_name", ""),
+                1 if p.get("account_enabled", True) else 0,
+                p.get("user_type", "Member"),
+                p.get("department", ""),
+                p.get("job_title", ""),
+                p.get("usage_location", ""),
+                skus_json or "[]",
+                plans_json or "[]",
+                1 if p.get("assigned_by_group", False) else 0,
+                p.get("persona_type", "Standard Knowledge Worker"),
+                risk_json or "[]",
+                p.get("value_status", "Normal"),
+                now
+            ))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_user_license_profiles(tenant_id, snapshot_date=None, filter_type=None, db_path=None):
+    """
+    Retrieves user license profiles.
+    filter_type can be: 'duplicate', 'inactive_licensed', 'unlicensed_active', 'all'.
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        query = "SELECT * FROM tenant_user_license_profiles WHERE tenant_id = ?"
+        params = [tenant_id]
+        if snapshot_date:
+            query += " AND snapshot_date = ?"
+            params.append(snapshot_date)
+
+        if filter_type == "duplicate":
+            query += " AND value_status = 'Mükerrer Lisans Hakkı'"
+        elif filter_type == "inactive_licensed":
+            query += " AND value_status = 'Pasif Hesapta Atanmış Lisans'"
+        elif filter_type == "unlicensed_active":
+            query += " AND value_status = 'Kapsam Dışı Aktif Kullanıcı'"
+
+        query += " ORDER BY user_principal_name ASC"
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["assigned_skus"] = json.loads(d.get("assigned_skus_json") or "[]")
+            except Exception:
+                d["assigned_skus"] = []
+            try:
+                d["assigned_plans"] = json.loads(d.get("assigned_plans_json") or "[]")
+            except Exception:
+                d["assigned_plans"] = []
+            try:
+                d["risk_indicators"] = json.loads(d.get("risk_indicators_json") or "[]")
+            except Exception:
+                d["risk_indicators"] = []
+            result.append(d)
+        return result
+    finally:
+        conn.close()
+
+def save_license_value_summary(summary_dict, db_path=None):
+    """Saves or updates high-level license value realization summary for a tenant period."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        cur.execute("""
+            INSERT INTO license_value_realization_summary
+            (tenant_id, snapshot_date, period, total_licenses, assigned_licenses,
+             idle_licenses, total_users, licensed_active_users, unlicensed_active_users,
+             inactive_licensed_users, duplicate_entitlement_users, missing_prerequisite_addons,
+             service_health_score, overall_value_index, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(tenant_id, period) DO UPDATE SET
+                snapshot_date = excluded.snapshot_date,
+                total_licenses = excluded.total_licenses,
+                assigned_licenses = excluded.assigned_licenses,
+                idle_licenses = excluded.idle_licenses,
+                total_users = excluded.total_users,
+                licensed_active_users = excluded.licensed_active_users,
+                unlicensed_active_users = excluded.unlicensed_active_users,
+                inactive_licensed_users = excluded.inactive_licensed_users,
+                duplicate_entitlement_users = excluded.duplicate_entitlement_users,
+                missing_prerequisite_addons = excluded.missing_prerequisite_addons,
+                service_health_score = excluded.service_health_score,
+                overall_value_index = excluded.overall_value_index
+        """, (
+            summary_dict.get("tenant_id"),
+            summary_dict.get("snapshot_date", now[:10]),
+            summary_dict.get("period"),
+            int(summary_dict.get("total_licenses", 0)),
+            int(summary_dict.get("assigned_licenses", 0)),
+            int(summary_dict.get("idle_licenses", 0)),
+            int(summary_dict.get("total_users", 0)),
+            int(summary_dict.get("licensed_active_users", 0)),
+            int(summary_dict.get("unlicensed_active_users", 0)),
+            int(summary_dict.get("inactive_licensed_users", 0)),
+            int(summary_dict.get("duplicate_entitlement_users", 0)),
+            int(summary_dict.get("missing_prerequisite_addons", 0)),
+            float(summary_dict.get("service_health_score", 100.0)),
+            float(summary_dict.get("overall_value_index", 0.0)),
+            now
+        ))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_license_value_summary(tenant_id, period=None, db_path=None):
+    """Retrieves license value realization summary for a tenant."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        if period:
+            cur.execute("""
+                SELECT * FROM license_value_realization_summary
+                WHERE tenant_id = ? AND period = ?
+            """, (tenant_id, period))
+            row = cur.fetchone()
+            return dict(row) if row else None
+        else:
+            cur.execute("""
+                SELECT * FROM license_value_realization_summary
+                WHERE tenant_id = ?
+                ORDER BY period DESC
+            """, (tenant_id,))
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def save_workload_reconciliation(tenant_id, period, snapshot_date, reconciliations, db_path=None):
+    """
+    Saves 5-layer workload reconciliation entries.
+    Each item contains: workload_code, workload_name, entitlement_count, assignment_count,
+    service_plan_active_count, configuration_active_count, telemetry_active_count,
+    realization_status, gap_description.
+    """
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        for r in reconciliations:
+            cur.execute("""
+                INSERT INTO workload_license_reconciliation
+                (tenant_id, snapshot_date, period, workload_code, workload_name,
+                 entitlement_count, assignment_count, service_plan_active_count,
+                 configuration_active_count, telemetry_active_count, realization_status,
+                 gap_description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(tenant_id, period, workload_code) DO UPDATE SET
+                    snapshot_date = excluded.snapshot_date,
+                    workload_name = excluded.workload_name,
+                    entitlement_count = excluded.entitlement_count,
+                    assignment_count = excluded.assignment_count,
+                    service_plan_active_count = excluded.service_plan_active_count,
+                    configuration_active_count = excluded.configuration_active_count,
+                    telemetry_active_count = excluded.telemetry_active_count,
+                    realization_status = excluded.realization_status,
+                    gap_description = excluded.gap_description
+            """, (
+                tenant_id,
+                snapshot_date,
+                period,
+                r.get("workload_code"),
+                r.get("workload_name", r.get("workload_code")),
+                int(r.get("entitlement_count", 0)),
+                int(r.get("assignment_count", 0)),
+                int(r.get("service_plan_active_count", 0)),
+                int(r.get("configuration_active_count", 0)),
+                int(r.get("telemetry_active_count", 0)),
+                r.get("realization_status", "Canlı Doğrulama Bekliyor"),
+                r.get("gap_description", ""),
+                now
+            ))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_workload_reconciliation(tenant_id, period=None, db_path=None):
+    """Retrieves 5-layer workload reconciliation records for a tenant."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        if period:
+            cur.execute("""
+                SELECT * FROM workload_license_reconciliation
+                WHERE tenant_id = ? AND period = ?
+                ORDER BY workload_code ASC
+            """, (tenant_id, period))
+        else:
+            cur.execute("""
+                SELECT * FROM workload_license_reconciliation
+                WHERE tenant_id = ?
+                ORDER BY period DESC, workload_code ASC
+            """, (tenant_id,))
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def save_license_snapshot(snapshot_id, tenant_id, period, snapshot_date, payload_dict, db_path=None):
+    """Saves complete license intelligence payload snapshot for monthly diffs and tracking."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        payload_str = json.dumps(payload_dict, ensure_ascii=False) if isinstance(payload_dict, dict) else str(payload_dict)
+        cur.execute("""
+            INSERT INTO license_snapshots
+            (snapshot_id, tenant_id, period, snapshot_date, payload_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(tenant_id, period) DO UPDATE SET
+                snapshot_id = excluded.snapshot_id,
+                snapshot_date = excluded.snapshot_date,
+                payload_json = excluded.payload_json,
+                created_at = excluded.created_at
+        """, (snapshot_id, tenant_id, period, snapshot_date, payload_str, now))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def get_license_snapshot(tenant_id, period, db_path=None):
+    """Retrieves a license snapshot by tenant and period."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT * FROM license_snapshots
+            WHERE tenant_id = ? AND period = ?
+        """, (tenant_id, period))
+        row = cur.fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        try:
+            d["payload"] = json.loads(d["payload_json"])
+        except Exception:
+            d["payload"] = {}
+        return d
+    finally:
+        conn.close()
+
+def list_license_snapshots(tenant_id, db_path=None):
+    """Lists available snapshot periods for a tenant."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT snapshot_id, tenant_id, period, snapshot_date, created_at
+            FROM license_snapshots
+            WHERE tenant_id = ?
+            ORDER BY period DESC
+        """, (tenant_id,))
         rows = cur.fetchall()
         return [dict(r) for r in rows]
     finally:
