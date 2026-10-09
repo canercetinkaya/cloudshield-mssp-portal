@@ -8,7 +8,7 @@ FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
 # OCI Standard Metadata Labels
 LABEL org.opencontainers.image.title="CloudShield Security Reporting & Managed Services Visibility Platform"
 LABEL org.opencontainers.image.description="Automated Microsoft Security & Compliance Monthly Reporting and Managed Services Visibility Engine"
-LABEL org.opencontainers.image.version="3.1.0"
+LABEL org.opencontainers.image.version="3.2.0"
 LABEL org.opencontainers.image.vendor="CloudShield Platform Team"
 LABEL org.opencontainers.image.source="https://github.com/canercetinkaya/cloudshield-mssp-portal"
 LABEL org.opencontainers.image.licenses="Proprietary"
@@ -55,6 +55,10 @@ RUN python3 -m py_compile /app/Portal/api/report_generator.py && \
     python3 -m py_compile /app/Portal/api/server.py && \
     python3 -m py_compile /app/Portal/api/rbac_engine.py && \
     python3 -m py_compile /app/Portal/api/rbac_handlers.py && \
+    python3 -m py_compile /app/Portal/api/license_intelligence.py && \
+    python3 -m py_compile /app/Portal/api/license_collector.py && \
+    python3 -m py_compile /app/Portal/api/license_catalog_updater.py && \
+    python3 -m py_compile /app/Portal/api/license_report_generator.py && \
     python3 -m py_compile /app/database/db.py && \
     echo "[BUILD] Python syntax verification passed."
 

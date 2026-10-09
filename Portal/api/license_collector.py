@@ -119,6 +119,10 @@ def collect_tenant_license_intelligence(tenant_id, period=None, access_token=Non
         # Classify Persona
         persona = classify_user_persona(u, admin_roles)
 
+        # Process licenseAssignmentStates
+        license_states = u.get("licenseAssignmentStates") or u.get("license_assignment_states") or []
+        has_group_assign = any(bool(ls.get("assignedByGroup")) for ls in license_states if isinstance(ls, dict)) or bool(u.get("assigned_by_group", False))
+
         profile = {
             "user_id": u_id,
             "user_principal_name": upn,
@@ -131,7 +135,9 @@ def collect_tenant_license_intelligence(tenant_id, period=None, access_token=Non
             "assigned_skus_json": json.dumps(assigned_skus),
             "assigned_plans": u.get("assignedPlans") or u.get("assigned_plans") or [],
             "assigned_plans_json": json.dumps(u.get("assignedPlans") or u.get("assigned_plans") or []),
-            "assigned_by_group": u.get("assigned_by_group", False),
+            "license_assignment_states": license_states,
+            "license_assignment_states_json": json.dumps(license_states),
+            "assigned_by_group": has_group_assign,
             "persona_type": persona
         }
 
@@ -233,34 +239,66 @@ def collect_tenant_license_intelligence(tenant_id, period=None, access_token=Non
     return full_payload
 
 def _fetch_live_graph_data(access_token):
-    """Fetches subscribedSkus, users, and directory roles via live Microsoft Graph API."""
+    """
+    Fetches subscribedSkus, users, and directory roles via live Microsoft Graph API.
+    Strictly follows Least Privilege:
+    - Organization.Read.All
+    - User.Read.All
+    - RoleManagement.Read.Directory (or Directory.Read.All)
+    If 403 Forbidden is returned, captures missing permission state gracefully without crashing.
+    """
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "User-Agent": "CloudShield-LicenseIntelligence/3.2.0"
     }
 
-    # 1. Subscribed SKUs
-    req_skus = urllib.request.Request("https://graph.microsoft.com/v1.0/subscribedSkus", headers=headers)
-    with urllib.request.urlopen(req_skus, timeout=15) as resp:
-        skus_data = json.loads(resp.read().decode("utf-8")).get("value", [])
-
-    # 2. Users
-    user_url = "https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,accountEnabled,userType,department,jobTitle,usageLocation,assignedLicenses,assignedPlans&$top=999"
-    req_users = urllib.request.Request(user_url, headers=headers)
-    with urllib.request.urlopen(req_users, timeout=20) as resp:
-        users_data = json.loads(resp.read().decode("utf-8")).get("value", [])
-
-    # 3. Directory Roles (Admin check)
+    skus_data = []
+    users_data = []
     admin_roles = []
+    permission_errors = []
+
+    # 1. Subscribed SKUs (Requires Organization.Read.All)
+    try:
+        req_skus = urllib.request.Request("https://graph.microsoft.com/v1.0/subscribedSkus", headers=headers)
+        with urllib.request.urlopen(req_skus, timeout=15) as resp:
+            skus_data = json.loads(resp.read().decode("utf-8")).get("value", [])
+    except urllib.error.HTTPError as ex:
+        if ex.code == 403:
+            logger.warning("En Az Yetki Denetimi: /v1.0/subscribedSkus için 'Organization.Read.All' izni eksik (403 Forbidden).")
+            permission_errors.append("Organization.Read.All")
+        else:
+            raise
+
+    # 2. Users with licenseAssignmentStates (Requires User.Read.All)
+    try:
+        user_url = "https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,accountEnabled,userType,department,jobTitle,usageLocation,assignedLicenses,assignedPlans,licenseAssignmentStates&$top=999"
+        req_users = urllib.request.Request(user_url, headers=headers)
+        with urllib.request.urlopen(req_users, timeout=20) as resp:
+            users_data = json.loads(resp.read().decode("utf-8")).get("value", [])
+    except urllib.error.HTTPError as ex:
+        if ex.code == 403:
+            logger.warning("En Az Yetki Denetimi: /v1.0/users için 'User.Read.All' izni eksik (403 Forbidden).")
+            permission_errors.append("User.Read.All")
+        else:
+            raise
+
+    # 3. Directory Roles for Admin Persona Check (Requires RoleManagement.Read.Directory or Directory.Read.All)
     try:
         req_roles = urllib.request.Request("https://graph.microsoft.com/v1.0/directoryRoles", headers=headers)
         with urllib.request.urlopen(req_roles, timeout=10) as resp:
             roles_data = json.loads(resp.read().decode("utf-8")).get("value", [])
             for r in roles_data:
                 admin_roles.append(r.get("displayName", ""))
+    except urllib.error.HTTPError as ex:
+        if ex.code == 403:
+            logger.info("En Az Yetki: /v1.0/directoryRoles salt-okunur admin rol izni yok; unvan bazlı persona analizi kullanılacak.")
+            permission_errors.append("RoleManagement.Read.Directory")
     except Exception:
         pass
+
+    if permission_errors and not skus_data and not users_data:
+        logger.error(f"Eksik Graph İzinleri Nedeniyle Veri Toplanamadı: {', '.join(permission_errors)}")
 
     return skus_data, users_data, admin_roles
 
@@ -331,9 +369,10 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Chief Executive Officer (CEO)",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}]
+            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}],
+            "licenseAssignmentStates": [{"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         },
-        # 2. Sec / IT Admin
+        # 2. Sec / IT Admin (Group-based assignment)
         {
             "id": "u-002",
             "displayName": "Caner Çetinkaya",
@@ -344,9 +383,10 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Lead Security Engineer",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}]
+            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}],
+            "licenseAssignmentStates": [{"assignedByGroup": "grp-sec-engineers-01", "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         },
-        # 3. Finance / Sensitive Data
+        # 3. Finance / Sensitive Data (Group-based assignment)
         {
             "id": "u-003",
             "displayName": "Zeynep Kaya",
@@ -357,7 +397,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Finans Direktörü",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": [{"servicePlanName": "MIPC", "provisioningStatus": "Success"}]
+            "assignedPlans": [{"servicePlanName": "MIPC", "provisioningStatus": "Success"}],
+            "licenseAssignmentStates": [{"assignedByGroup": "grp-finance-dept-01", "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         },
         # 4. HR / PII
         {
@@ -370,9 +411,10 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "İK Müdürü",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": [{"servicePlanName": "MIPC", "provisioningStatus": "Success"}]
+            "assignedPlans": [{"servicePlanName": "MIPC", "provisioningStatus": "Success"}],
+            "licenseAssignmentStates": [{"assignedByGroup": "grp-hr-dept-01", "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         },
-        # 5. Dev / DevOps
+        # 5. Dev / DevOps (Direct assignment with an explicit disabled plan)
         {
             "id": "u-005",
             "displayName": "Burak Şahin",
@@ -383,7 +425,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Kıdemli Yazılım Mühendisi",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "05e023e4-d397-4574-a818-b27b878ec968", "skuPartNumber": "SPE_E3"}],
-            "assignedPlans": []
+            "assignedPlans": [],
+            "licenseAssignmentStates": [{"assignedByGroup": None, "disabledPlans": ["8e56dc90-5028-40a4-b0f7-54388e67a746"], "error": "None", "skuId": "05e023e4-d397-4574-a818-b27b878ec968", "state": "Active"}]
         },
         # 6. DUPLICATE ENTITLEMENT: User has both SPE_E5 and SPE_E3!
         {
@@ -399,7 +442,11 @@ def _generate_synthetic_tenant_data(tenant_id):
                 {"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"},
                 {"skuId": "05e023e4-d397-4574-a818-b27b878ec968", "skuPartNumber": "SPE_E3"}
             ],
-            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}]
+            "assignedPlans": [{"servicePlanName": "WINDEFATP", "provisioningStatus": "Success"}],
+            "licenseAssignmentStates": [
+                {"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"},
+                {"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "05e023e4-d397-4574-a818-b27b878ec968", "state": "Active"}
+            ]
         },
         # 7. INACTIVE USER WITH LICENSES (Atıl Lisans Riski)
         {
@@ -412,7 +459,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Eski Satış Temsilcisi",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": []
+            "assignedPlans": [],
+            "licenseAssignmentStates": [{"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         },
         # 8. MISSING PREREQUISITE: Add-on without base
         {
@@ -425,7 +473,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Pazarlama Uzmanı",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "b0563a55-0822-463e-9080-690a64936b85", "skuPartNumber": "SPE_E5_SEC"}],
-            "assignedPlans": []
+            "assignedPlans": [],
+            "licenseAssignmentStates": [{"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "b0563a55-0822-463e-9080-690a64936b85", "state": "Active"}]
         },
         # 9. UNLICENSED ACTIVE USER (Coverage gap)
         {
@@ -438,7 +487,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Lojistik Sorumlusu",
             "usageLocation": "TR",
             "assignedLicenses": [],
-            "assignedPlans": []
+            "assignedPlans": [],
+            "licenseAssignmentStates": []
         },
         # 10. Service Account with E5
         {
@@ -451,7 +501,8 @@ def _generate_synthetic_tenant_data(tenant_id):
             "jobTitle": "Sistem Yedekleme Servis Hesabı",
             "usageLocation": "TR",
             "assignedLicenses": [{"skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "skuPartNumber": "SPE_E5"}],
-            "assignedPlans": []
+            "assignedPlans": [],
+            "licenseAssignmentStates": [{"assignedByGroup": None, "disabledPlans": [], "error": "None", "skuId": "06e2b970-d779-4be0-9168-26d6e502024e", "state": "Active"}]
         }
     ]
 

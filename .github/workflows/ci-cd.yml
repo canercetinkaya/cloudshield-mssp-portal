@@ -29,10 +29,10 @@ jobs:
         shell: bash
         run: |
           echo "=== 1. Python Kod Doğrulaması ==="
-          python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py database/db.py
+          python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py Portal/api/license_intelligence.py Portal/api/license_collector.py Portal/api/license_catalog_updater.py Portal/api/license_report_generator.py database/db.py
           
           echo "=== 2. JSON Dosyaları Sözdizim Doğrulaması ==="
-          python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
+          python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json', 'config/catalog/license-catalog.json', 'config/catalog/catalog-feed-state.json', 'version.json', 'Data/version.json']]"
           
           echo "=== 3. Zero SOC / Bilet İzolasyon Denetimi ==="
           python3 - <<'PYEOF'
@@ -86,7 +86,7 @@ PYEOF
           Write-Host "KQL Motoru Başarıyla Yüklendi. Tanımlı Sorgu Sayısı: $($queries.Count)"
 
   container-build-smoke:
-    name: 🐳 Container Image Build & Smoke Test
+    name: 🐳 Container Build, Smoke Test, Security Scan & SBOM
     needs: validate-and-test
     runs-on: ubuntu-latest
 
@@ -94,9 +94,15 @@ PYEOF
       - name: 📥 Depoyu Klonla (Checkout)
         uses: actions/checkout@v4
 
-      - name: 🔨 Container İmajını Derle
+      - name: 🔨 Container İmajını Derle (3.2.0-pilot & sha-<commit>)
         run: |
-          docker build -t cloudshield-reporting-platform:ci-test -f Docker/Dockerfile .
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cloudshield-reporting-platform"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          docker build \
+            -t "$IMAGE_NAME:3.2.0-pilot" \
+            -t "$IMAGE_NAME:sha-${{ github.sha }}" \
+            -t "cloudshield-reporting-platform:ci-test" \
+            -f Docker/Dockerfile .
 
       - name: 🧪 Container Başlatma & Smoke Test
         run: |
@@ -109,8 +115,48 @@ PYEOF
           sleep 5
           docker logs test-app
           curl --fail --retry 5 --retry-delay 2 http://localhost:8080/api/health
-          curl --fail http://localhost:8080/api/version
+          VERSION_RESP=$(curl --fail http://localhost:8080/api/version)
+          echo "Version Response: $VERSION_RESP"
+          echo "$VERSION_RESP" | grep -q "v3.2.0-LICENSE-INTELLIGENCE"
           docker stop test-app
+
+      - name: 🛡️ Container Güvenlik Açığı Taraması (Trivy Scan)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "cloudshield-reporting-platform:ci-test"
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: 📦 SBOM Üretimi (SPDX JSON Formatı)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "cloudshield-reporting-platform:ci-test"
+          format: 'spdx-json'
+          output: 'sbom-cloudshield-3.2.0.spdx.json'
+
+      - name: 📤 SBOM Dosyasını Arşivle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudshield-sbom-v3.2.0
+          path: sbom-cloudshield-3.2.0.spdx.json
+
+      - name: 🔐 GHCR Girişi Yap (GitHub Container Registry)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Container İmajını GHCR'ye Gönder (3.2.0-pilot & sha-<commit>)
+        run: |
+          docker push "$IMAGE_NAME:3.2.0-pilot"
+          docker push "$IMAGE_NAME:sha-${{ github.sha }}"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:3.2.0-pilot" || echo "digest-pending")
+          echo "IMAGE_DIGEST=$DIGEST" >> $GITHUB_ENV
+          echo "Pushed Image Digest: $DIGEST"
 
   azure-arm-validate:
     name: ☁️ Azure Resource Manager & Bicep Validation

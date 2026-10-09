@@ -173,11 +173,12 @@ def classify_user_persona(user_dict, admin_roles=None):
 def analyze_user_license_entitlements(user_profile, catalog=None):
     """
     Analyzes a user's assigned licenses against catalog rules:
+    - Inspects licenseAssignmentStates for group vs direct assignment, disabled plans, and assignment errors
+    - Delineates SKU entitlement vs service plan enablement
     - Detects duplicate/overlapping SKUs
     - Detects add-on prerequisite violations
-    - Detects disabled critical service plans
     - Detects licensed inactive accounts
-    Returns (status_label, risk_indicators, recommendations)
+    Returns (status_label, risk_indicators, recommendations) with calibrated advisory phrasing.
     """
     catalog = catalog or load_license_catalog()
     skus = user_profile.get("assigned_skus", [])
@@ -185,6 +186,7 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
     account_enabled = user_profile.get("account_enabled", True)
     persona = user_profile.get("persona_type", "Standard Knowledge Worker")
     upn = user_profile.get("user_principal_name", "")
+    license_states = user_profile.get("license_assignment_states") or user_profile.get("licenseAssignmentStates") or []
 
     risk_indicators = []
     recommendations = []
@@ -194,7 +196,7 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
     if not account_enabled and len(skus) > 0:
         value_status = STATUS_ASSIGNED_IDLE
         risk_indicators.append(f"Pasif kullanıcı hesabında {len(skus)} adet lisans atanmış duruyor (Atıl Lisans Riski).")
-        recommendations.append("Kullanıcı lisanslarını geri çekerek (reclaim) havuzda değerlendirin veya abonelik adedini optimize edin.")
+        recommendations.append("Pasif durumdaki hesaba atanmış lisansların geri kazanılarak (license reclaim) aktif kullanıcı havuzuna aktarılması veya bir sonraki sözleşme döneminde optimize edilmesi tavsiye edilir.")
         return value_status, risk_indicators, recommendations
 
     # 2. Duplicate / Overlapping Entitlement Check
@@ -204,31 +206,31 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
     if SKU_M365_E5 in sku_parts and SKU_M365_E3 in sku_parts:
         value_status = STATUS_DUPLICATE_ENTITLEMENT
         risk_indicators.append("Mükerrer Lisans: Microsoft 365 E5 ve Microsoft 365 E3 aynı kullanıcıya atanmış.")
-        recommendations.append("M365 E3 lisansını kaldırın; E5 tüm E3 haklarını ve gelişmiş güvenliği kapsar.")
+        recommendations.append("M365 E5 paketi tüm E3 yeteneklerini kapsadığından, mükerrer atanan M365 E3 koltuğunun optimizasyon amacıyla incelenmesi ve boşa çıkarılması değerlendirilebilir.")
 
     # Rule: E5 already includes E5 Security
     if SKU_M365_E5 in sku_parts and SKU_E5_SEC in sku_parts:
         value_status = STATUS_DUPLICATE_ENTITLEMENT
         risk_indicators.append("Mükerrer Lisans: Microsoft 365 E5 paketi E5 Security yeteneklerini zaten içerir, bağımsız E5 Security add-on gereksizdir.")
-        recommendations.append("SPE_E5_SEC lisansını kullanıcıdan çekin.")
+        recommendations.append("M365 E5 paketi E5 Security yeteneklerini zaten barındırmaktadır; bağımsız SPE_E5_SEC eklentisinin boşa çıkarılarak lisans havuzuna iadesi değerlendirilmelidir.")
 
     # Rule: E5 already includes E5 Compliance
     if SKU_M365_E5 in sku_parts and SKU_E5_COMP in sku_parts:
         value_status = STATUS_DUPLICATE_ENTITLEMENT
         risk_indicators.append("Mükerrer Lisans: Microsoft 365 E5 paketi E5 Compliance yeteneklerini zaten içerir, bağımsız E5 Compliance add-on gereksizdir.")
-        recommendations.append("SPE_E5_COMP lisansını kullanıcıdan çekin.")
+        recommendations.append("M365 E5 paketi E5 Compliance yeteneklerini zaten barındırmaktadır; bağımsız SPE_E5_COMP eklentisinin boşa çıkarılarak lisans havuzuna iadesi değerlendirilmelidir.")
 
     # Rule: Business Premium supersedes Business Standard
     if SKU_M365_BUS_PREM in sku_parts and SKU_M365_BUS_STD in sku_parts:
         value_status = STATUS_DUPLICATE_ENTITLEMENT
         risk_indicators.append("Mükerrer Lisans: Business Premium ve Business Standard bir arada atanmış.")
-        recommendations.append("Business Standard lisansını kaldırın.")
+        recommendations.append("Business Premium paketi Business Standard yeteneklerini kapsadığından, mükerrer Business Standard lisansının optimizasyon amacıyla boşa çıkarılması tavsiye edilir.")
 
     # Rule: O365 E3 + M365 E3 overlap
     if SKU_O365_E3 in sku_parts and SKU_M365_E3 in sku_parts:
         value_status = STATUS_DUPLICATE_ENTITLEMENT
         risk_indicators.append("Mükerrer Lisans: Office 365 E3 ve Microsoft 365 E3 üst üste atanmış.")
-        recommendations.append("Office 365 E3 lisansını kaldırın.")
+        recommendations.append("M365 E3 kurumsal paketi O365 E3 yeteneklerini içerdiğinden, örtüşen Office 365 E3 atamasının gözden geçirilerek optimize edilmesi önerilir.")
 
     # 3. Add-on Prerequisite Validation (only if not already flagged as duplicate E5 superset)
     # Rule: E5 Security requires M365 E3 or (O365 E3 + EMS E3) or Business Premium
@@ -241,7 +243,7 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
         if not has_qualifying_base:
             value_status = STATUS_MISSING_PREREQUISITE
             risk_indicators.append("Ön Koşul Hatası: Microsoft 365 E5 Security add-on'u için geçerli bir temel lisans (M365 E3 / Business Premium) atanmamış.")
-            recommendations.append("Kullanıcıya uygun temel plan atayın veya eklentiyi geri çekin.")
+            recommendations.append("Kullanıcıya uygun temel plan tanımlanması veya eklentinin temel lisansı olan bir kullanıcıya aktarılması önerilir.")
 
     # Rule: E5 Compliance requires M365 E3 or (O365 E3 + EMS E3)
     if SKU_E5_COMP in sku_parts and SKU_M365_E5 not in sku_parts:
@@ -252,7 +254,7 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
         if not has_qualifying_base:
             value_status = STATUS_MISSING_PREREQUISITE
             risk_indicators.append("Ön Koşul Hatası: Microsoft 365 E5 Compliance add-on'u için temel M365 E3 lisansı eksik.")
-            recommendations.append("Kullanıcıya M365 E3 atayın veya eklentiyi düzeltin.")
+            recommendations.append("Kullanıcıya geçerli temel M365 E3 lisansının tanımlanması veya eklenti atamasının düzeltilmesi tavsiye edilir.")
 
     # Rule: Copilot requires qualifying base
     if SKU_COPILOT in sku_parts:
@@ -260,21 +262,46 @@ def analyze_user_license_entitlements(user_profile, catalog=None):
         if not any(q in sku_parts for q in qualifying):
             value_status = STATUS_MISSING_PREREQUISITE
             risk_indicators.append("Ön Koşul Hatası: Microsoft 365 Copilot için yetkili temel üretkenlik lisansı bulunamadı.")
-            recommendations.append("Kullanıcıya geçerli temel lisans tanımlayın.")
+            recommendations.append("Copilot kullanıcı deneyiminin sağlanabilmesi için desteklenen temel üretkenlik lisansının tanımlanması tavsiye edilir.")
 
     # 4. Service Account with Interactive User License
     if persona == "Service Account" and any(s in [SKU_M365_E5, SKU_M365_E3, SKU_M365_BUS_PREM] for s in sku_parts):
         risk_indicators.append("Optimizasyon Fırsatı: Etkileşimsiz Servis Hesabına tam kurumsal kullanıcı lisansı atanmış.")
-        recommendations.append("Servis hesabını Entra Workload Identity veya ücretsiz servis prensiplerine geçirerek lisansı kurtarın.")
+        recommendations.append("Servis hesabı için Entra Workload Identity veya lisanssız hizmet hesabı modeline geçiş yapılarak koltuğun boşa çıkarılması değerlendirilebilir.")
 
-    # 5. Persona Alignment Recommendations
+    # 5. Persona Alignment Recommendations (Calibrated Advisory)
     if persona == "Executive" and not any(s in [SKU_M365_E5, SKU_E5_SEC, SKU_M365_BUS_PREM] for s in sku_parts):
         risk_indicators.append("Güvenlik Riski: Üst düzey yönetici (Executive) hesabında gelişmiş XDR ve Defender Plan 2 koruması eksik.")
-        recommendations.append("Yönetici profili için M365 E5 veya E5 Security paketine yükseltme önerilir.")
+        recommendations.append("Yönetici profili için gelişmiş kimlik koruması ve XDR duruşunun (M365 E5 veya E5 Security) güçlendirilmesi tavsiye edilir.")
 
     if persona in ["Finance / Sensitive Data", "HR / PII"] and not any(s in [SKU_M365_E5, SKU_E5_COMP] for s in sku_parts):
         risk_indicators.append(f"Uyum Riski: {persona} kullanıcısında otomatik etiketleme, EDM ve gelişmiş Purview DLP kapsamı eksik.")
-        recommendations.append("Hassas veri işleyen bu role Purview E5 Compliance veya M365 E5 sağlanması önerilir.")
+        recommendations.append(f"Hassas veri işleyen bu rol için Purview gelişmiş uyum (E5 Compliance) kapsamının değerlendirilmesi tavsiye edilir.")
+
+    # 6. licenseAssignmentStates Detailed Inspection (Group vs Direct, Disabled Plans, Provisioning Errors)
+    if license_states:
+        has_group = any(bool(ls.get("assignedByGroup")) for ls in license_states if isinstance(ls, dict))
+        is_direct = any(not ls.get("assignedByGroup") for ls in license_states if isinstance(ls, dict))
+        if is_direct and not has_group:
+            recommendations.append("Doğrudan Lisans Ataması Tespiti: Yönetim sürdürülebilirliği açısından Entra ID Dinamik Grup Tabanlı Lisanslama (GBL) modeli değerlendirilebilir.")
+
+        # Check explicit disabled plans in licenseAssignmentStates
+        explicit_disabled = []
+        for ls in license_states:
+            if isinstance(ls, dict):
+                for dp in ls.get("disabledPlans", []):
+                    explicit_disabled.append(dp)
+        if explicit_disabled:
+            risk_indicators.append(f"Servis Planı Ayrımı: Kullanıcıya atanmış SKU içinde {len(explicit_disabled)} servis planı devre dışı bırakılmış.")
+            recommendations.append("Devre dışı bırakılan servis planlarının operasyonel ihtiyaca uygunluğu ve güvenlik kapsamına etkisi teyit edilmelidir.")
+
+        # Check assignment state errors
+        for ls in license_states:
+            if isinstance(ls, dict):
+                err = ls.get("error")
+                if err and err != "None":
+                    risk_indicators.append(f"Lisans Sağlama Hatası Tespiti: {err}")
+                    recommendations.append(f"Entra ID lisans sağlama hatasının ({err}) giderilmesi için dizin ataması incelenmelidir.")
 
     if not risk_indicators:
         value_status = "Tam Değer Gerçekleştirildi"
@@ -348,18 +375,32 @@ def reconcile_workload_5_layers(workload_code, tenant_licenses, user_profiles, t
         if any(sku_covers_workload(sp, workload_code) for sp in u_skus):
             assignment_count += 1
 
-    # 3. Service Plan Active
+    # 3. Service Plan Active (Service Plan Distinction vs SKU Assignment)
     service_plan_active_count = 0
     for u in user_profiles:
         u_skus = [s.get("sku_part_number") for s in u.get("assigned_skus", []) if isinstance(s, dict)]
         if any(sku_covers_workload(sp, workload_code) for sp in u_skus):
-            # Check if any required plan is disabled
+            # Check if any required plan is disabled in assigned_plans or licenseAssignmentStates.disabledPlans
             plans = u.get("assigned_plans", [])
+            license_states = u.get("license_assignment_states") or u.get("licenseAssignmentStates") or []
+
+            # Extract disabled plan IDs from licenseAssignmentStates
+            explicit_disabled_guids = []
+            for ls in license_states:
+                if isinstance(ls, dict):
+                    explicit_disabled_guids.extend(ls.get("disabledPlans", []))
+
             has_active_plan = True
-            for p in plans:
-                if p.get("servicePlanName") in workload_service_plans and p.get("provisioningStatus") not in ["Success", "Active"]:
-                    has_active_plan = False
-                    break
+            matched_plans = [p for p in plans if p.get("servicePlanName") in workload_service_plans]
+            if matched_plans:
+                for p in matched_plans:
+                    p_id = p.get("servicePlanId")
+                    if p.get("provisioningStatus") not in ["Success", "Active"] or (p_id and p_id in explicit_disabled_guids):
+                        has_active_plan = False
+                        break
+            elif explicit_disabled_guids:
+                has_active_plan = False
+
             if has_active_plan:
                 service_plan_active_count += 1
 
