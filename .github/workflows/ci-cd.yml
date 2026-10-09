@@ -35,33 +35,7 @@ jobs:
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json', 'config/catalog/license-catalog.json', 'config/catalog/catalog-feed-state.json', 'version.json', 'Data/version.json']]"
           
           echo "=== 3. Zero SOC / Bilet İzolasyon Denetimi ==="
-          python3 - <<'PYEOF'
-import os, sys
-patterns = ["(SOC)", "SVC-SOC"]
-skip_exts = {".md", ".txt", ".yml", ".yaml"}
-hits = []
-for root, dirs, files in os.walk("."):
-    dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "__pycache__", "docs"}]
-    for fname in files:
-        if any(fname.endswith(e) for e in skip_exts):
-            continue
-        fpath = os.path.join(root, fname)
-        try:
-            with open(fpath, encoding="utf-8", errors="ignore") as fh:
-                for i, line in enumerate(fh, 1):
-                    for p in patterns:
-                        if p in line:
-                            hits.append(f"{fpath}:{i}: {line.rstrip()}")
-        except Exception:
-            pass
-if hits:
-    print("HATA: Kod tabanında yetkisiz SOC ifadesi bulundu!")
-    for h in hits:
-        print(h)
-    sys.exit(1)
-else:
-    print("Zero SOC Kuralı Doğrulandı: İhlal Yok.")
-PYEOF
+          python scripts/verify_zero_soc.py
 
       - name: 🧪 Birim ve Güvenlik Testleri (92 Test)
         shell: bash
@@ -96,7 +70,8 @@ PYEOF
 
       - name: 🔨 Container İmajını Derle (3.2.0-pilot & sha-<commit>)
         run: |
-          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cloudshield-reporting-platform"
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER}/cloudshield-reporting-platform"
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
           docker build \
             -t "$IMAGE_NAME:3.2.0-pilot" \
@@ -121,8 +96,9 @@ PYEOF
           docker stop test-app
 
       - name: 🛡️ Container Güvenlik Açığı Taraması (Trivy Scan)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
+          scan-type: 'image'
           image-ref: "cloudshield-reporting-platform:ci-test"
           format: 'table'
           exit-code: '0'
@@ -131,8 +107,9 @@ PYEOF
           severity: 'CRITICAL,HIGH'
 
       - name: 📦 SBOM Üretimi (SPDX JSON Formatı)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
+          scan-type: 'image'
           image-ref: "cloudshield-reporting-platform:ci-test"
           format: 'spdx-json'
           output: 'sbom-cloudshield-3.2.0.spdx.json'
