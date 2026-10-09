@@ -17,6 +17,7 @@
         "SVC-MDO",
         "SVC-MDI",
         "SVC-MDCA",
+        "SVC-MDC",
         "SVC-XDR",
         "SVC-INTUNE",
         "SVC-ENTRA-PIM"
@@ -209,6 +210,46 @@
       "implementationStatus": "ProductionReady",
       "officialDocs": [
         "https://learn.microsoft.com/en-us/defender-cloud-apps/what-is-defender-for-cloud-apps",
+        "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
+      ],
+      "isPrimaryService": true
+    },
+    "SVC-MDC": {
+      "code": "SVC-MDC",
+      "displayNameTr": "Yönetilen Bulut Güvenlik Postürü ve İş Yükü Koruması (MDC)",
+      "displayNameEn": "Managed Cloud Security Posture & Workload Protection (MDC)",
+      "description": "Microsoft Defender for Cloud ile çoklu bulut CSPM, Secure Score, zafiyet yönetimi ve bulut iş yükü koruma (CWPP) analizi.",
+      "productFamily": "Microsoft Defender for Cloud",
+      "pluginFolder": "DefenderCloud",
+      "collectorDependencies": [
+        "GraphSecurityAlerts",
+        "GraphThreatHunting"
+      ],
+      "optionalDependencies": [
+        "CloudPostureRecommendations"
+      ],
+      "compatibleServiceLevels": [
+        "MonitoringOnly",
+        "MonitoringAndReporting",
+        "Managed",
+        "ManagedAndResponse",
+        "Advisory"
+      ],
+      "authProfile": "CoreSecurityReporting",
+      "dataSensitivity": "Medium",
+      "requiresIsolatedApp": false,
+      "kpiCatalogRef": [
+        "KPI-MDC-001",
+        "KPI-MDC-002"
+      ],
+      "permissionCatalogRef": [
+        "PERM-XDR-001",
+        "PERM-XDR-002"
+      ],
+      "reportTemplateRef": "TPL-MDC",
+      "implementationStatus": "ProductionReady",
+      "officialDocs": [
+        "https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-cloud-introduction",
         "https://learn.microsoft.com/en-us/graph/api/resources/security-alert"
       ],
       "isPrimaryService": true
@@ -418,9 +459,9 @@
     },
     "SVC-PRV-GOV": {
       "code": "SVC-PRV-GOV",
-      "displayNameTr": "Yönetilen Saklama ve İmha Politikaları",
-      "displayNameEn": "Managed Data Lifecycle & Records Management",
-      "description": "Microsoft Purview Data Lifecycle Management ve Records Management saklama etiketleri, imha incelemeleri ve saklama ilkeleri.",
+      "displayNameTr": "Yönetilen Veri Yaşam Döngüsü ve DSPM",
+      "displayNameEn": "Managed Data Lifecycle & DSPM (Data Security Posture)",
+      "description": "Microsoft Purview Data Security Posture Management (DSPM), Data Lifecycle ve Records Management saklama etiketleri, imha incelemeleri ve saklama ilkeleri.",
       "productFamily": "Microsoft Purview",
       "pluginFolder": "PurviewGovernance",
       "collectorDependencies": [

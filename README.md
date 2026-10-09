@@ -1,16 +1,31 @@
-# CloudShield Enterprise MSSP Platform
+# CloudShield Security Reporting & Managed Services Visibility Platform
 
-[![Release](https://img.shields.io/badge/Release-v3.0.0--ENTERPRISE-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal)
+[![Release](https://img.shields.io/badge/Release-v3.1.0--REPORTING--VISIBILITY-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal)
 [![Status](https://img.shields.io/badge/Status-Production%20GA-success.svg)](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-[![Security](https://img.shields.io/badge/Auth-Zero%20Trust%20%7C%20Entra%20SSO%20%2B%20CBA-0078D4.svg)](SECURITY.md)
-[![Tests](https://img.shields.io/badge/Tests-59%2F59%20Passing-brightgreen.svg)](tests/)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-10.0%2F10.0-brightgreen.svg)](tests/test_report_quality_gate.py)
+[![Security](https://img.shields.io/badge/Auth-Zero%20Trust%20%7C%20Entra%20OIDC%20PKCE%20%2B%20CBA-0078D4.svg)](SECURITY.md)
+[![Unit Tests](https://img.shields.io/badge/Unit%20Tests-77%2F77%20Passing-brightgreen.svg)](tests/)
+[![QA Gates](https://img.shields.io/badge/QA%20Gates-59%2F59%20Passing-brightgreen.svg)](tests/test_comprehensive_qa.py)
 [![CI/CD](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
 
-**KoçSistem Microsoft Managed Security & Compliance Services** — an enterprise-grade, multi-tenant MSSP orchestration and executive reporting platform engineered for Microsoft Defender XDR and Microsoft Purview environments.
+**CloudShield Security Reporting & Managed Services Visibility Platform** — an enterprise-grade multi-tenant reporting, executive visibility, and managed service accountability platform engineered specifically for Microsoft Defender XDR and Microsoft Purview managed services customers.
 
 > **Live Portal:** [cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)  
-> **Hosting:** Azure Container Apps · West Europe · `minReplicas=1` (zero cold-start) · `maxReplicas=3`
+> **Hosting Architecture:** Azure Container Apps · West Europe · `minReplicas=1`, `maxReplicas=1` (Single-replica constraint ensuring SQLite WAL mode transaction serialization and zero lock contention).
+
+---
+
+## Strategic Product Positioning
+
+CloudShield is purposefully positioned as a **Security Reporting & Managed Services Visibility Platform**, not a SOC operations console, SIEM alternative, or SOAR incident responder.
+
+Its core mission is to demonstrate tangible managed service value to enterprise CISOs and IT leadership:
+- **Secure Telemetry Ingestion:** Zero-trust read-only Graph API & KQL collection across customer tenants.
+- **Tenant Isolation:** Cryptographically bounded multi-tenant data barriers preventing cross-customer exposure.
+- **Monthly Managed Service Reports:** Automated, boardroom-ready executive summaries & technical scorecards in bilingual HTML and vector PDF.
+- **Service Value Attribution:** Hard metric evidence of autonomous blocks, policy hygiene, engineer hours saved, and posture elevation.
+- **Report Provenance & Registry:** Tamper-evident, immutable report archive with SHA-256 integrity verification.
+
+> **Roadmap Boundary Note:** Operational SOC workflows, alert triage workbenches, case management, and SIEM/SOAR automations are intentionally reserved for post-pilot lifecycle phases.
 
 ---
 
@@ -96,22 +111,23 @@ flowchart TD
 
 ---
 
-## Supported Workloads (12 Services)
+## Supported Managed Workloads & Telemetry Connectors
 
-| Service ID | Workload | Telemetry Sources |
+| Service ID | Managed Service Workload | Primary Telemetry Sources & Focus |
 | :--- | :--- | :--- |
-| `SVC-MDE` | Microsoft Defender for Endpoint | `DeviceInfo`, `DeviceAlertEvents`, `DeviceTvmSoftwareVulnerabilities` |
-| `SVC-MDO` | Microsoft Defender for Office 365 | `EmailEvents`, `EmailPostDeliveryEvents`, ZAP telemetry |
-| `SVC-MDI` | Microsoft Defender for Identity | `IdentityLogonEvents`, `IdentityQueryEvents`, Lateral Movement |
-| `SVC-MDCA` | Microsoft Defender for Cloud Apps | `CloudAppEvents`, `OAuthAppAuthorizations`, Shadow IT |
-| `SVC-XDR` | Microsoft Defender XDR | `SecurityIncident`, `SecurityAlert`, Incident Evidence |
-| `SVC-INTUNE` | Microsoft Intune | `DeviceManagement/managedDevices`, Compliance Policies |
-| `SVC-ENTRA-PIM` | Entra ID Protection & PIM | `riskyUsers`, PIM Role Activations, Conditional Access |
-| `SVC-PRV-DLP` | Microsoft Purview DLP | `Audit.General`, `DlpEvents`, `EndpointDlpActivity` |
-| `SVC-PRV-CLASS` | Purview Information Protection | Sensitivity Labels, Trainable Classifiers, SIT Discovery |
-| `SVC-PRV-GOV` | Purview Data Lifecycle | Retention Policies, Disposition Reviews, Records |
-| `SVC-PRV-RISK` | Purview Insider Risk Management | Insider Risk Alerts, Exfiltration Indicators |
-| `SVC-AI-SECURITY` | Microsoft Purview AI Hub | Copilot Interactions, GenAI Security, `AiInteractions` |
+| `SVC-MDE` | Microsoft Defender for Endpoint | `DeviceInfo`, `DeviceAlertEvents`, `DeviceTvmSoftwareVulnerabilities`, ASR blocks |
+| `SVC-MDO` | Microsoft Defender for Office 365 | `EmailEvents`, `EmailPostDeliveryEvents`, ZAP telemetry, Phishing & Malware blocks |
+| `SVC-MDI` | Microsoft Defender for Identity | `IdentityLogonEvents`, `IdentityQueryEvents`, Pass-the-Hash/Ticket, Honeytokens |
+| `SVC-MDCA` | Microsoft Defender for Cloud Apps | `CloudAppEvents`, `OAuthAppAuthorizations`, Shadow IT discovery, SaaS risks |
+| `SVC-MDC` | Microsoft Defender for Cloud | Cloud Security Posture (CSPM), Secure Score, CWPP workload recommendations |
+| `SVC-XDR` | Microsoft Defender XDR | Unified incidents, MTTA/MTTR resolution velocity, cross-domain attack story |
+| `SVC-INTUNE` | Microsoft Intune | `DeviceManagement/managedDevices`, Compliance policies, BitLocker encryption hygiene |
+| `SVC-ENTRA-PIM`| Microsoft Entra ID PIM | `riskyUsers`, PIM eligible/active role activations, privileged identity governance |
+| `SVC-PRV-DLP` | Microsoft Purview DLP | Sensitive Info Type (SIT) violations, USB/Cloud/Print exfiltration stops, overrides |
+| `SVC-PRV-CLASS`| Purview Info Protection & SITs | Sensitivity label coverage, trainable classifiers, SIT discovery across estates |
+| `SVC-PRV-GOV` | Purview Data Lifecycle & DSPM | Data Security Posture Management (DSPM), retention label enforcement, disposition |
+| `SVC-PRV-RISK` | Purview Insider Risk Management | Exfiltration indicators, privacy-safe $k=5$ risk event aggregation, Comm Compliance |
+| `SVC-AI-SECURITY`| Purview DSPM for AI & Copilot | Copilot interactions, GenAI sensitive data routing, synthetic AI threat indicators |
 
 ---
 

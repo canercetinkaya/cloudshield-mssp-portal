@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudShield Enterprise MSSP Security & Compliance Platform</title>
+    <title>CloudShield - Security Reporting & Managed Services Visibility Platform</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome 6 (SRI Integrity Protected) -->
@@ -57,10 +57,10 @@
                     <span class="text-ks-navy font-extrabold text-lg tracking-tight">Cloud</span>
                     <span class="text-ks-red font-extrabold text-lg tracking-tight">Shield</span>
                 </div>
-                <h2 class="text-base font-bold">MSSP SaaS Portal Girişi</h2>
-                <p class="text-xs text-slate-300 mt-1">Microsoft Security & Purview Yönetilen Hizmetler</p>
+                <h2 class="text-base font-bold">Güvenlik Raporlama & Yönetilen Hizmet Portalı</h2>
+                <p class="text-xs text-slate-300 mt-1">Microsoft Defender & Purview Yönetilen Hizmet Görünürlüğü</p>
                 <div id="loginVersionBadge" class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                    v3.0.0-ENTERPRISE
+                    v3.1.0-REPORTING-VISIBILITY
                 </div>
             </div>
 
@@ -80,7 +80,7 @@
                     </div>
 
                     <p class="text-xs text-slate-600 leading-relaxed">
-                        CloudShield MSSP Platformu Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
+                        CloudShield Security Reporting & Managed Services Visibility Platform Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
                     </p>
 
                     <a href="/api/auth/entra/authorize" onclick="handleEntraSsoLogin();" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-3 group hover:shadow-lg cursor-pointer text-center no-underline">
@@ -129,7 +129,7 @@
                 </div>
 
                 <p class="text-[10px] text-slate-400 text-center leading-tight">
-                    🔒 Bu portal CloudShield MSSP kurumsal güvenlik ve KVKK / GDPR gizlilik standartları ile korunmaktadır.
+                    🔒 Bu portal CloudShield kurumsal güvenlik, çoklu kiracı veri izolasyonu ve KVKK / GDPR gizlilik standartları ile korunmaktadır.
                 </p>
             </div>
         </div>
@@ -147,14 +147,14 @@
                 </div>
                 <div class="h-6 w-px bg-slate-600"></div>
                 <div class="flex flex-col">
-                    <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">MSSP SaaS Platform</span>
-                    <span class="text-[10px] text-slate-400">Microsoft Security & Purview Center</span>
+                    <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">Security Reporting Platform</span>
+                    <span class="text-[10px] text-slate-400">Microsoft Defender & Purview Managed Services Visibility</span>
                 </div>
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
                 <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v3.0.0-ENTERPRISE</span>
-                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.03</span>
+                    <span id="headerVersionBadge">v3.1.0-REPORTING-VISIBILITY</span>
+                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.09</span>
                 </div>
             </div>
 
@@ -217,32 +217,32 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 text-sm">
                 <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 px-1 tab-active flex items-center space-x-2 transition">
                     <i class="fa-solid fa-chart-pie text-xs"></i>
-                    <span>Güvenlik & Bilgilendirme Panosu</span>
+                    <span>Yönetilen Hizmet Görünürlüğü & KPI Panosu</span>
                 </button>
                 <button onclick="switchTab('tenants')" id="tabBtn-tenants" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-building-shield text-xs"></i>
-                    <span>Hedef Müşteri Kiracıları (Tenants)</span>
+                    <span>Müşteri Tenant Yönetimi & Bağlantılar</span>
                 </button>
                 <button onclick="switchTab('studio')" id="tabBtn-studio" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-file-invoice text-xs"></i>
-                    <span>Raporlama Stüdyosu</span>
+                    <span>Aylık Servis Raporlama Stüdyosu</span>
                 </button>
                 <button onclick="switchTab('dispatch')" id="tabBtn-dispatch" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-paper-plane text-xs"></i>
-                    <span>Zamanlanmış Dağıtım</span>
+                    <span>Otomatik Dağıtım & Zamanlayıcı</span>
                 </button>
 
                 <button onclick="switchTab('teams')" id="tabBtn-teams" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-users-gear text-xs"></i>
-                    <span>Ekipler & Hizmetler</span>
+                    <span>Yönetilen Hizmet Kataloğu</span>
                 </button>
                 <button onclick="switchTab('settings')" id="tabBtn-settings" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-sliders text-xs"></i>
-                    <span>Ayarlar & Yönetim</span>
+                    <span>Sistem & Denetim İzi (Audit Logs)</span>
                 </button>
                 <button onclick="switchTab('rbac')" id="tabBtn-rbac" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-shield-halved text-xs text-ks-red"></i>
-                    <span class="font-bold">Yetkilendirme & RBAC</span>
+                    <span class="font-bold">Erişim & Zero Trust İzolasyon</span>
                 </button>
             </div>
         </div>
@@ -260,12 +260,11 @@
             <div class="bg-gradient-to-r from-ks-navy to-ks-navylight rounded-xl p-5 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
                     <div class="flex items-center space-x-2">
-                        <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MSSP LIVE</span>
-                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Enterprise Managed Security Operations Overview</h1>
+                        <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MANAGED SERVICES</span>
+                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Microsoft Defender & Purview Yönetilen Hizmet Görünürlüğü</h1>
                     </div>
                     <p id="dashboardBannerDesc" class="text-xs text-slate-300 mt-1">
-                        Microsoft Defender XDR ve Purview çoklu müşteri ortamlarının anlık sağlık karnesi. 
-                        Veriler API kota koruması için <strong class="text-emerald-300">günde 1 kez otomatik eşitlenir</strong>.
+                        Microsoft Defender XDR, Endpoint, Office 365, Identity, Cloud Apps, Cloud, Intune ve Purview ekosisteminin yönetilen servis sağlık karnesi ve operasyonel değer metrikleri.
                     </p>
                 </div>
                 <div class="mt-4 md:mt-0 flex space-x-2">
@@ -2978,23 +2977,23 @@
                 if (res.ok) {
                     const data = await res.json();
                     const badge = document.getElementById('headerVersionBadge');
-                    if (badge) badge.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (badge) badge.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
 
                     const loginBadge = document.getElementById('loginVersionBadge');
-                    if (loginBadge) loginBadge.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (loginBadge) loginBadge.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
                     
                     const buildSpan = document.getElementById('headerVersionBuild');
                     if (buildSpan && data.last_updated) {
                         const d = new Date(data.last_updated);
-                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.10.03';
+                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.10.09';
                         buildSpan.textContent = `| ${dateStr}`;
                     }
 
                     // Update settings version cards
                     const cRel = document.getElementById('verCardRelease');
-                    if (cRel) cRel.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (cRel) cRel.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
                     const cBuild = document.getElementById('verCardBuild');
-                    if (cBuild) cBuild.textContent = data.build || '2026.10.03.1';
+                    if (cBuild) cBuild.textContent = data.build || '2026.10.09.1';
                     const cNum = document.getElementById('verCardBuildNum');
                     if (cNum) cNum.textContent = `Derleme #${data.build_number || 1}`;
                     const cLast = document.getElementById('verCardLastUpdated');
@@ -4835,11 +4834,11 @@ let allUsers = [];
                     if (statScoreSub) statScoreSub.innerText = `${t.Name} M365 skoru`;
 
                     if (bannerBadge) {
-                        bannerBadge.innerText = `Kiracı Yönetici Kokpiti • ${t.Name}`;
+                        bannerBadge.innerText = `Kiracı Yönetilen Servis & Raporlama Kokpiti • ${t.Name}`;
                         bannerBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider backdrop-blur-sm';
                     }
-                    if (bannerTitle) bannerTitle.innerText = `${t.Name} — Yönetici & SOC Operasyon Kokpiti`;
-                    if (bannerDesc) bannerDesc.innerText = `Bu kiracı için 4 Sütunlu Hizmet Değer Atıfları, C-Level Karar Matrisi ve Canlı Savunma Göstergeleri.`;
+                    if (bannerTitle) bannerTitle.innerText = `${t.Name} — Yönetilen Hizmet & Görünürlük Kokpiti`;
+                    if (bannerDesc) bannerDesc.innerText = `Bu kiracı için 4 Sütunlu Hizmet Değer Atıfları, C-Level Karar Matrisi ve Yönetilen Güvenlik Göstergeleri.`;
 
                     if (globalFleet) globalFleet.classList.add('hidden');
                     if (singleCockpit) {

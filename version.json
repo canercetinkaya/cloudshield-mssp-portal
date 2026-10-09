@@ -1,15 +1,34 @@
 {
-  "version": "3.0.0",
-  "release": "v3.0.0-ENTERPRISE",
-  "build": "2026.10.03.1",
+  "version": "3.1.0",
+  "product_name": "CloudShield Security Reporting & Managed Services Visibility Platform",
+  "release": "v3.1.0-REPORTING-VISIBILITY",
+  "build": "2026.10.09.1",
   "channel": "production",
-  "build_number": 16,
-  "last_updated": "2026-10-03T00:15:00+03:00",
+  "build_number": 17,
+  "last_updated": "2026-10-09T13:00:00+03:00",
   "environment": "production",
   "productionReady": true,
-  "commit": "34a35ed",
-  "agent_name": "CloudShield Enterprise Architecture Team",
+  "commit": "a431f3d",
+  "agent_name": "CloudShield Security & Managed Services Platform Team",
   "changelog": [
+    {
+      "version": "3.1.0",
+      "release": "v3.1.0-REPORTING-VISIBILITY",
+      "build": "2026.10.09.1",
+      "timestamp": "2026-10-09T13:00:00+03:00",
+      "commit": "a431f3d",
+      "author": "CloudShield Security Architecture & Reporting Team",
+      "summary": "feat(repositioning): Strategic repositioning to Security Reporting & Managed Services Visibility Platform",
+      "details": [
+        "Product repositioning: Transitioned from broad SOC/SIEM concepts to dedicated Microsoft Security Reporting & Managed Services Visibility Platform",
+        "Comprehensive Purview ecosystem coverage: DLP, Information Protection, Sensitive Information Types (SITs), Insider Risk Management, Communication Compliance, and DSPM",
+        "Defender workload reporting: Endpoint (MDE), Office 365 (MDO), Identity (MDI), Cloud Apps (MDCA), Cloud (MDC), and Intune",
+        "Zero Trust Security Remediation: OIDC Authorization Code Flow with PKCE S256, RS256 JWKS token validation, HttpOnly Secure SameSite=Strict cookies, token removal from URL & localStorage",
+        "Tenant isolation & Report Provenance: Centralized registry-backed report downloads (/api/reports/{id}/download), 410 decommission of legacy endpoint, canonical path defense",
+        "Separation of Duties & JIT Elevation: Dual custody enforced, maximum 8h duration limit, production toggle guard",
+        "Single-replica pilot protection: Container Apps scale lock to 1 replica and SQLite WAL mode concurrency protection"
+      ]
+    },
     {
       "version": "3.0.0",
       "release": "v3.0.0-ENTERPRISE",
