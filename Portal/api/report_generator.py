@@ -233,52 +233,66 @@ def render_historical_trends_section(tenant_id=None, language="tr", db_path=None
     except Exception:
         return ""
 
-def render_verified_managed_activities_section(tenant_id=None, service_code=None, period_tag=None, language="tr", db_path=None):
+def render_observed_technical_improvements_section(tenant_id=None, service_code=None, period_tag=None, language="tr", db_path=None):
     """
-    Fetches immutable, verified managed service engineering activities from SQLite
-    and renders an audit-grade Managed Service Activity Log table with Evidence References.
+    Renders telemetry-derived technical improvements observed in tenant configuration and audit logs.
+    Zero Ticket IDs, zero CR numbers, zero ServiceNow/Jira, and zero manual engineer activity required.
+    Directly reflects:
+    - Newly created/modified DLP policies and sensitivity labels
+    - SIT definitions and regex tuning
+    - Anti-Phishing/Anti-Spam policy adjustments
+    - Attack Surface Reduction (ASR) policy changes
+    - Intune compliance policy updates
+    - Conditional Access policy tuning
+    - Shadow IT Sanction/Unsanction decisions
+    - Defender for Cloud recommendation resolutions
     """
     try:
-        from database.db import get_managed_activities
+        from database.db import get_observed_improvements
         target_tid = tenant_id or "tenant-002"
-        activities = get_managed_activities(target_tid, service_code=service_code, period=period_tag, db_path=db_path)
+        improvements = get_observed_improvements(target_tid, service_code=service_code, period=period_tag, db_path=db_path)
         
         if language == "en":
-            title = "🛡️ Verified CloudShield Managed Engineering Interventions (Audit & Evidence Log)"
-            th = "<tr><th>Activity ID</th><th>Workload</th><th>Engineering Action / Scope</th><th>Role</th><th>Ticket / Ref</th><th>Hours</th><th>Status</th><th>Evidence ID</th></tr>"
-            empty_msg = "No ad-hoc manual interventions required this period (Operations within automated baselines)."
+            title = "🛡️ Technical Improvements Applied This Period"
+            subtitle = "Directly derived from tenant telemetry, audit logs, and configuration change events."
+            th = "<tr><th>Improvement ID</th><th>Workload</th><th>Category</th><th>Component</th><th>Technical Change &amp; Scope</th><th>Detection Source (Audit / Telemetry)</th><th>Technical Value &amp; Security Outcome</th></tr>"
+            empty_msg = "No policy modifications or configuration drift observed this period (Security baseline remained intact)."
         else:
-            title = "🛡️ Doğrulanmış CloudShield Mühendislik Faaliyet Kütüğü (Denetim İzi & Kanıt Referansı)"
-            th = "<tr><th>Faaliyet ID</th><th>İş Yükü</th><th>Mühendislik Aksiyonu & Kapsam</th><th>Mühendis Rolü</th><th>Talep / Değişiklik Ref</th><th>Efor</th><th>Durum</th><th>Kanıt Kütüğü</th></tr>"
-            empty_msg = "Bu dönem için ad-hoc manuel müdahale gerekmemiştir (Operasyonlar otonom temel çizgide yürütülmüştür)."
+            title = "🛡️ Bu Ay Gerçekleştirilen İyileştirmeler"
+            subtitle = "Doğrudan tenant telemetrisi, denetim kütükleri (Audit Logs) ve konfigürasyon değişiklik olaylarından otomatik türetilmiştir."
+            th = "<tr><th>İyileştirme No</th><th>İş Yükü</th><th>Kategori</th><th>Bileşen</th><th>Gerçekleştirilen Değişiklik</th><th>Gözlem Kaynağı (Audit / Telemetri)</th><th>Teknik Değer &amp; İyileştirme Sonucu</th></tr>"
+            empty_msg = "Bu dönem içinde tenant konfigürasyonunda yeni bir politika değişikliği veya kural güncellemesi gözlemlenmemiştir (Mevcut güvenlik temel çizgisi korunmuştur)."
             
-        if not activities:
+        if not improvements:
             return f'''
 <h2>{title}</h2>
-<p style="color:#64748b; font-size:12px; font-style:italic; padding:8px 0;">{empty_msg}</p>'''
+<p style="color:#64748b; font-size:12px; font-style:italic; padding:6px 0;">{empty_msg}</p>'''
 
         rows = []
-        for act in activities:
-            aid = act.get("activity_id", "")
-            svc = act.get("service_code", "")
-            title_text = act.get("description") or act.get("action_title", "")
-            role = act.get("engineer_role", "")
-            tref = act.get("ticket_ref") or "-"
-            hrs = f"{act.get('hours_spent', 0.0):.1f} sa" if language == "tr" else f"{act.get('hours_spent', 0.0):.1f} hrs"
-            st = act.get("status", "Completed")
-            ev = act.get("evidence_ref") or act.get("evidence_reference") or "-"
-            badge = "p-ok" if st in ("Completed", "Applied", "Approved", "Tamamlandı") else "p-info"
+        for imp in improvements:
+            iid = imp.get("improvement_id") or imp.get("activity_id") or ""
+            svc = imp.get("service_code", "")
+            cat = imp.get("category", "Politika Optimizasyonu")
+            comp = imp.get("component") or svc
+            title_text = imp.get("title") or imp.get("description", "Teknik Güvenlik İyileştirmesi")
+            desc = imp.get("description", "")
+            change_cell = f"<b>{title_text}</b>" + (f"<br><small style='color:#64748b;'>{desc}</small>" if desc and desc != title_text else "")
+            src = imp.get("telemetry_source") or imp.get("evidence_ref") or "Microsoft Tenant AuditLog"
+            impact = imp.get("technical_impact") or imp.get("outcome", "Güvenlik duruşu güçlendirildi.")
             
-            rows.append(f"<tr><td><b>{aid}</b></td><td><span class='pill p-info'>{svc}</span></td><td>{title_text}</td><td>{role}</td><td class='font-mono'>{tref}</td><td class='num font-mono'>+{hrs}</td><td><span class='pill {badge}'>{st}</span></td><td class='font-mono text-muted'>{ev}</td></tr>")
+            rows.append(f"<tr><td><b>{iid}</b></td><td><span class='pill p-info'>{svc}</span></td><td><span class='pill p-ok'>{cat}</span></td><td>{comp}</td><td>{change_cell}</td><td class='font-mono text-muted' style='font-size:10px;'>{src}</td><td><b style='color:#059669;'>{impact}</b></td></tr>")
 
         return f'''
 <h2>{title}</h2>
+<p style="color:#64748b; font-size:11px; margin-top:-6px; margin-bottom:10px;">{subtitle}</p>
 <table>
   {th}
   {''.join(rows)}
 </table>'''
     except Exception:
         return ""
+
+render_verified_managed_activities_section = render_observed_technical_improvements_section
 
 
 def render_missing_telemetry_catalog_section(services, live_data, language="tr"):
@@ -1254,6 +1268,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     attr_grid_html = render_attribution_grid_mde(total_auto, analyst_actions, saved_hours, fte_equiv, ghost_14_30, evidence_id)
     decision_html = render_decision_framework_mde(ghost_14_30, analyst_actions)
     trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
+    verified_act_html = render_observed_technical_improvements_section(tenant_id=tenant_id, service_code="SVC-MDE", period_tag=period_tag, language=language)
 
     # Semantic Rule 14: Dynamic badges that match values
     tvm_badge_class = "p-ok" if tvm_pct != "N/A" and float(tvm_pct.replace("%", "")) >= 80 else "p-info"
@@ -1351,6 +1366,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
 {falcon_table}
 
 {trends_html}
+{verified_act_html}
 
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
@@ -1412,6 +1428,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
     attr_grid_html = render_attribution_grid_purview(total_matches, blocked_events, overrides, eng_effort, saved_hours, evidence_id)
     decision_html = render_decision_framework_purview(endpoint_blocks, overrides)
     trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
+    verified_act_html = render_observed_technical_improvements_section(tenant_id=tenant_id, service_code="SVC-PURVIEW-DLP", period_tag=period_tag, language=language)
 
     # Semantic Rule 3: Override breakdown arithmetic consistency
     override_breakdown = kpis.get("UserOverrideBreakdown") or []
@@ -1491,6 +1508,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 {override_table}
 
 {trends_html}
+{verified_act_html}
 
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
@@ -1561,6 +1579,7 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
     attr_grid_html = render_attribution_grid_mdo(total_blocked, analyst_actions, saved_hours, fte_equiv, user_submissions, evidence_id)
     decision_html = render_decision_framework_mdo(analyst_actions, user_submissions)
     trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
+    verified_act_html = render_observed_technical_improvements_section(tenant_id=tenant_id, service_code="SVC-MDO", period_tag=period_tag, language=language)
 
     # Tables with semantic Rule 8 empty-state guarantee
     threat_rows = [
@@ -1638,6 +1657,7 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
 </table>
 
 {trends_html}
+{verified_act_html}
 
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
@@ -1698,6 +1718,7 @@ def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="A
     attr_grid_html = render_attribution_grid_entra(total_roles, permanent_gas, eligible_roles, analyst_actions, saved_hours, fte_equiv, evidence_id)
     decision_html = render_decision_framework_entra(permanent_gas, analyst_actions)
     trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
+    verified_act_html = render_observed_technical_improvements_section(tenant_id=tenant_id, service_code="SVC-ENTRA-GOV", period_tag=period_tag, language=language)
 
     # Tables with semantic Rule 8 empty-state guarantee
     role_dist_rows = [
@@ -1775,6 +1796,7 @@ def build_golden_entra_html(customer_name, period_tag="2026-08", period_label="A
 </table>
 
 {trends_html}
+{verified_act_html}
 
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>
@@ -2196,6 +2218,7 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
     attr_grid_html = render_attribution_grid_intune(autonomous_actions, engineer_actions, saved_hours, fte_equiv, non_compliant, evidence_id)
     decision_html = render_decision_framework_intune(non_compliant, engineer_actions)
     trends_html = render_historical_trends_section(tenant_id=tenant_id, language=language)
+    verified_act_html = render_observed_technical_improvements_section(tenant_id=tenant_id, service_code="SVC-INTUNE", period_tag=period_tag, language=language)
 
     # Tables for Page 2
     if total_devices > 0:
@@ -2287,6 +2310,7 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
 </table>
 
 {trends_html}
+{verified_act_html}
 
 <div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
 </div>

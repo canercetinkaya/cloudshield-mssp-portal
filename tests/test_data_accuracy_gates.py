@@ -17,6 +17,11 @@ PORTAL_API_DIR = os.path.join(BASE_DIR, "Portal", "api")
 
 class TestDataAccuracyAndQualityGates(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        from database.db import init_db
+        init_db()
+
     def test_gate_01_no_synthetic_multipliers_in_plugins(self):
         """
         Verify that no PowerShell plugin contains forbidden synthetic multipliers
@@ -151,38 +156,49 @@ class TestDataAccuracyAndQualityGates(unittest.TestCase):
             except Exception as e:
                 self.fail(f"Failed to generate HTML report for service {svc}: {e}")
 
-    def test_gate_05_verified_managed_activities_and_provenance(self):
+    def test_gate_05_observed_technical_improvements_without_tickets_or_crs(self):
         """
-        Verify database recording and report generation of verified managed activities.
+        Verify telemetry-derived technical improvements model:
+        Zero tickets, zero CRs, zero ServiceNow/Jira, and zero manual engineer hours.
+        Reflects observable tenant changes and technical security outcomes.
         """
         from database import db
-        from report_generator import render_verified_managed_activities_section
+        from report_generator import render_observed_technical_improvements_section
 
-        act_payload = {
+        imp_payload = {
             "tenant_id": "tenant-accuracy-qa",
             "service_code": "SVC-PURVIEW-DLP",
             "period": "2026-08",
-            "category": "İlke İyileştirme & İstisna Yönetimi",
-            "description": "IBAN ve Kredi Kartı kuralları için yanlış pozitif eşiği ayarlandı.",
-            "engineer_role": "MSSP DLP L2 Mühendisi",
-            "evidence_ref": "CR-2026-08-4412",
-            "hours_spent": 3.5,
-            "outcome": "Yanlış pozitif bildirimler %40 azaltıldı."
+            "category": "Politika Optimizasyonu & Tuning",
+            "component": "Microsoft Purview DLP",
+            "title": "Finansal Veri DLP İlkesinde Regex Eşik Değeri Optimize Edildi",
+            "description": "IBAN ve Kredi Kartı kuralları için yanlış pozitifleri önleyecek hassasiyet eşiği güncellendi.",
+            "technical_impact": "Yanlış pozitif bildirimler %40 azaltıldı; iş akışı kesintisi engellendi.",
+            "telemetry_source": "Purview AuditLog: DlpPolicyChange"
         }
-        act_id = db.record_managed_activity(act_payload)
-        self.assertTrue(act_id.startswith("ACT-"))
+        imp_id = db.record_observed_improvement(imp_payload)
+        self.assertTrue(imp_id.startswith("IMP-"))
 
-        acts = db.get_managed_activities("tenant-accuracy-qa", period="2026-08")
-        self.assertGreaterEqual(len(acts), 1)
+        imps = db.get_observed_improvements("tenant-accuracy-qa", period="2026-08")
+        self.assertGreaterEqual(len(imps), 1)
 
-        html = render_verified_managed_activities_section(
+        html = render_observed_technical_improvements_section(
             tenant_id="tenant-accuracy-qa",
             service_code="SVC-PURVIEW-DLP",
             period_tag="2026-08",
             language="tr"
         )
-        self.assertIn("CR-2026-08-4412", html)
-        self.assertIn("MSSP DLP L2 Mühendisi", html)
+        self.assertIn("Bu Ay Gerçekleştirilen İyileştirmeler", html)
+        self.assertIn("Finansal Veri DLP İlkesinde Regex Eşik Değeri Optimize Edildi", html)
+        self.assertIn("Purview AuditLog: DlpPolicyChange", html)
+        self.assertIn("Yanlış pozitif bildirimler %40 azaltıldı", html)
+
+        # Strict Absence of Tickets, CRs, ServiceNow, Jira, and Manual Hours
+        self.assertNotIn("CR-", html)
+        self.assertNotIn("Change Request", html)
+        self.assertNotIn("Ticket", html)
+        self.assertNotIn("ServiceNow", html)
+        self.assertNotIn("Jira", html)
 
     def test_gate_06_unconfigured_telemetry_renders_transparent_missing_reason(self):
         """

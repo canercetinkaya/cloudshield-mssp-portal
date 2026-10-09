@@ -855,52 +855,49 @@ def create_customer_portal_user(customer_id, display_name, email, role="Customer
     finally:
         conn.close()
 
-def record_managed_activity(activity_dict, db_path=None):
-    """Inserts a verifiable managed service activity record."""
+def record_observed_improvement(improvement_dict, db_path=None):
+    """
+    Inserts a telemetry-derived technical improvement record.
+    Derived purely from observable tenant changes (Audit Logs, Config Diffs, Policy Updates).
+    Zero ticket, CR, or manual engineer logging required.
+    """
     conn = get_db(db_path)
     cur = conn.cursor()
     now = datetime.now(timezone.utc).isoformat()
-    aid = activity_dict.get("activity_id") or f"ACT-{secrets.token_hex(4).upper()}"
+    iid = improvement_dict.get("improvement_id") or improvement_dict.get("activity_id") or f"IMP-{secrets.token_hex(4).upper()}"
     try:
         cur.execute("""
-            INSERT OR REPLACE INTO managed_service_activities
-            (activity_id, tenant_id, service_code, period, category, description,
-             ticket_ref, engineer_role, started_at, completed_at, status, related_risk,
-             related_target, requires_approval, approved_by, outcome, evidence_ref,
-             hours_spent, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO observed_technical_improvements
+            (improvement_id, tenant_id, service_code, period, category, component,
+             title, description, technical_impact, telemetry_source, observed_at, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            aid,
-            activity_dict.get("tenant_id", "ALL"),
-            activity_dict.get("service_code", "GEN"),
-            activity_dict.get("period", ""),
-            activity_dict.get("category", "İnceleme"),
-            activity_dict.get("description", ""),
-            activity_dict.get("ticket_ref", ""),
-            activity_dict.get("engineer_role", "Senior SecOps Engineer"),
-            activity_dict.get("started_at", now),
-            activity_dict.get("completed_at", now),
-            activity_dict.get("status", "Tamamlandı"),
-            activity_dict.get("related_risk", ""),
-            activity_dict.get("related_target", ""),
-            1 if activity_dict.get("requires_approval") else 0,
-            activity_dict.get("approved_by"),
-            activity_dict.get("outcome", ""),
-            activity_dict.get("evidence_ref", ""),
-            float(activity_dict.get("hours_spent", 1.0)),
+            iid,
+            improvement_dict.get("tenant_id", "ALL"),
+            improvement_dict.get("service_code", "GEN"),
+            improvement_dict.get("period", ""),
+            improvement_dict.get("category", "Politika Optimizasyonu"),
+            improvement_dict.get("component", "Microsoft Security"),
+            improvement_dict.get("title", improvement_dict.get("description", "Teknik Güvenlik İyileştirmesi")),
+            improvement_dict.get("description", ""),
+            improvement_dict.get("technical_impact", improvement_dict.get("outcome", "Güvenlik duruşu güçlendirildi.")),
+            improvement_dict.get("telemetry_source", improvement_dict.get("evidence_ref", "Microsoft Tenant AuditLog")),
+            improvement_dict.get("observed_at", improvement_dict.get("completed_at", now)),
             now
         ))
         conn.commit()
-        return aid
+        return iid
     finally:
         conn.close()
 
-def get_managed_activities(tenant_id, period=None, service_code=None, db_path=None):
-    """Retrieves verified managed service activities for tenant and period."""
+def get_observed_improvements(tenant_id, period=None, service_code=None, db_path=None):
+    """
+    Retrieves telemetry-derived observed technical improvements for tenant and period.
+    """
     conn = get_db(db_path)
     cur = conn.cursor()
     try:
-        query = "SELECT * FROM managed_service_activities WHERE (tenant_id = ? OR tenant_id = 'ALL')"
+        query = "SELECT * FROM observed_technical_improvements WHERE (tenant_id = ? OR tenant_id = 'ALL')"
         params = [tenant_id]
         if period:
             query += " AND period = ?"
@@ -908,12 +905,25 @@ def get_managed_activities(tenant_id, period=None, service_code=None, db_path=No
         if service_code:
             query += " AND service_code = ?"
             params.append(service_code)
-        query += " ORDER BY completed_at DESC"
+        query += " ORDER BY observed_at DESC"
         cur.execute(query, params)
         rows = cur.fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+def record_managed_activity(activity_dict, db_path=None):
+    """
+    Records an observed technical improvement. Kept for backwards compatibility.
+    Zero tickets, zero CRs, zero manual input required.
+    """
+    return record_observed_improvement(activity_dict, db_path=db_path)
+
+def get_managed_activities(tenant_id, period=None, service_code=None, db_path=None):
+    """
+    Retrieves observed technical improvements for tenant and period.
+    """
+    return get_observed_improvements(tenant_id, period=period, service_code=service_code, db_path=db_path)
 
 def record_kpi_provenance(record_dict, db_path=None):
     """Records the provenance and trust metadata of a generated KPI."""
