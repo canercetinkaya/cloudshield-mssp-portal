@@ -35,7 +35,7 @@ jobs:
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json', 'config/catalog/license-catalog.json', 'config/catalog/catalog-feed-state.json', 'version.json', 'Data/version.json']]"
           
           echo "=== 3. Zero SOC / Bilet İzolasyon Denetimi ==="
-          python scripts/verify_zero_soc.py
+          python Scripts/verify_zero_soc.py
 
       - name: 🧪 Birim ve Güvenlik Testleri (92 Test)
         shell: bash
