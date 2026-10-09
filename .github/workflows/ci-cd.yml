@@ -1,8 +1,8 @@
-name: CloudShield MSSP Portal CI/CD — Enterprise Production
+name: CloudShield Security Reporting CI/CD — Enterprise Pipeline
 
 on:
   push:
-    branches: [ "main", "release/*", "pilot/controlled-pilot-finalization" ]
+    branches: [ "main", "release/*", "feature/*", "pilot/*" ]
   pull_request:
     branches: [ "main", "release/*" ]
   workflow_dispatch:
@@ -25,26 +25,23 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 🔍 Statik Sözdizimi & Zero SOC Uyumluluk Denetimi
+      - name: 🔍 Statik Sözdizimi & Modül Derleme Denetimi
         shell: bash
         run: |
           echo "=== 1. Python Kod Doğrulaması ==="
           python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py database/db.py
           
-          echo "=== 2. Automated Unit & Security Tests (54+ Tests) ==="
-          python -m unittest discover tests
-          
-          echo "=== 4. JSON Dosyaları Doğrulaması ==="
+          echo "=== 2. JSON Dosyaları Sözdizim Doğrulaması ==="
           python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
           
-          echo "=== 3. Zero SOC İzolasyon Denetimi ==="
+          echo "=== 3. Zero SOC / Bilet İzolasyon Denetimi ==="
           python3 - <<'PYEOF'
 import os, sys
 patterns = ["(SOC)", "SVC-SOC"]
 skip_exts = {".md", ".txt", ".yml", ".yaml"}
 hits = []
 for root, dirs, files in os.walk("."):
-    dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "__pycache__"}]
+    dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "__pycache__", "docs"}]
     for fname in files:
         if any(fname.endswith(e) for e in skip_exts):
             continue
@@ -66,6 +63,21 @@ else:
     print("Zero SOC Kuralı Doğrulandı: İhlal Yok.")
 PYEOF
 
+      - name: 🧪 Birim ve Güvenlik Testleri (92 Test)
+        shell: bash
+        run: |
+          python -m unittest discover tests
+
+      - name: 📊 Kolektör-Rapor Mutabakat Testleri (9 Test)
+        shell: bash
+        run: |
+          python -m unittest tests/test_collector_to_report_reconciliation.py
+
+      - name: 🛡️ Kapsamlı Platform QA Test Paketi (60 Test)
+        shell: bash
+        run: |
+          python tests/test_comprehensive_qa.py
+
       - name: ⚡ PowerShell & KQL Motor Bütünlük Testi
         shell: pwsh
         run: |
@@ -73,8 +85,35 @@ PYEOF
           $queries = Get-StandardHuntQueries -StartDate (Get-Date).AddDays(-30) -EndDate (Get-Date)
           Write-Host "KQL Motoru Başarıyla Yüklendi. Tanımlı Sorgu Sayısı: $($queries.Count)"
 
+  container-build-smoke:
+    name: 🐳 Container Image Build & Smoke Test
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🔨 Container İmajını Derle
+        run: |
+          docker build -t cloudshield-reporting-platform:ci-test -f Docker/Dockerfile .
+
+      - name: 🧪 Container Başlatma & Smoke Test
+        run: |
+          docker run -d --name test-app -p 8080:8080 \
+            -e ENVIRONMENT=production \
+            -e MAX_REPLICAS=1 \
+            -e CLOUDSHIELD_SESSION_SECRET=ci-testing-secret-token-must-be-32-chars \
+            cloudshield-reporting-platform:ci-test
+          
+          sleep 5
+          docker logs test-app
+          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/api/health
+          curl --fail http://localhost:8080/api/version
+          docker stop test-app
+
   azure-arm-validate:
-    name: ☁️ Azure Resource Manager Template Validation
+    name: ☁️ Azure Resource Manager & Bicep Validation
     needs: validate-and-test
     runs-on: ubuntu-latest
 

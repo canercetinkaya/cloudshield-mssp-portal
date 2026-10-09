@@ -1,37 +1,36 @@
-## 🛡️ CloudShield MSSP Platform Pull Request
+## 🛡️ CloudShield Security Reporting & Managed Services Visibility Platform Pull Request
 
-### 📋 Description of Changes
-<!-- Provide a clear, concise summary of the proposed modifications or additions. -->
+### 📋 Değişiklik Özeti
+<!-- Yapılan değişikliklerin kısa ve net açıklamasını yazınız. -->
 
-### 🏷️ Change Type
-- [ ] 🔒 Security Hotfix / DevSecOps Guardrail
-- [ ] 🚀 New Feature / Enterprise Service Capability
-- [ ] 🐛 Bug Fix
-- [ ] ⚡ Performance Optimization / Caching
-- [ ] 📝 Documentation / Architecture Diagram
-- [ ] 🧪 Testing / Automated QA Suite
-
----
-
-### 🛡️ DevSecOps & Security Checklist (MANDATORY)
-*Every submission is subject to automated CI secret scanning and peer audit before merging.*
-
-- [ ] **Zero Hardcoded Credentials:** No customer tenant secrets, API keys, passwords, or certificates are present in this commit.
-- [ ] **No Tracked Logs or Caches:** `Engine/Logs/*.jsonl`, output artifacts, and local tenant files (`*.local.json`) are NOT tracked by Git.
-- [ ] **Authentication Integrity:** No plaintext fallback passwords or credential-leaking error responses have been introduced.
-- [ ] **Zero 24/7 SOC Confusion:** The codebase strictly adheres to the MSSP Purview & Defender Security Engineering scope (no unauthorized `SOC` / `SVC-SOC` references).
-- [ ] **k-Anonymity & Privacy:** Any customer data rendering enforces GDPR / KVKK masking rules (`PrivacyEngine.psm1`).
-- [ ] **Automated QA Passed:** `python test_comprehensive_qa.py` passes all 50 platform, API, and concurrency tests.
+### 🏷️ Değişiklik Türü
+- [ ] 🔒 Güvenlik & Doğruluk Düzeltmesi (Security & Data Accuracy)
+- [ ] 🚀 Yeni Raporlama Yeteneği / İş Yükü (Workload Reporting)
+- [ ] 🐛 Hata Düzeltme (Bug Fix)
+- [ ] ⚡ Performans & Şablon İyileştirmesi
+- [ ] 📝 Dokümantasyon / Mimari Güncellemesi
+- [ ] 🧪 Test & Kalite Kapısı (QA Gate)
 
 ---
 
-### 🧪 Local Validation Summary
-<!-- Paste command execution output or test summary: -->
-```powershell
-python -m py_compile Portal/api/server.py Portal/api/report_generator.py
-python test_comprehensive_qa.py
+### 🛡️ DevSecOps & Veri Doğruluğu Kontrol Listesi (ZORUNLU)
+
+- [ ] **Sıfır Açık Metin Secret:** Kodda, loglarda veya commit'te müşteri credential'ı, parola, API token'ı veya sertifika bulunmuyor.
+- [ ] **Sıfır Sentetik Çarpan:** Alarm veya olay sayıları katsayılarla çarpılmıyor; kurgusal oranlar kullanılmıyor.
+- [ ] **Sıfır Bilet / Sıfır CR:** CR ID, Ticket, ServiceNow, Jira veya manuel mühendislik saati kavramları eklenmedi.
+- [ ] **Veri Kaynağı ve Provenance:** Eklenen her yeni KPI için KQL sorgusu veya Graph API endpoint'i dokümante edildi.
+- [ ] **k-Anonymity & Gizlilik:** Rapora yansıyan kişisel veriler dinamik olarak maskeleniyor.
+- [ ] **Tüm Kalite Testleri Başarılı:**
+  - `python -m py_compile Portal/api/server.py Portal/api/report_generator.py database/db.py`
+  - `python -m unittest discover tests` (92 Test)
+  - `python tests/test_comprehensive_qa.py` (60 Test)
+  - `python -m unittest tests/test_collector_to_report_reconciliation.py` (9 Test)
+
+---
+
+### 🧪 Yerel Doğrulama Çıktısı
+<!-- Testlerin geçtiğine dair terminal çıktısını ekleyiniz: -->
+```bash
+python -m unittest discover tests
+python tests/test_comprehensive_qa.py
 ```
-
-### 🔗 Related Issues / Work Items
-<!-- Link to issue: Closes #123 -->
-- Relates to: #
