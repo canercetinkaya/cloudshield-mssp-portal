@@ -129,8 +129,31 @@ function Get-ServiceRawData {
         Write-Warning "MDO alarmları çekilemedi ($availabilityState): $errMsg"
     }
 
+    $trafficTelemetry = $null
+    try {
+        $startIso = $startZ
+        $endIso = $endZ
+        $kql = "EmailEvents | where Timestamp >= datetime($startIso) and Timestamp < datetime($endIso) | summarize Total=count(), Blocked=countif(DeliveryAction == 'Blocked'), Phish=countif(ThreatTypes has 'Phish'), Malware=countif(ThreatTypes has 'Malware')"
+        $huntBody = @{ Query = $kql } | ConvertTo-Json -Compress
+        $huntResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/runHuntingQuery" -AccessToken $token -Method POST -Body $huntBody
+        if ($huntResp.results -and $huntResp.results.Count -gt 0) {
+            $r = $huntResp.results[0]
+            $trafficTelemetry = [pscustomobject]@{
+                TotalInbound   = [int]$r.Total
+                Blocked        = [int]$r.Blocked
+                Phish          = [int]$r.Phish
+                Malware        = [int]$r.Malware
+                CleanDelivered = [math]::Max(0, ([int]$r.Total - [int]$r.Blocked))
+            }
+        }
+    } catch {
+        # Hunting API unconfigured or permission missing - do NOT invent synthetic data
+        $trafficTelemetry = $null
+    }
+
     return [pscustomobject]@{
         Alerts            = $alerts
+        TrafficTelemetry  = $trafficTelemetry
         StartDate         = $StartDate
         EndDate           = $EndDate
         AvailabilityState = $availabilityState
@@ -176,29 +199,50 @@ function Get-ServiceKpis {
         }
     }
 
-    # Canlı modda agregasyon
+    # Canlı modda doğrudan ve doğrulanmış telemetri
     $a = @($RawData.Alerts)
     $phish = @($a | Where-Object { $_.category -match 'Phish' -or $_.title -match 'phish' }).Count
     $malware = @($a | Where-Object { $_.category -match 'Malware' -or $_.title -match 'malware' }).Count
     $other = $a.Count - ($phish + $malware)
     if ($other -lt 0) { $other = 0 }
 
+    $tt = $RawData.TrafficTelemetry
+    if ($tt) {
+        return [ordered]@{
+            ToplamGelenPosta      = $tt.TotalInbound
+            TemizTeslimEdilen     = $tt.CleanDelivered
+            FiltrelenenSpam       = $other
+            EngellenenOltalama    = [math]::Max($phish, $tt.Phish)
+            EngellenenZararliEk   = [math]::Max($malware, $tt.Malware)
+            SafeLinksEngelleme    = 'N/A - UrlClickEvents KQL izni gerekli'
+            SafeAttachmentsEng    = 'N/A - ThreatHunting.Read.All ile izole analizi'
+            ZapSistemGeriCekme    = 'N/A - EmailPostDeliveryEvents KQL izni gerekli'
+            ToplamEngellenen      = [math]::Max($a.Count, $tt.Blocked)
+            KullaniciBildirimi    = 'N/A - Purview/MDO Submission API yapılandırılmamış'
+            DogrulananOltalama    = $phish
+            KarantinaTalepSayisi  = 'N/A - Exchange Online Quarantine API izni gerekli'
+            KarantinaReddedilen   = 'N/A'
+            KarantinaOnaylanan    = 'N/A'
+            AvailabilityState     = 'DirectAndVerified'
+        }
+    }
+
     return [ordered]@{
-        ToplamGelenPosta      = if ($a.Count -gt 0) { $a.Count * 80 } else { 0 }
-        TemizTeslimEdilen     = if ($a.Count -gt 0) { ($a.Count * 80) - $a.Count } else { 0 }
+        ToplamGelenPosta      = 'N/A - EmailEvents KQL izni gerekli'
+        TemizTeslimEdilen     = 'N/A - Telemetri yapılandırılmamış'
         FiltrelenenSpam       = $other
         EngellenenOltalama    = $phish
         EngellenenZararliEk   = $malware
-        SafeLinksEngelleme    = 0
-        SafeAttachmentsEng    = 0
-        ZapSistemGeriCekme    = 0
+        SafeLinksEngelleme    = 'N/A - UrlClickEvents KQL izni gerekli'
+        SafeAttachmentsEng    = 'N/A - Safe Attachments telemetrisi yapılandırılmamış'
+        ZapSistemGeriCekme    = 'N/A - EmailPostDeliveryEvents KQL izni gerekli'
         ToplamEngellenen      = $a.Count
-        KullaniciBildirimi    = 0
+        KullaniciBildirimi    = 'N/A - Purview/MDO Submission API yapılandırılmamış'
         DogrulananOltalama    = $phish
-        KarantinaTalepSayisi  = 0
-        KarantinaReddedilen   = 0
-        KarantinaOnaylanan    = 0
-        AvailabilityState     = $RawData.AvailabilityState
+        KarantinaTalepSayisi  = 'N/A - Exchange Online Quarantine API izni gerekli'
+        KarantinaReddedilen   = 'N/A'
+        KarantinaOnaylanan    = 'N/A'
+        AvailabilityState     = if ($a.Count -gt 0) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
     }
 }
 
@@ -211,8 +255,12 @@ function Get-ServiceManagedActions {
         $KpiData
     )
 
-    $analistAksiyon = ($KpiData.KullaniciBildirimi) + ($KpiData.KarantinaTalepSayisi)
-    $otonomAksiyon  = ($KpiData.ToplamEngellenen)
+    $kb = if ($KpiData.KullaniciBildirimi -is [int]) { $KpiData.KullaniciBildirimi } else { 0 }
+    $kt = if ($KpiData.KarantinaTalepSayisi -is [int]) { $KpiData.KarantinaTalepSayisi } else { 0 }
+    $eo = if ($KpiData.EngellenenOltalama -is [int]) { $KpiData.EngellenenOltalama } else { 0 }
+    $ez = if ($KpiData.EngellenenZararliEk -is [int]) { $KpiData.EngellenenZararliEk } else { 0 }
+    $analistAksiyon = $kb + $kt
+    $otonomAksiyon  = if ($KpiData.ToplamEngellenen -is [int]) { $KpiData.ToplamEngellenen } else { $eo + $ez }
 
     return [ordered]@{
         ServiceCode        = $Script:ServiceCode
@@ -220,7 +268,7 @@ function Get-ServiceManagedActions {
         OtonomMudahaleler  = $otonomAksiyon
         ManuelAnalistEforu = $analistAksiyon
         KazanilanZamanSaat = [math]::Round(($otonomAksiyon * 15) / 60.0, 1)
-        Aciklama           = "E-posta ağ geçidinde $($KpiData.ToplamEngellenen) adet oltalama ve zararlı içerik otonom durdurulmuş, CloudShield analistleri kullanıcıların bildirdiği $($KpiData.KullaniciBildirimi) şüpheli postayı ve $($KpiData.KarantinaTalepSayisi) karantina talebini güvenlik denetiminden geçirmiştir."
+        Aciklama           = "E-posta ağ geçidinde $($otonomAksiyon) adet oltalama ve zararlı içerik otonom durdurulmuş, CloudShield mühendisleri kullanıcı bildirimlerini ve karantina taleplerini güvenlik denetiminden geçirmiştir."
     }
 }
 
@@ -236,6 +284,11 @@ function Get-ServiceHtmlSection {
     )
 
     $k = $KpiData
+    $eo = if ($k.EngellenenOltalama -is [int]) { $k.EngellenenOltalama } else { 0 }
+    $ez = if ($k.EngellenenZararliEk -is [int]) { $k.EngellenenZararliEk } else { 0 }
+    $zap = if ($k.ZapSistemGeriCekme -is [int]) { $k.ZapSistemGeriCekme } else { 0 }
+    $kb = if ($k.KullaniciBildirimi -is [int]) { $k.KullaniciBildirimi } else { 0 }
+    $kt = if ($k.KarantinaTalepSayisi -is [int]) { $k.KarantinaTalepSayisi } else { 0 }
 
     $html = @"
 <section class="service-section">
@@ -256,7 +309,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Otonom Filtreleme & ZAP</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.EngellenenOltalama + $k.EngellenenZararliEk + $k.ZapSistemGeriCekme)</div>
+                    <div class="kpi-value">$($eo + $ez + $zap)</div>
                     <span class="badge positive">Otonom</span>
                 </div>
                 <div class="kpi-description">Gateway'de ve ZAP ile gelen kutularından geri çekilen tehditler</div>
@@ -264,7 +317,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">CloudShield E-Posta Uzman Eylemi</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.KullaniciBildirimi + $k.KarantinaTalepSayisi)</div>
+                    <div class="kpi-value">$($kb + $kt)</div>
                     <span class="badge positive">Uzman Eforu</span>
                 </div>
                 <div class="kpi-description">İncelenen kullanıcı bildirimleri (Submissions) ve karantina analizi</div>
@@ -272,18 +325,18 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Kuruma Kazandırılan Efor</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">+$([math]::Round((($k.EngellenenOltalama + $k.EngellenenZararliEk) * 12) / 60.0, 1)) Saat</div>
+                    <div class="kpi-value">+$([math]::Round((($eo + $ez) * 12) / 60.0, 1)) Saat</div>
                     <span class="badge positive">Verimlilik</span>
                 </div>
                 <div class="kpi-description">Otonom bloklama ve karantina triyajı ile kazanılan mesai</div>
             </div>
             <div class="kpi-card" style="background:#FFFFFF;">
-                <div class="kpi-title">E-Posta Temizlik & SLA Skoru</div>
+                <div class="kpi-title">Telemetri Doğrulama Durumu</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">%99.8</div>
-                    <span class="badge positive">Temiz</span>
+                    <div class="kpi-value">$(if ($k.AvailabilityState -eq 'DirectAndVerified') { 'Doğrulandı' } else { 'Kısmi Veri' })</div>
+                    <span class="badge positive">$(if ($k.AvailabilityState -eq 'DirectAndVerified') { 'Kesin Veri' } else { 'İzin Eksik' })</span>
                 </div>
-                <div class="kpi-description">Güvenli şekilde teslim edilen kurumsal posta oranı</div>
+                <div class="kpi-description">Microsoft Graph & MDO telemetri kaynak bütünlüğü</div>
             </div>
         </div>
     </div>

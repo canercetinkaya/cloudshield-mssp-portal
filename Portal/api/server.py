@@ -9,33 +9,28 @@ Backend REST API Server - Pure Python 3 Standard Library (Zero External Dependen
 """
 
 import http.server
-
 import json
 import base64
-
+import hashlib
 import os
-
 import shutil
-
 import subprocess
-
 import sys
-
 import threading
-
 import time
-
 import urllib.parse
-
 import urllib.request
-
 import uuid
-
 import hmac
-
 import secrets
-
 from datetime import datetime, timedelta, timezone
+
+try:
+    import jwt
+    from jwt import PyJWKSet
+except ImportError:
+    jwt = None
+    PyJWKSet = None
 
 # --- UTF-8 console compliance (see docs/governance/encoding-standard.md) ------
 # Force UTF-8 stdout/stderr so Turkish characters in startup and request logs
@@ -51,7 +46,13 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from database.db import init_db, get_db, sync_customer_to_db, create_customer_portal_user
+from database.db import (
+    init_db, get_db, sync_customer_to_db, create_customer_portal_user,
+    save_license_inventory, get_license_inventory, save_user_license_profiles,
+    get_user_license_profiles, save_license_value_summary, get_license_value_summary,
+    save_workload_reconciliation, get_workload_reconciliation, save_license_snapshot,
+    get_license_snapshot, list_license_snapshots
+)
 try:
     from rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
     from rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
@@ -59,14 +60,29 @@ except ImportError:
     from Portal.api.rbac_engine import authenticate_user, evaluate_access, record_audit_event, get_effective_assignments
     from Portal.api.rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
 
+try:
+    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+except ImportError:
+    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
 
 try:
-
-    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
-
+    from license_intelligence import (
+        load_license_catalog, classify_user_persona, analyze_user_license_entitlements,
+        reconcile_workload_5_layers, check_smb_user_cap, compute_overall_value_index,
+        compare_license_snapshots, WORKLOADS_DEF
+    )
+    from license_collector import collect_tenant_license_intelligence
+    from license_report_generator import generate_license_health_report, render_license_pdf
+    from license_catalog_updater import check_remote_feed, get_feed_status
 except ImportError:
-
-    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+    from Portal.api.license_intelligence import (
+        load_license_catalog, classify_user_persona, analyze_user_license_entitlements,
+        reconcile_workload_5_layers, check_smb_user_cap, compute_overall_value_index,
+        compare_license_snapshots, WORKLOADS_DEF
+    )
+    from Portal.api.license_collector import collect_tenant_license_intelligence
+    from Portal.api.license_report_generator import generate_license_health_report, render_license_pdf
+    from Portal.api.license_catalog_updater import check_remote_feed, get_feed_status
 
 PORT = int(os.environ.get("PORT", 8080))
 
@@ -292,8 +308,177 @@ def get_entra_config():
         "token_endpoint": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
     }
 
+class RateLimiter:
+    """Thread-safe sliding-window rate limiter per key (IP, user, or composite key)."""
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.records = {}
+
+    def is_allowed(self, key, max_requests, window_seconds):
+        now = time.time()
+        with self.lock:
+            timestamps = self.records.get(key, [])
+            cutoff = now - window_seconds
+            timestamps = [t for t in timestamps if t > cutoff]
+            if len(timestamps) >= max_requests:
+                oldest = timestamps[0]
+                retry_after = max(1, int(oldest + window_seconds - now))
+                self.records[key] = timestamps
+                return False, retry_after
+            timestamps.append(now)
+            self.records[key] = timestamps
+            return True, 0
+
+    def reset(self):
+        with self.lock:
+            self.records.clear()
+
+RATE_LIMITER = RateLimiter()
+
+def generate_pkce_pair():
+    """Generate RFC 7636 PKCE code_verifier and code_challenge (S256)."""
+    code_verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+    return code_verifier, code_challenge
+
+_JWKS_CACHE = {
+    "keys": None,
+    "expires_at": 0,
+    "tenant_id": None
+}
+
+def get_microsoft_jwks(tenant_id):
+    """
+    Fetch Microsoft OIDC discovery metadata and JWKS.
+    Fails closed on retrieval failure.
+    Caches keys in memory with controlled expiration.
+    Supports TEST_MOCK_JWKS for deterministic automated unit testing.
+    """
+    mock_jwks = os.environ.get("TEST_MOCK_JWKS")
+    if mock_jwks:
+        try:
+            return json.loads(mock_jwks)
+        except Exception as e:
+            raise RuntimeError(f"Invalid TEST_MOCK_JWKS environment data: {e}")
+
+    now = time.time()
+    if _JWKS_CACHE["keys"] and _JWKS_CACHE["tenant_id"] == tenant_id and now < _JWKS_CACHE["expires_at"]:
+        return _JWKS_CACHE["keys"]
+
+    discovery_url = f"https://login.microsoftonline.com/{tenant_id}/v2.0/.well-known/openid-configuration"
+    try:
+        req = urllib.request.Request(discovery_url, headers={"User-Agent": "CloudShield-Portal-OIDC/3.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            discovery = json.loads(resp.read().decode("utf-8"))
+        jwks_uri = discovery.get("jwks_uri")
+        if not jwks_uri:
+            raise ValueError("OIDC discovery response missing jwks_uri")
+
+        req2 = urllib.request.Request(jwks_uri, headers={"User-Agent": "CloudShield-Portal-OIDC/3.0"})
+        with urllib.request.urlopen(req2, timeout=10) as resp2:
+            jwks = json.loads(resp2.read().decode("utf-8"))
+
+        _JWKS_CACHE["keys"] = jwks
+        _JWKS_CACHE["expires_at"] = now + 86400  # 24-hour cache
+        _JWKS_CACHE["tenant_id"] = tenant_id
+        return jwks
+    except Exception as e:
+        raise RuntimeError(f"OIDC metadata/JWKS retrieval failed (Fail-Closed): {e}")
+
+def verify_entra_id_token(id_token, tenant_id, client_id, expected_nonce=None):
+    """
+    Cryptographically verify Microsoft Entra ID ID token signature and claims.
+    Strict production checks:
+    - RS256 algorithm enforcement
+    - Signature verification against Microsoft JWKS public keys
+    - Matching kid in JWKS
+    - Audience validation (must match platform client_id)
+    - Issuer validation (https://login.microsoftonline.com/{tenant_id}/v2.0 or https://sts.windows.net/{tenant_id}/)
+    - Expiration & Not-Before validation
+    - Nonce verification (against server-side state flow)
+    - Tenant boundary validation (tid == tenant_id)
+    """
+    if not id_token or not isinstance(id_token, str):
+        raise ValueError("Missing or invalid id_token string")
+
+    if jwt is None:
+        raise RuntimeError("PyJWT library is not installed. RFC 7519 signature verification requires pyjwt and cryptography.")
+
+    try:
+        unverified_header = jwt.get_unverified_header(id_token)
+    except Exception as e:
+        raise ValueError(f"Invalid JWT header structure: {e}")
+
+    alg = unverified_header.get("alg")
+    if alg != "RS256":
+        raise ValueError(f"Disallowed JWT algorithm '{alg}'. Only RS256 is permitted.")
+
+    kid = unverified_header.get("kid")
+    if not kid:
+        raise ValueError("Missing 'kid' (Key ID) in JWT header.")
+
+    jwks_data = get_microsoft_jwks(tenant_id)
+    jwk_set = jwt.PyJWKSet.from_dict(jwks_data)
+    
+    try:
+        signing_key = jwk_set[kid]
+    except KeyError:
+        # Retry once to allow key rollover
+        _JWKS_CACHE["expires_at"] = 0
+        jwks_data = get_microsoft_jwks(tenant_id)
+        jwk_set = jwt.PyJWKSet.from_dict(jwks_data)
+        try:
+            signing_key = jwk_set[kid]
+        except KeyError:
+            raise ValueError(f"Unknown key identifier (kid: '{kid}') not present in Microsoft JWKS.")
+
+    expected_issuers = [
+        f"https://login.microsoftonline.com/{tenant_id}/v2.0",
+        f"https://sts.windows.net/{tenant_id}/"
+    ]
+
+    try:
+        claims = jwt.decode(
+            id_token,
+            key=signing_key.key,
+            algorithms=["RS256"],
+            audience=client_id,
+            options={
+                "verify_signature": True,
+                "verify_aud": True,
+                "verify_exp": True,
+                "verify_nbf": True,
+                "verify_iss": False,
+                "require": ["exp", "iss", "aud", "sub"]
+            }
+        )
+    except jwt.ExpiredSignatureError:
+        raise ValueError("ID Token has expired.")
+    except jwt.InvalidAudienceError:
+        raise ValueError(f"Invalid token audience (aud does not match platform client_id '{client_id}').")
+    except jwt.InvalidSignatureError:
+        raise ValueError("Cryptographic signature verification failed (Tampered or forged token).")
+    except Exception as e:
+        raise ValueError(f"JWT signature verification failed: {e}")
+
+    iss = claims.get("iss")
+    if iss not in expected_issuers:
+        raise ValueError(f"Invalid token issuer '{iss}'. Expected tenant authority.")
+
+    tid = claims.get("tid")
+    if tid and tid != tenant_id:
+        raise ValueError(f"Cross-tenant identity rejected. Token tid '{tid}' does not match expected '{tenant_id}'.")
+
+    if expected_nonce:
+        token_nonce = claims.get("nonce")
+        if not token_nonce or not hmac.compare_digest(token_nonce, expected_nonce):
+            raise ValueError("Token nonce does not match expected authentication session nonce.")
+
+    return claims
+
 def decode_jwt_payload(jwt_token):
-    """Decode unverified JWT payload using pure Python standard library."""
+    """Decode unverified JWT payload using pure Python standard library for debug inspection only."""
     parts = jwt_token.split(".")
     if len(parts) < 2:
         raise ValueError("Invalid JWT token format")
@@ -301,7 +486,6 @@ def decode_jwt_payload(jwt_token):
     rem = len(payload_b64) % 4
     if rem > 0:
         payload_b64 += "=" * (4 - rem)
-    import base64
     payload_bytes = base64.urlsafe_b64decode(payload_b64.encode("ascii"))
     return json.loads(payload_bytes.decode("utf-8"))
 
@@ -612,28 +796,54 @@ def save_json_file(path, data):
 class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
     def end_headers(self):
-
         vinfo = get_version_info()
 
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # Strict CORS Origin Whitelisting (Eliminates Wildcard *)
+        origin = self.headers.get("Origin")
+        allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
+        if allowed_origins_env:
+            allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+        else:
+            allowed_origins = [
+                "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io",
+                "http://localhost:8080",
+                "http://127.0.0.1:8080"
+            ]
 
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        if origin and origin in allowed_origins:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+            self.send_header("Vary", "Origin")
 
         self.send_header("X-Portal-Version", vinfo.get("version", "3.0.0"))
-
         self.send_header("X-Portal-Release", vinfo.get("release", "v3.0.0-ENTERPRISE"))
-
         self.send_header("X-Content-Type-Options", "nosniff")
-
         self.send_header("X-Frame-Options", "DENY")
-
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
-
+        self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        self.send_header("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
         self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';")
 
         super().end_headers()
+
+    def _check_rate_limit(self, bucket_name, max_req=30, window_sec=60):
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+        key = f"{bucket_name}:{client_ip}"
+        allowed, retry_after = RATE_LIMITER.is_allowed(key, max_req, window_sec)
+        if not allowed:
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Retry-After", str(retry_after))
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "success": False,
+                "error": f"Çok Fazla İstek (429 Too Many Requests): İstek sınırı aşıldı. Lütfen {retry_after} saniye sonra tekrar deneyin.",
+                "retryAfter": retry_after
+            }, ensure_ascii=False).encode("utf-8"))
+            return False
+        return True
 
     def do_OPTIONS(self):
 
@@ -657,15 +867,13 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
     def get_current_user(self):
 
-        """Extract authenticated user object from session header or query parameter."""
+        """Extract authenticated user object from session header or secure cookie."""
 
         auth_hdr = self.headers.get("Authorization", "")
         tok = auth_hdr.replace("Bearer ", "").strip() if auth_hdr else ""
 
-        if not tok:
-            parsed = urllib.parse.urlparse(self.path)
-            query = urllib.parse.parse_qs(parsed.query)
-            tok = query.get("token", [""])[0]
+        # Finding 8: Tokens in URL query parameters MUST BE PROHIBITED!
+        # Do not accept ?token= from query parameters under any circumstances.
 
         if not tok:
             cookie_hdr = self.headers.get("Cookie", "")
@@ -717,7 +925,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         return False
 
     def _handle_entra_authorize(self):
-        """Initiate Microsoft Entra ID Authorization Code flow (OIDC)."""
+        """Initiate Microsoft Entra ID Authorization Code flow with PKCE S256."""
+        if not self._check_rate_limit("auth_entra_authorize", max_req=15, window_sec=60):
+            return
+
         cfg = get_entra_config()
         if not cfg.get("client_id") or not cfg.get("tenant_id"):
             self.send_json_response({"error": "Entra ID OIDC configuration missing."}, status=500)
@@ -725,10 +936,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         state = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
+        code_verifier, code_challenge = generate_pkce_pair()
 
         now_ts = time.time()
         AUTH_FLOWS[state] = {
             "nonce": nonce,
+            "code_verifier": code_verifier,
             "created_at": now_ts,
             "redirect_uri": cfg["redirect_uri"]
         }
@@ -745,7 +958,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "response_mode": "query",
             "scope": "openid profile email",
             "state": state,
-            "nonce": nonce
+            "nonce": nonce,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256"
         }
         auth_url = f"{cfg['authorize_endpoint']}?{urllib.parse.urlencode(params)}"
 
@@ -755,7 +970,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def _handle_entra_callback(self, query):
-        """Process Microsoft Entra ID OIDC authorization response."""
+        """Process Microsoft Entra ID OIDC authorization response with PKCE & JWKS verification."""
+        if not self._check_rate_limit("auth_entra_callback", max_req=15, window_sec=60):
+            return
+
         client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
 
         err = query.get("error", [""])[0]
@@ -792,17 +1010,22 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         expected_nonce = flow.get("nonce")
+        code_verifier = flow.get("code_verifier")
         redirect_uri = flow.get("redirect_uri")
         cfg = get_entra_config()
 
-        token_payload = urllib.parse.urlencode({
+        token_req_params = {
             "client_id": cfg["client_id"],
             "client_secret": cfg["client_secret"],
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirect_uri,
             "scope": "openid profile email"
-        }).encode("utf-8")
+        }
+        if code_verifier:
+            token_req_params["code_verifier"] = code_verifier
+
+        token_payload = urllib.parse.urlencode(token_req_params).encode("utf-8")
 
         req = urllib.request.Request(
             cfg["token_endpoint"],
@@ -837,26 +1060,23 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self._render_auth_redirect_html(error="Microsoft yanıtında kimlik belirteci (id_token) bulunamadı.")
             return
 
+        # RFC 7519 / OIDC JWKS Cryptographic Signature & Claims Verification
         try:
-            claims = decode_jwt_payload(id_token)
+            claims = verify_entra_id_token(
+                id_token=id_token,
+                tenant_id=cfg["tenant_id"],
+                client_id=cfg["client_id"],
+                expected_nonce=expected_nonce
+            )
         except Exception as e:
-            self._render_auth_redirect_html(error=f"Kimlik belirteci çözümlenemedi: {str(e)}")
-            return
-
-        if claims.get("aud") != cfg["client_id"]:
-            self._render_auth_redirect_html(error="Belirteç hedef kitlesi (aud) geçersiz.")
-            return
-
-        if claims.get("tid") != cfg["tenant_id"]:
-            self._render_auth_redirect_html(error="Yetkisiz kiracı (tenant) oturumu.")
-            return
-
-        if claims.get("nonce") != expected_nonce:
-            self._render_auth_redirect_html(error="Belirteç güvenlik anahtarı (nonce) uyuşmuyor.")
-            return
-
-        if claims.get("exp", 0) < time.time():
-            self._render_auth_redirect_html(error="Kimlik belirtecinin süresi dolmuş.")
+            record_audit_event(
+                event_type="AUTH_DENY",
+                resource="/api/auth/entra/callback",
+                decision="DENY",
+                reason=f"IdTokenVerificationFailed: {str(e)}",
+                ip_address=client_ip
+            )
+            self._render_auth_redirect_html(error=f"Kimlik belirteci doğrulaması başarısız: {str(e)}")
             return
 
         user_info, resolve_err = resolve_entra_user(claims)
@@ -871,7 +1091,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self._render_auth_redirect_html(error=resolve_err or "Kullanıcı profili çözümlenemedi.")
             return
 
-        tok = uuid.uuid4().hex + uuid.uuid4().hex
+        tok = secrets.token_urlsafe(32)
         save_session(tok, user_info, 86400)
 
         record_audit_event(
@@ -897,7 +1117,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         if token:
-            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400")
+            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400")
 
         if error:
             safe_err = html.escape(str(error))
@@ -906,38 +1126,36 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 <head>
     <meta charset="utf-8">
     <title>CloudShield - Kimlik Doğrulama Hatası</title>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
-    <div class="bg-slate-800 border border-red-500/30 rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
-        <div class="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">!</div>
-        <h2 class="text-xl font-bold text-red-400 mb-2">Giriş Başarısız Oldu</h2>
-        <p class="text-slate-300 text-sm mb-6">{safe_err}</p>
-        <a href="/" class="inline-block bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2.5 px-6 rounded-lg transition">Giriş Ekranına Dön</a>
+<body style="background:#0f172a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+    <div style="background:#1e293b;border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:32px;max-width:440px;width:100%;text-align:center;">
+        <div style="font-size:32px;color:#ef4444;margin-bottom:12px;">⚠️</div>
+        <h2 style="font-size:20px;font-weight:700;color:#ef4444;margin-top:0;">Giriş Başarısız Oldu</h2>
+        <p style="font-size:14px;color:#cbd5e1;line-height:1.5;">{safe_err}</p>
+        <a href="/" style="display:inline-block;margin-top:16px;background:#334155;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 24px;border-radius:8px;">Giriş Ekranına Dön</a>
     </div>
 </body>
 </html>"""
         else:
-            token_json = json.dumps(token)
-            user_json = json.dumps(json.dumps(user, ensure_ascii=False))
-            body = f"""<!DOCTYPE html>
+            # Finding 9: Zero tokens in browser localStorage!
+            # Pure HttpOnly Secure cookie session with immediate redirection.
+            body = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>CloudShield - Giriş Yapılıyor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
-    <div class="bg-slate-800 border border-emerald-500/30 rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
-        <div class="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 class="text-lg font-bold text-emerald-400 mb-2">Microsoft Entra ID Doğrulandı</h2>
-        <p class="text-slate-400 text-xs mb-4">CloudShield MSSP Portalına aktarılıyorsunuz...</p>
+<body style="background:#0f172a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+    <div style="background:#1e293b;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:32px;max-width:440px;width:100%;text-align:center;">
+        <h2 style="font-size:18px;font-weight:700;color:#10b981;margin-top:0;">Microsoft Entra ID Doğrulandı</h2>
+        <p style="font-size:13px;color:#94a3b8;">CloudShield MSSP Portalına aktarılıyorsunuz...</p>
     </div>
     <script>
-        try {{
-            localStorage.setItem('cloudshield_auth_token', {token_json});
-            localStorage.setItem('cloudshield_user', {user_json});
-        }} catch (e) {{}}
+        // Strictly purge any legacy tokens from browser localStorage
+        try {
+            localStorage.removeItem('cloudshield_auth_token');
+            localStorage.removeItem('cloudshield_user');
+        } catch(e) {}
         window.location.replace('/');
     </script>
 </body>
@@ -1253,6 +1471,212 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "credentialHealth": health
         })
 
+    def handle_licenses_get(self, path, query):
+        user = self.get_current_user()
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+
+        if path == "/api/licenses/catalog":
+            allow, _ = evaluate_access(user, "licenses:view", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "services:view", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Lisans kataloğunu görüntüleme yetkiniz bulunmamaktadır."}, status=403)
+                return
+            cat = load_license_catalog()
+            feed = get_feed_status()
+            self.send_json_response({"success": True, "catalog": cat, "feedStatus": feed})
+            return
+
+        elif path == "/api/licenses/catalog/feed-status":
+            allow, _ = evaluate_access(user, "licenses:view", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "services:view", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden)."}, status=403)
+                return
+            feed = get_feed_status()
+            self.send_json_response({"success": True, "feedStatus": feed})
+            return
+
+        tenant_id = query.get("tenantId", [None])[0]
+        if not tenant_id:
+            self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
+            return
+
+        allow, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+        if not allow:
+            self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' lisans verilerini görüntüleme yetkiniz yoktur."}, status=403)
+            return
+
+        if user:
+            assigned = user.get("AssignedTenants", ["ALL"])
+            if "ALL" not in assigned and tenant_id not in assigned:
+                self.send_json_response({"success": False, "error": "Bu müşteri kiracısının lisans verilerine erişim yetkiniz yoktur."}, status=403)
+                return
+
+        snapshot_date = query.get("snapshotDate", [None])[0]
+        period = query.get("period", [None])[0]
+
+        if path == "/api/licenses/inventory":
+            inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
+            if not inv:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "inventory": inv, "count": len(inv)})
+            return
+
+        elif path == "/api/licenses/users":
+            filter_val = query.get("filter", [None])[0]
+            users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
+            if not users_list:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "users": users_list, "count": len(users_list)})
+            return
+
+        elif path == "/api/licenses/value-summary":
+            summary = get_license_value_summary(tenant_id, period=period)
+            if not summary:
+                res = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                summary = res.get("summary")
+            self.send_json_response({"success": True, "tenantId": tenant_id, "summary": summary})
+            return
+
+        elif path == "/api/licenses/reconciliation":
+            recs = get_workload_reconciliation(tenant_id, period=period)
+            if not recs:
+                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                recs = get_workload_reconciliation(tenant_id, period=period)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "reconciliations": recs, "count": len(recs)})
+            return
+
+        elif path == "/api/licenses/snapshots":
+            if period:
+                snap = get_license_snapshot(tenant_id, period)
+                if not snap:
+                    snap = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                self.send_json_response({"success": True, "tenantId": tenant_id, "snapshot": snap})
+            else:
+                snaps = list_license_snapshots(tenant_id)
+                if not snaps:
+                    collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                    snaps = list_license_snapshots(tenant_id)
+                self.send_json_response({"success": True, "tenantId": tenant_id, "snapshots": snaps})
+            return
+
+        elif path == "/api/licenses/diff":
+            from_p = query.get("fromPeriod", [None])[0]
+            to_p = query.get("toPeriod", [None])[0]
+            if not from_p or not to_p:
+                self.send_json_response({"success": False, "error": "Parametre eksik: fromPeriod ve toPeriod gereklidir."}, status=400)
+                return
+            s_from = get_license_snapshot(tenant_id, from_p)
+            s_to = get_license_snapshot(tenant_id, to_p)
+            diff = compare_license_snapshots(s_from, s_to)
+            self.send_json_response({"success": True, "tenantId": tenant_id, "diff": diff})
+            return
+
+        elif path == "/api/licenses/report/html":
+            snap = get_license_snapshot(tenant_id, period) if period else None
+            if not snap:
+                data = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+            else:
+                data = snap.get("payload", {})
+            tenants = load_json_file(TENANTS_FILE, [])
+            t_meta = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            html = generate_license_health_report(data, t_meta)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            html_bytes = html.encode("utf-8")
+            self.send_header("Content-Length", str(len(html_bytes)))
+            self.end_headers()
+            self.wfile.write(html_bytes)
+            return
+
+        elif path == "/api/licenses/report/pdf":
+            allow_dl, _ = evaluate_access(user, "reports:download", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow_dl:
+                allow_dl, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow_dl:
+                self.send_json_response({"success": False, "error": "Rapor indirme yetkiniz bulunmamaktadır."}, status=403)
+                return
+
+            snap = get_license_snapshot(tenant_id, period) if period else None
+            if not snap:
+                data = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+            else:
+                data = snap.get("payload", {})
+            tenants = load_json_file(TENANTS_FILE, [])
+            t_meta = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            html = generate_license_health_report(data, t_meta)
+
+            cur_period = period or data.get("period", datetime.now().strftime("%Y-%m"))
+            out_pdf = os.path.join(OUTPUT_DIR, tenant_id, f"CloudShield_License_Report_{tenant_id}_{cur_period}.pdf")
+            ok, pdf_path = render_license_pdf(html, out_pdf)
+            if not ok or not os.path.exists(out_pdf):
+                self.send_json_response({"success": False, "error": f"PDF üretimi başarısız: {pdf_path}"}, status=500)
+                return
+
+            with open(out_pdf, "rb") as pf:
+                pdf_bytes = pf.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/pdf")
+            self.send_header("Content-Disposition", f'attachment; filename="CloudShield_License_Report_{cur_period}.pdf"')
+            self.send_header("Content-Length", str(len(pdf_bytes)))
+            self.end_headers()
+            self.wfile.write(pdf_bytes)
+            return
+
+        self.send_json_response({"success": False, "error": "Bilinmeyen lisans API yolu."}, status=404)
+
+    def handle_licenses_post(self, path, body):
+        user = self.get_current_user()
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+
+        if path == "/api/licenses/catalog/check-updates":
+            allow, _ = evaluate_access(user, "licenses:manage", resource=path, ip_address=client_ip)
+            if not allow:
+                allow, _ = evaluate_access(user, "PlatformAdmin", resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Lisans kataloğu güncelleme kontrolü yetkiniz bulunmamaktadır."}, status=403)
+                return
+            force = body.get("force", True)
+            res = check_remote_feed(force=force)
+            record_audit_event("LICENSE_CATALOG_CHECK", user_id=user.get("id") if user else None,
+                               resource=path, decision="ALLOW", reason="CatalogUpdateCheckTriggered",
+                               ip_address=client_ip, details=res)
+            self.send_json_response({"success": True, "feedCheck": res})
+            return
+
+        elif path == "/api/licenses/collect":
+            tenant_id = body.get("tenantId")
+            if not tenant_id:
+                self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
+                return
+
+            allow, _ = evaluate_access(user, "licenses:manage", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' için lisans analizi çalıştırma yetkiniz yoktur."}, status=403)
+                return
+
+            if user:
+                assigned = user.get("AssignedTenants", ["ALL"])
+                if "ALL" not in assigned and tenant_id not in assigned:
+                    self.send_json_response({"success": False, "error": "Bu müşteri kiracısının lisanslarını yönetme yetkiniz yoktur."}, status=403)
+                    return
+
+            period = body.get("period")
+            dry_run = body.get("dryRun", True)
+
+            result = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=dry_run)
+            record_audit_event("LICENSE_INTELLIGENCE_COLLECT", user_id=user.get("id") if user else None,
+                               resource=path, decision="ALLOW", reason="LicenseIntelligenceCollected",
+                               ip_address=client_ip, details={"tenantId": tenant_id, "isLive": result.get("is_live", False)})
+            self.send_json_response({"success": True, "result": result})
+            return
+
+        self.send_json_response({"success": False, "error": "Bilinmeyen lisans API işlemi."}, status=404)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -1264,6 +1688,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         if path.startswith("/api/rbac/"):
             handle_rbac_get(self, path, query)
+            return
+
+        if path.startswith("/api/licenses/"):
+            self.handle_licenses_get(path, query)
             return
 
 
@@ -1868,6 +2296,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path.startswith("/api/reports/") and path.endswith("/download") and len([p for p in path.split("/") if p]) == 4:
             # Quality Gate 5: GET /api/reports/{reportId}/download
+            if not self._check_rate_limit("reports_download", max_req=30, window_sec=60):
+                return
+
             parts = [p for p in path.split("/") if p]
             report_id = parts[2]
 
@@ -1876,7 +2307,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if not record:
                 self.send_json_response({
                     "success": False,
-                    "error": "Rapor bulunamad? (404 Not Found): Belirtilen rapor kimli?i sistem kay?tlar?nda mevcut de?il."
+                    "error": "Rapor bulunamadı (404 Not Found): Belirtilen rapor kimliği sistem kayıtlarında mevcut değil."
                 }, status=404)
                 return
 
@@ -1888,7 +2319,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     if datetime.now(timezone.utc) > exp_dt:
                         self.send_json_response({
                             "success": False,
-                            "error": "Rapor s?resi dolmu? (410 Gone): Bu rapor ar?iv saklama s?resi doldu?u i?in eri?ilemez."
+                            "error": "Rapor süresi dolmuş (410 Gone): Bu rapor arşiv saklama süresi dolduğu için erişilemez."
                         }, status=410)
                         return
                 except Exception:
@@ -1899,6 +2330,24 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             rep_tid = record.get("tenantId", "")
             rep_services = record.get("serviceCodes", [])
+
+            # Tenant ownership must be established (Fail Closed)
+            if not rep_tid:
+                record_audit_event(
+                    "AUTH_DENY",
+                    user_id=user.get("id") if user else None,
+                    user_upn=user.get("upn") if user else None,
+                    resource=path,
+                    decision="DENY",
+                    reason="ReportTenantUnresolved: No tenantId in report registry",
+                    ip_address=client_ip
+                )
+                self.send_json_response({
+                    "success": False,
+                    "error": "Yetkisiz Erişim (403 Forbidden): Rapor kiracı aidiyeti doğrulanamadı."
+                }, status=403)
+                return
+
             allowed, reason = evaluate_access(
                 user,
                 "reports:download",
@@ -1908,10 +2357,49 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 ip_address=client_ip
             )
             if not allowed:
+                record_audit_event(
+                    "REPORT_DOWNLOAD",
+                    user_id=user.get("id") if user else None,
+                    user_upn=user.get("upn") if user else None,
+                    customer_id=rep_tid,
+                    service_id=",".join(rep_services) if rep_services else None,
+                    resource=path,
+                    decision="DENY",
+                    reason=f"UnauthorizedReportDownload: {reason}",
+                    ip_address=client_ip,
+                    details={"reportId": report_id, "services": rep_services}
+                )
                 self.send_json_response({
                     "success": False,
                     "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"
                 }, status=403)
+                return
+
+            storage_key = record.get("storageKey", "")
+            if not storage_key or ".." in storage_key:
+                self.send_json_response({"success": False, "error": "Geçersiz dosya depolama anahtarı."}, status=400)
+                return
+
+            # Canonical path traversal defense
+            real_output_dir = os.path.realpath(OUTPUT_DIR)
+            full_path = os.path.realpath(os.path.join(OUTPUT_DIR, storage_key.lstrip("/\\")))
+            if not full_path.startswith(real_output_dir + os.sep) and full_path != real_output_dir:
+                record_audit_event(
+                    "AUTH_DENY",
+                    user_id=user.get("id") if user else None,
+                    user_upn=user.get("upn") if user else None,
+                    customer_id=rep_tid,
+                    resource=path,
+                    decision="DENY",
+                    reason="PathTraversalAttemptBlocked",
+                    ip_address=client_ip,
+                    details={"storageKey": storage_key, "fullPath": full_path}
+                )
+                self.send_json_response({"success": False, "error": "Dizin dışına çıkış engellendi (403 Forbidden)."}, status=403)
+                return
+
+            if not os.path.exists(full_path):
+                self.send_json_response({"success": False, "error": "Fiziksel rapor dosyası bulunamadı."}, status=404)
                 return
 
             record_audit_event(
@@ -1926,20 +2414,6 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 ip_address=client_ip,
                 details={"reportId": report_id, "services": rep_services}
             )
-
-            storage_key = record.get("storageKey", "")
-            if ".." in storage_key or storage_key.startswith("/") or storage_key.startswith("\\"):
-                self.send_json_response({"success": False, "error": "Ge?ersiz dosya depolama anahtar?."}, status=400)
-                return
-
-            full_path = os.path.abspath(os.path.join(OUTPUT_DIR, storage_key.lstrip("/\\")))
-            if not full_path.startswith(os.path.abspath(OUTPUT_DIR)):
-                self.send_json_response({"success": False, "error": "Dizin d???na ??k?? engellendi (403 Forbidden)."}, status=403)
-                return
-
-            if not os.path.exists(full_path):
-                self.send_json_response({"success": False, "error": "Fiziksel rapor dosyas? bulunamad?."}, status=404)
-                return
 
             content_type = "application/pdf" if full_path.endswith(".pdf") else "text/html; charset=utf-8"
             file_size = os.path.getsize(full_path)
@@ -1958,85 +2432,23 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/reports/download":
-
-            file_param = query.get("file", [""])[0]
-
-            if not file_param or ".." in file_param:
-
-                self.send_error(400, "Invalid file path")
-
-                return
-
-            # Multi-Tenant RBAC Download Authorization Check
+            # Decommission legacy file-path-based report download endpoint (Finding 3)
+            # Fails closed with HTTP 410 Gone
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             user = self.get_current_user()
-            if not user:
-                self.send_json_response({
-                    "success": False,
-                    "error": "Kimlik Doğrulama Gerekli (401 Unauthorized): Rapor indirmek için geçerli bir oturum açmalısınız."
-                }, status=401)
-                return
-
-            tenants = load_json_file(TENANTS_FILE, [])
-            file_norm = file_param.replace("\\", "/")
-            matched_tenant = None
-            for t in tenants:
-                name = t.get("Name", "")
-                safe = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-                aliases = [t.get("Id"), t.get("TenantId"), name, safe]
-                if any(a and a.lower() in file_norm.lower() for a in aliases):
-                    matched_tenant = t.get("Id")
-                    break
-
-            if matched_tenant:
-                client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
-                allowed, reason = evaluate_access(
-                    user,
-                    "reports:download",
-                    customer_id=matched_tenant,
-                    resource=path,
-                    ip_address=client_ip
-                )
-                if not allowed:
-                    self.send_json_response({
-                        "success": False,
-                        "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"
-                    }, status=403)
-                    return
-
-            full_path = os.path.abspath(os.path.join(OUTPUT_DIR, file_param.lstrip("/\\")))
-
-            if not os.path.exists(full_path):
-
-                self.send_error(404, "Report file not found")
-
-                return
-
-            content_type = "application/pdf" if full_path.endswith(".pdf") else "text/html; charset=utf-8"
-
-            file_size = os.path.getsize(full_path)
-
-            basename = os.path.basename(full_path)
-
-            # Safe RFC 5987 encoding for HTTP headers with Unicode / Turkish characters
-
-            ascii_name = basename.encode("ascii", "replace").decode("ascii").replace("?", "_")
-
-            quoted_name = urllib.parse.quote(basename)
-
-            self.send_response(200)
-
-            self.send_header("Content-Type", content_type)
-
-            self.send_header("Content-Length", str(file_size))
-
-            self.send_header("Content-Disposition", f'inline; filename="{ascii_name}"; filename*=UTF-8\'\'{quoted_name}')
-
-            self.end_headers()
-
-            with open(full_path, "rb") as f:
-
-                self.wfile.write(f.read())
-
+            record_audit_event(
+                "AUTH_DENY",
+                user_id=user.get("id") if user else None,
+                user_upn=user.get("upn") if user else None,
+                resource=path,
+                decision="DENY",
+                reason="LegacyDownloadEndpointDecommissioned",
+                ip_address=client_ip
+            )
+            self.send_json_response({
+                "success": False,
+                "error": "Kullanım Dışı (410 Gone): Dosya adı tabanlı eski rapor indirme uç noktası güvenlik nedeniyle tamamen kapatılmıştır. Lütfen merkezi /api/reports/{reportId}/download uç noktasını kullanınız."
+            }, status=410)
             return
 
         # STATIC FILES FROM /Portal/web/
@@ -2131,8 +2543,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             handle_rbac_post(self, path, body)
             return
 
+        if path.startswith("/api/licenses/"):
+            self.handle_licenses_post(path, body)
+            return
+
 
         if path == "/api/auth/login":
+            if not self._check_rate_limit("auth_login", max_req=10, window_sec=60):
+                return
+
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             vinfo = get_version_info()
             channel = str(vinfo.get("channel", "production")).lower()
@@ -2161,7 +2580,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             user_info, err = authenticate_user(username, password, client_ip)
             if user_info:
-                tok = uuid.uuid4().hex + uuid.uuid4().hex
+                tok = secrets.token_urlsafe(32)
                 assigned_tenants = [a.get("customer_id") or "ALL" for a in user_info.get("assignments", []) if a.get("customer_scope") == "ALL" or a.get("customer_id")]
                 if not assigned_tenants or user_info.get("isPlatformAdmin"):
                     assigned_tenants = ["ALL"]
@@ -2173,7 +2592,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Set-Cookie", f"CS_SESSION={tok}; Path=/; HttpOnly; SameSite=Strict")
+                self.send_header("Set-Cookie", f"CS_SESSION={tok}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400")
                 resp_bytes = json.dumps({
                     "success": True,
                     "token": tok,
@@ -2192,15 +2611,25 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/auth/logout":
             tok = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            if not tok:
+                cookie_hdr = self.headers.get("Cookie", "")
+                if "CS_SESSION=" in cookie_hdr:
+                    for part in cookie_hdr.split(";"):
+                        part = part.strip()
+                        if part.startswith("CS_SESSION="):
+                            tok = part.split("=", 1)[1].strip()
+                            break
+
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             u = self.get_current_user()
-            delete_session(tok)
+            if tok:
+                delete_session(tok)
             if u:
                 record_audit_event("AUTH_LOGOUT", user_id=u.get("id"), user_upn=u.get("upn"),
                                    resource="/api/auth/logout", decision="ALLOW", reason="UserLoggedOut", ip_address=client_ip)
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Set-Cookie", "CS_SESSION=; Path=/; HttpOnly; Max-Age=0")
+            self.send_header("Set-Cookie", "CS_SESSION=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
             resp_bytes = json.dumps({"success": True, "message": "Oturum başarıyla kapatıldı."}, ensure_ascii=False).encode("utf-8")
             self.send_header("Content-Length", str(len(resp_bytes)))
             self.end_headers()
@@ -2937,6 +3366,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/reports/generate":
+            if not self._check_rate_limit("reports_generate", max_req=10, window_sec=60):
+                return
 
             tenant_id = body.get("tenantId")
 
@@ -3219,22 +3650,41 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                         latest_pdf_path = py_pdf
                     proc_log += f"\n[OK] CloudShield Kurumsal Rapor Motoru ({report_lang.upper()}) ile rapor başarıyla derlendi."
                     
-                    # Record metric snapshot into historical trends DB
+                    # Record metric snapshot into historical trends DB using real live data only
                     try:
                         from database.db import record_tenant_trend
+                        from report_generator import load_live_data
                         period_tag = datetime.now().strftime("%Y-%m")
                         svc_tag = services[0] if (services and len(services) == 1) else "CONSOLIDATED"
-                        record_tenant_trend(tenant_id, period_tag, svc_tag, {
-                            "secure_score": 86.0,
-                            "threats_blocked": 142,
-                            "critical_incidents": 0,
-                            "dlp_violations": 12,
-                            "phishing_blocked": 45,
-                            "pim_activations": 18,
-                            "device_compliance_pct": 96.5,
-                            "hours_saved": 88.5,
-                            "cost_avoidance_usd": 12500.0
-                        })
+                        live_data = load_live_data(OUTPUT_DIR, customer_name, period_tag=period_tag)
+                        if live_data:
+                            def _num(val, default=0.0):
+                                try:
+                                    return float(val) if val is not None else default
+                                except (ValueError, TypeError):
+                                    return default
+
+                            sec_score = _num((live_data.get("SecurityScore") or {}).get("CurrentScore"))
+                            threats_blk = int(_num((live_data.get("DefenderEndpoint") or {}).get("BlockedThreats")))
+                            crit_inc = int(_num((live_data.get("DefenderEndpoint") or {}).get("CriticalIncidents")))
+                            dlp_viols = int(_num((live_data.get("PurviewDlp") or {}).get("TotalIncidents")))
+                            phish_blk = int(_num((live_data.get("DefenderOffice365") or {}).get("PhishingBlocked")))
+                            pim_acts = int(_num((live_data.get("EntraId") or {}).get("PimActivations")))
+                            dev_comp = _num((live_data.get("Intune") or {}).get("CompliancePct"))
+                            hrs_saved = _num((live_data.get("OperationalValue") or {}).get("HoursSaved"))
+                            cost_avoid = _num((live_data.get("OperationalValue") or {}).get("CostAvoidanceUsd"))
+
+                            record_tenant_trend(tenant_id, period_tag, svc_tag, {
+                                "secure_score": sec_score,
+                                "threats_blocked": threats_blk,
+                                "critical_incidents": crit_inc,
+                                "dlp_violations": dlp_viols,
+                                "phishing_blocked": phish_blk,
+                                "pim_activations": pim_acts,
+                                "device_compliance_pct": dev_comp,
+                                "hours_saved": hrs_saved,
+                                "cost_avoidance_usd": cost_avoid
+                            })
                     except Exception as dbe:
                         print(f"[WARN] Trend snapshot recording error: {dbe}")
                 except Exception as pye:
@@ -3478,24 +3928,43 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 token_url = f"https://login.microsoftonline.com/{tenant_guid}/oauth2/v2.0/token"
 
                 if auth_method in ("Certificate", "ClientCertificate", "CBA"):
-                    # Check Entra OpenID configuration and CBA status
                     entra_url = f"https://login.microsoftonline.com/{tenant_guid}/v2.0/.well-known/openid-configuration"
                     req = urllib.request.Request(entra_url, headers={"User-Agent": "CloudShield-MSSP-Portal/2.0"})
                     with urllib.request.urlopen(req, timeout=8) as resp:
                         data = json.loads(resp.read().decode("utf-8"))
                         latency = int((time.time() - t0) * 1000)
 
-                    target["ConnectionStatus"] = "LiveConnected"
-                    save_json_file(TENANTS_FILE, tenants)
+                    has_cert_thumb = bool(cert_thumb)
+                    has_kv_cert = bool(kv_cert_name)
+
+                    if not (has_cert_thumb or has_kv_cert):
+                        target["ConnectionStatus"] = "MetadataVerified"
+                        save_json_file(TENANTS_FILE, tenants)
+                        self.send_json_response({
+                            "success": True,
+                            "isSimulation": False,
+                            "status": "MetadataVerified",
+                            "badge": "OIDC Metadata Doğrulandı (Sertifika Tanımsız)",
+                            "authMethod": "Certificate",
+                            "message": f"Microsoft Entra ID uç noktası ({tenant_guid[:8]}...) doğrulandı ancak sertifika tanımlı değil. LiveConnected durumuna geçmek için sertifika parmak izi veya Key Vault sertifikası gereklidir.",
+                            "tenantId": tenant_guid,
+                            "tokenEndpoint": data.get("token_endpoint"),
+                            "latencyMs": latency,
+                            "testedAt": datetime.now(timezone.utc).isoformat()
+                        })
+                        return
 
                     cert_id_display = cert_thumb or kv_cert_name or "Azure Key Vault / Local Store"
+                    target["ConnectionStatus"] = "CredentialValidated"
+                    save_json_file(TENANTS_FILE, tenants)
+
                     self.send_json_response({
                         "success": True,
                         "isSimulation": False,
-                        "status": "LiveConnected",
-                        "badge": "CBA (Sertifika) Doğrulandı",
+                        "status": "CredentialValidated",
+                        "badge": "CBA Sertifika Parametreleri Doğrulandı",
                         "authMethod": "Certificate",
-                        "message": f"Microsoft Entra ID CBA (RFC 7523 Sertifika Tabanlı Kimlik) kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. Zero Trust mTLS güvenliği aktif.",
+                        "message": f"Microsoft Entra ID CBA sertifika parametreleri ve OIDC uç noktası ({tenant_guid[:8]}...) doğrulandı.",
                         "tenantId": tenant_guid,
                         "certificateIdentifier": cert_id_display,
                         "tokenEndpoint": data.get("token_endpoint"),
@@ -3511,16 +3980,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                         data = json.loads(resp.read().decode("utf-8"))
                         latency = int((time.time() - t0) * 1000)
 
-                    target["ConnectionStatus"] = "LiveConnected"
+                    target["ConnectionStatus"] = "MetadataVerified"
                     save_json_file(TENANTS_FILE, tenants)
 
                     self.send_json_response({
                         "success": True,
                         "isSimulation": False,
-                        "status": "LiveConnected",
-                        "badge": "GDAP Delegated Doğrulandı",
+                        "status": "MetadataVerified",
+                        "badge": "GDAP Uç Noktası Doğrulandı",
                         "authMethod": "GDAP",
-                        "message": f"Microsoft Entra ID GDAP (Granular Delegated Admin Privileges) kiracı bağı ({tenant_guid[:8]}...) doğrulandı. En az yetkili MSP delegasyonu aktif.",
+                        "message": f"Microsoft Entra ID GDAP uç noktası ({tenant_guid[:8]}...) doğrulandı. Delegasyon izinleri kontrol ediliyor.",
                         "tenantId": tenant_guid,
                         "tokenEndpoint": data.get("token_endpoint"),
                         "latencyMs": latency,

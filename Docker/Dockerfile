@@ -1,18 +1,24 @@
-# CloudShield Managed Security Operations & Reporting Platform (MSSP Portal)
-# Multi-stage Containerfile for Azure Container Apps & On-Premises Docker
+# ==============================================================================
+# CloudShield Security Reporting & Managed Services Visibility Platform
+# Hardened Multi-Stage Containerfile for Azure Container Apps & Enterprise Deployments
+# ==============================================================================
 
 FROM mcr.microsoft.com/powershell:7.4-ubuntu-22.04
 
-LABEL maintainer="CloudShield MSSP Security Engineering Team <security@cloudshield-mssp.com>"
-LABEL description="CloudShield Microsoft Security & Purview Monthly Reporting Engine and MSSP SaaS Portal"
-LABEL version="3.0.0"
+# OCI Standard Metadata Labels
+LABEL org.opencontainers.image.title="CloudShield Security Reporting & Managed Services Visibility Platform"
+LABEL org.opencontainers.image.description="Automated Microsoft Security & Compliance Monthly Reporting and Managed Services Visibility Engine"
+LABEL org.opencontainers.image.version="3.2.0"
+LABEL org.opencontainers.image.vendor="CloudShield Platform Team"
+LABEL org.opencontainers.image.source="https://github.com/canercetinkaya/cloudshield-mssp-portal"
+LABEL org.opencontainers.image.licenses="Proprietary"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
+ENV ENVIRONMENT=production
 
-# Install Python 3.11 (pinned - ubuntu-22.04 generic python3 installs 3.10 which has
-# stricter f-string rules; 3.11 matches our CI/CD environment and supports all syntax used)
+# Install Python 3.11, Chromium dependencies, and system utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     fonts-liberation \
@@ -28,31 +34,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -f /tmp/google-chrome.deb \
     && rm -rf /var/lib/apt/lists/*
 
+# Create dedicated non-root application user and group
+RUN groupadd -g 10001 cloudshield && \
+    useradd -u 10001 -g cloudshield -m -s /bin/bash cloudshield
+
 # Set working directory
 WORKDIR /app
 
-# Copy application files
+# Copy application files (protected by .dockerignore)
 COPY . /app
 
-# Fix Windows CRLF line endings on entrypoint script if cloned on Windows
-RUN sed -i 's/\r$//' /app/Docker/entrypoint.sh && chmod +x /app/Docker/entrypoint.sh
+# Ensure proper directory ownership and permissions for runtime operations
+RUN mkdir -p /app/Engine/Output /app/Engine/Logs /app/Data /app/scratch && \
+    sed -i 's/\r$//' /app/Docker/entrypoint.sh && \
+    chmod +x /app/Docker/entrypoint.sh && \
+    chown -R cloudshield:cloudshield /app
 
-# BUILD-TIME syntax check: catch Python syntax errors before the image is pushed
-# This ensures what compiles locally also compiles in the container Python version
-RUN python3 --version && \
-    python3 -m py_compile /app/Portal/api/report_generator.py && \
+# Build-time verification: validate syntax before pushing
+RUN python3 -m py_compile /app/Portal/api/report_generator.py && \
     python3 -m py_compile /app/Portal/api/server.py && \
     python3 -m py_compile /app/Portal/api/rbac_engine.py && \
     python3 -m py_compile /app/Portal/api/rbac_handlers.py && \
+    python3 -m py_compile /app/Portal/api/license_intelligence.py && \
+    python3 -m py_compile /app/Portal/api/license_collector.py && \
+    python3 -m py_compile /app/Portal/api/license_catalog_updater.py && \
+    python3 -m py_compile /app/Portal/api/license_report_generator.py && \
     python3 -m py_compile /app/database/db.py && \
-    echo "[BUILD] Python syntax check passed on $(python3 --version)"
+    echo "[BUILD] Python syntax verification passed."
 
-# Expose web portal & API port (8080 primary, 80 backup)
-EXPOSE 8080 80
+# Switch to non-root user
+USER cloudshield
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+# Expose web portal & API port
+EXPOSE 8080
+
+# Health check against unauthenticated health endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
 
 ENTRYPOINT ["/bin/bash", "/app/Docker/entrypoint.sh"]
-

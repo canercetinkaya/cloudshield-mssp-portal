@@ -67,12 +67,37 @@ function Get-ServiceRawData {
         }
     }
 
+    # Canlı modda Microsoft Graph Records Management API
+    $labels = @()
+    $availabilityState = 'SupportedAppOnly'
+    try {
+        $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'PurviewReporting'
+        $resp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/labels/retentionLabels" -AccessToken $token
+        if ($resp.value) {
+            foreach ($item in $resp.value) {
+                $labels += [pscustomobject]@{
+                    Name                   = $item.displayName
+                    RetentionDurationYears = if ($item.retentionDuration -and $item.retentionDuration.days) { [math]::Round($item.retentionDuration.days / 365.0, 1) } else { 0 }
+                    ActionAfter            = if ($item.actionAfterRetentionPeriod) { $item.actionAfterRetentionPeriod } else { 'Review' }
+                    ItemCount              = 0
+                }
+            }
+        }
+    }
+    catch {
+        $errMsg = $_.Exception.Message
+        $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                             elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                             else { 'CollectionFailed' }
+    }
+
     return [pscustomobject]@{
-        RetentionLabels   = @()
+        RetentionLabels   = $labels
         AutoDisposedItems = 0
         PendingReviews    = 0
         StartDate         = $StartDate
         EndDate           = $EndDate
+        AvailabilityState = $availabilityState
         IsMock            = $false
     }
 }
@@ -89,15 +114,29 @@ function Get-ServiceKpis {
     )
 
     $labels = @($RawData.RetentionLabels)
-    $toplamKorumali = 0
-    foreach ($l in $labels) { $toplamKorumali += [int]$l.ItemCount }
+    $hasLabels = $labels.Count -gt 0
+
+    if ($RawData.IsMock) {
+        $toplamKorumali = 0
+        foreach ($l in $labels) { $toplamKorumali += [int]$l.ItemCount }
+
+        return [ordered]@{
+            ToplamSaklamaEtiketi = $labels.Count
+            ToplamKorumaliOge    = $toplamKorumali
+            ImhaEdilenEskiVeri   = $RawData.AutoDisposedItems
+            OnayBekleyenImha     = $RawData.PendingReviews
+            Etiketler            = $labels
+            AvailabilityState    = 'DirectAndVerified'
+        }
+    }
 
     return [ordered]@{
-        ToplamSaklamaEtiketi = $labels.Count
-        ToplamKorumaliOge    = $toplamKorumali
-        ImhaEdilenEskiVeri   = $RawData.AutoDisposedItems
-        OnayBekleyenImha     = $RawData.PendingReviews
+        ToplamSaklamaEtiketi = if ($hasLabels) { $labels.Count } else { 'N/A - RecordsManagement.Read.All izni gerekli' }
+        ToplamKorumaliOge    = 'N/A - Purview Veri Yaşam Döngüsü yetkisi gerekli'
+        ImhaEdilenEskiVeri   = 0
+        OnayBekleyenImha     = 0
         Etiketler            = $labels
+        AvailabilityState    = if ($hasLabels) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
     }
 }
 

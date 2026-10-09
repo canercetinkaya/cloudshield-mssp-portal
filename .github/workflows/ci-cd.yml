@@ -1,8 +1,8 @@
-name: CloudShield MSSP Portal CI/CD — Enterprise Production
+name: CloudShield Security Reporting CI/CD — Enterprise Pipeline
 
 on:
   push:
-    branches: [ "main", "release/*", "pilot/controlled-pilot-finalization" ]
+    branches: [ "main", "release/*", "feature/*", "pilot/*" ]
   pull_request:
     branches: [ "main", "release/*" ]
   workflow_dispatch:
@@ -25,46 +25,32 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 🔍 Statik Sözdizimi & Zero SOC Uyumluluk Denetimi
+      - name: 🔍 Statik Sözdizimi & Modül Derleme Denetimi
         shell: bash
         run: |
           echo "=== 1. Python Kod Doğrulaması ==="
-          python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py database/db.py
+          python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py Portal/api/license_intelligence.py Portal/api/license_collector.py Portal/api/license_catalog_updater.py Portal/api/license_report_generator.py database/db.py
           
-          echo "=== 2. Automated Unit & Security Tests (54+ Tests) ==="
+          echo "=== 2. JSON Dosyaları Sözdizim Doğrulaması ==="
+          python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json', 'config/catalog/license-catalog.json', 'config/catalog/catalog-feed-state.json', 'version.json', 'Data/version.json']]"
+          
+          echo "=== 3. Zero SOC / Bilet İzolasyon Denetimi ==="
+          python Scripts/verify_zero_soc.py
+
+      - name: 🧪 Birim ve Güvenlik Testleri (92 Test)
+        shell: bash
+        run: |
           python -m unittest discover tests
-          
-          echo "=== 4. JSON Dosyaları Doğrulaması ==="
-          python -c "import json; [json.load(open(f, encoding='utf-8')) for f in ['Data/tenants.json', 'Data/dispatch_logs.json', 'Data/users.json', 'Data/auth_config.json', 'Azure/azuredeploy.json']]"
-          
-          echo "=== 3. Zero SOC İzolasyon Denetimi ==="
-          python3 - <<'PYEOF'
-import os, sys
-patterns = ["(SOC)", "SVC-SOC"]
-skip_exts = {".md", ".txt", ".yml", ".yaml"}
-hits = []
-for root, dirs, files in os.walk("."):
-    dirs[:] = [d for d in dirs if d not in {".git", "node_modules", "__pycache__"}]
-    for fname in files:
-        if any(fname.endswith(e) for e in skip_exts):
-            continue
-        fpath = os.path.join(root, fname)
-        try:
-            with open(fpath, encoding="utf-8", errors="ignore") as fh:
-                for i, line in enumerate(fh, 1):
-                    for p in patterns:
-                        if p in line:
-                            hits.append(f"{fpath}:{i}: {line.rstrip()}")
-        except Exception:
-            pass
-if hits:
-    print("HATA: Kod tabanında yetkisiz SOC ifadesi bulundu!")
-    for h in hits:
-        print(h)
-    sys.exit(1)
-else:
-    print("Zero SOC Kuralı Doğrulandı: İhlal Yok.")
-PYEOF
+
+      - name: 📊 Kolektör-Rapor Mutabakat Testleri (9 Test)
+        shell: bash
+        run: |
+          python -m unittest tests/test_collector_to_report_reconciliation.py
+
+      - name: 🛡️ Kapsamlı Platform QA Test Paketi (60 Test)
+        shell: bash
+        run: |
+          python tests/test_comprehensive_qa.py
 
       - name: ⚡ PowerShell & KQL Motor Bütünlük Testi
         shell: pwsh
@@ -73,8 +59,84 @@ PYEOF
           $queries = Get-StandardHuntQueries -StartDate (Get-Date).AddDays(-30) -EndDate (Get-Date)
           Write-Host "KQL Motoru Başarıyla Yüklendi. Tanımlı Sorgu Sayısı: $($queries.Count)"
 
+  container-build-smoke:
+    name: 🐳 Container Build, Smoke Test, Security Scan & SBOM
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🔨 Container İmajını Derle (3.2.0-pilot & sha-<commit>)
+        run: |
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER}/cloudshield-reporting-platform"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          docker build \
+            -t "$IMAGE_NAME:3.2.0-pilot" \
+            -t "$IMAGE_NAME:sha-${{ github.sha }}" \
+            -t "cloudshield-reporting-platform:ci-test" \
+            -f Docker/Dockerfile .
+
+      - name: 🧪 Container Başlatma & Smoke Test
+        run: |
+          docker run -d --name test-app -p 8080:8080 \
+            -e ENVIRONMENT=production \
+            -e MAX_REPLICAS=1 \
+            -e CLOUDSHIELD_SESSION_SECRET=ci-testing-secret-token-must-be-32-chars \
+            cloudshield-reporting-platform:ci-test
+          
+          sleep 5
+          docker logs test-app
+          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/api/health
+          VERSION_RESP=$(curl --fail http://localhost:8080/api/version)
+          echo "Version Response: $VERSION_RESP"
+          echo "$VERSION_RESP" | grep -q "v3.2.0-LICENSE-INTELLIGENCE"
+          docker stop test-app
+
+      - name: 🛡️ Container Güvenlik Açığı Taraması (Trivy Scan)
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          scan-type: 'image'
+          image-ref: "cloudshield-reporting-platform:ci-test"
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: 📦 SBOM Üretimi (SPDX JSON Formatı)
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          scan-type: 'image'
+          image-ref: "cloudshield-reporting-platform:ci-test"
+          format: 'spdx-json'
+          output: 'sbom-cloudshield-3.2.0.spdx.json'
+
+      - name: 📤 SBOM Dosyasını Arşivle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudshield-sbom-v3.2.0
+          path: sbom-cloudshield-3.2.0.spdx.json
+
+      - name: 🔐 GHCR Girişi Yap (GitHub Container Registry)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Container İmajını GHCR'ye Gönder (3.2.0-pilot & sha-<commit>)
+        run: |
+          docker push "$IMAGE_NAME:3.2.0-pilot"
+          docker push "$IMAGE_NAME:sha-${{ github.sha }}"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:3.2.0-pilot" || echo "digest-pending")
+          echo "IMAGE_DIGEST=$DIGEST" >> $GITHUB_ENV
+          echo "Pushed Image Digest: $DIGEST"
+
   azure-arm-validate:
-    name: ☁️ Azure Resource Manager Template Validation
+    name: ☁️ Azure Resource Manager & Bicep Validation
     needs: validate-and-test
     runs-on: ubuntu-latest
 

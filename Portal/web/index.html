@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudShield Enterprise MSSP Security & Compliance Platform</title>
+    <title>CloudShield - Security Reporting & Managed Services Visibility Platform</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- FontAwesome 6 (SRI Integrity Protected) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46Zmdt5jmkxIdNxUsdKaHg==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,10 +57,10 @@
                     <span class="text-ks-navy font-extrabold text-lg tracking-tight">Cloud</span>
                     <span class="text-ks-red font-extrabold text-lg tracking-tight">Shield</span>
                 </div>
-                <h2 class="text-base font-bold">MSSP SaaS Portal Girişi</h2>
-                <p class="text-xs text-slate-300 mt-1">Microsoft Security & Purview Yönetilen Hizmetler</p>
+                <h2 class="text-base font-bold">Güvenlik Raporlama & Yönetilen Hizmet Portalı</h2>
+                <p class="text-xs text-slate-300 mt-1">Microsoft Defender & Purview Yönetilen Hizmet Görünürlüğü</p>
                 <div id="loginVersionBadge" class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                    v3.0.0-ENTERPRISE
+                    v3.1.0-REPORTING-VISIBILITY
                 </div>
             </div>
 
@@ -80,7 +80,7 @@
                     </div>
 
                     <p class="text-xs text-slate-600 leading-relaxed">
-                        CloudShield MSSP Platformu Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
+                        CloudShield Security Reporting & Managed Services Visibility Platform Microsoft Entra ID (OIDC) Single Sign-On ile korunmaktadır. Yetkili kurumsal hesabınız ile tek tıkla güvenle oturum açın.
                     </p>
 
                     <a href="/api/auth/entra/authorize" onclick="handleEntraSsoLogin();" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-3 group hover:shadow-lg cursor-pointer text-center no-underline">
@@ -129,7 +129,7 @@
                 </div>
 
                 <p class="text-[10px] text-slate-400 text-center leading-tight">
-                    🔒 Bu portal CloudShield MSSP kurumsal güvenlik ve KVKK / GDPR gizlilik standartları ile korunmaktadır.
+                    🔒 Bu portal CloudShield kurumsal güvenlik, çoklu kiracı veri izolasyonu ve KVKK / GDPR gizlilik standartları ile korunmaktadır.
                 </p>
             </div>
         </div>
@@ -147,14 +147,14 @@
                 </div>
                 <div class="h-6 w-px bg-slate-600"></div>
                 <div class="flex flex-col">
-                    <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">MSSP SaaS Platform</span>
-                    <span class="text-[10px] text-slate-400">Microsoft Security & Purview Center</span>
+                    <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">Security Reporting Platform</span>
+                    <span class="text-[10px] text-slate-400">Microsoft Defender & Purview Managed Services Visibility</span>
                 </div>
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
                 <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v3.0.0-ENTERPRISE</span>
-                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.03</span>
+                    <span id="headerVersionBadge">v3.1.0-REPORTING-VISIBILITY</span>
+                    <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.09</span>
                 </div>
             </div>
 
@@ -217,32 +217,36 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 text-sm">
                 <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="py-3 px-1 tab-active flex items-center space-x-2 transition">
                     <i class="fa-solid fa-chart-pie text-xs"></i>
-                    <span>Güvenlik & Bilgilendirme Panosu</span>
+                    <span>Yönetilen Hizmet Görünürlüğü & KPI Panosu</span>
                 </button>
                 <button onclick="switchTab('tenants')" id="tabBtn-tenants" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-building-shield text-xs"></i>
-                    <span>Hedef Müşteri Kiracıları (Tenants)</span>
+                    <span>Müşteri Tenant Yönetimi & Bağlantılar</span>
                 </button>
                 <button onclick="switchTab('studio')" id="tabBtn-studio" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-file-invoice text-xs"></i>
-                    <span>Raporlama Stüdyosu</span>
+                    <span>Aylık Servis Raporlama Stüdyosu</span>
+                </button>
+                <button onclick="switchTab('licenses')" id="tabBtn-licenses" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-certificate text-xs text-amber-500"></i>
+                    <span>Lisans Zekâsı & Değer Gerçekleştirme</span>
                 </button>
                 <button onclick="switchTab('dispatch')" id="tabBtn-dispatch" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-paper-plane text-xs"></i>
-                    <span>Zamanlanmış Dağıtım</span>
+                    <span>Otomatik Dağıtım & Zamanlayıcı</span>
                 </button>
 
                 <button onclick="switchTab('teams')" id="tabBtn-teams" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-users-gear text-xs"></i>
-                    <span>Ekipler & Hizmetler</span>
+                    <span>Yönetilen Hizmet Kataloğu</span>
                 </button>
                 <button onclick="switchTab('settings')" id="tabBtn-settings" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-sliders text-xs"></i>
-                    <span>Ayarlar & Yönetim</span>
+                    <span>Sistem & Denetim İzi (Audit Logs)</span>
                 </button>
                 <button onclick="switchTab('rbac')" id="tabBtn-rbac" class="py-3 px-1 text-slate-600 hover:text-ks-navy flex items-center space-x-2 transition">
                     <i class="fa-solid fa-shield-halved text-xs text-ks-red"></i>
-                    <span class="font-bold">Yetkilendirme & RBAC</span>
+                    <span class="font-bold">Erişim & Zero Trust İzolasyon</span>
                 </button>
             </div>
         </div>
@@ -260,12 +264,11 @@
             <div class="bg-gradient-to-r from-ks-navy to-ks-navylight rounded-xl p-5 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
                     <div class="flex items-center space-x-2">
-                        <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MSSP LIVE</span>
-                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Enterprise Managed Security Operations Overview</h1>
+                        <span id="dashboardBannerBadge" class="bg-ks-red text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">MANAGED SERVICES</span>
+                        <h1 id="dashboardBannerTitle" class="text-base font-bold">Microsoft Defender & Purview Yönetilen Hizmet Görünürlüğü</h1>
                     </div>
                     <p id="dashboardBannerDesc" class="text-xs text-slate-300 mt-1">
-                        Microsoft Defender XDR ve Purview çoklu müşteri ortamlarının anlık sağlık karnesi. 
-                        Veriler API kota koruması için <strong class="text-emerald-300">günde 1 kez otomatik eşitlenir</strong>.
+                        Microsoft Defender XDR, Endpoint, Office 365, Identity, Cloud Apps, Cloud, Intune ve Purview ekosisteminin yönetilen servis sağlık karnesi ve operasyonel değer metrikleri.
                     </p>
                 </div>
                 <div class="mt-4 md:mt-0 flex space-x-2">
@@ -1651,8 +1654,297 @@
         </div>
 
         <!-- ========================================================================= -->
+        <!-- LİSANS ZEKÂSI VE GÜVENLİK YATIRIMI DEĞER GERÇEKLEŞTİRME MODÜLÜ (v3.2.0) -->
+        <!-- ========================================================================= -->
+        <div id="view-licenses" class="hidden space-y-6">
 
+            <!-- Başlık Bannerı -->
+            <div class="bg-gradient-to-r from-slate-900 via-ks-navy to-slate-800 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="bg-amber-500 text-slate-900 text-[10px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">Lisans Zekâsı & Değer</span>
+                        <span class="text-xs text-blue-300 font-mono"><i class="fa-solid fa-layer-group mr-1"></i>5 Katmanlı Değer Zinciri &bull; Zero Fake ROI</span>
+                    </div>
+                    <h1 class="text-xl font-extrabold tracking-tight">Lisans Zekâsı ve Güvenlik Yatırımı Değer Gerçekleştirme</h1>
+                    <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                        Satın alınan Microsoft lisanslarının 5 katmanda (Hak &rarr; Atama &rarr; Servis Planı &rarr; İlke &rarr; Canlı Telemetri) değer üretip üretmediğini kanıtlayan analitik motor.
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+                    <button id="licRunCollectBtn" onclick="triggerLicenseCollection(false)" class="bg-ks-red hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shadow flex items-center space-x-1.5">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Lisans Analizi Başlat</span>
+                    </button>
+                    <button onclick="previewLicenseReport()" class="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/20 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Rapor Önizle (HTML)</span>
+                    </button>
+                    <button onclick="downloadLicensePdf()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Rapor İndir (PDF)</span>
+                    </button>
+                </div>
+            </div>
 
+            <!-- Sentetik / Simülasyon Uyarısı Bannerı -->
+            <div id="licSyntheticBanner" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider">Test / Simülasyon Verisi Görüntüleniyor</div>
+                        <div class="text-xs text-amber-700">Mevcut tenant için henüz canlı Microsoft Graph API oturumu açılmadığından test fikstürü kullanılmaktadır. Canlı tenant doğrulaması sonrası üretim verisi yansıyacaktır.</div>
+                    </div>
+                </div>
+                <button onclick="checkUpstreamPdfUpdates()" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-3 py-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-sync mr-1"></i>Microsoft PDF Kontrolü
+                </button>
+            </div>
+
+            <!-- Kontroller ve Tenant Seçimi -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Kiracı:</label>
+                    <select id="licTenantSelect" onchange="onLicenseTenantChange()" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-ks-navy w-full sm:w-64">
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="licLoadingIndicator" class="hidden text-xs text-blue-600 font-semibold flex items-center space-x-1">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span>Veriler yükleniyor...</span>
+                    </span>
+                    <button onclick="loadLicenseIntelligenceData()" class="text-xs text-slate-600 hover:text-ks-navy border border-slate-200 px-3 py-1.5 rounded-lg bg-slate-50">
+                        <i class="fa-solid fa-rotate mr-1"></i>Yenile
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Kartları (Zero Fake ROI) -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Satın Alınan Lisans</div>
+                    <div id="licKpiTotal" class="text-xl font-black text-slate-800 mt-1">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Prepaid Havuz</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tüketilen / Atanmış</div>
+                    <div id="licKpiAssigned" class="text-xl font-black text-blue-600 mt-1">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Kullanıcı Atamaları</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Atıl / Boşta Lisans</div>
+                    <div id="licKpiIdle" class="text-xl font-black text-amber-600 mt-1">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Kurtarılabilir Kapasite</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Değer Gerçekleştirme</div>
+                    <div id="licKpiValueIndex" class="text-xl font-black text-emerald-600 mt-1">--%</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">5 Katmanlı Endeks</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mükerrer Lisanslar</div>
+                    <div id="licKpiDuplicates" class="text-xl font-black text-rose-600 mt-1">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Çakışan Atama</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pasif Hesap Lisansı</div>
+                    <div id="licKpiInactive" class="text-xl font-black text-rose-600 mt-1">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Derhal Reclaim</div>
+                </div>
+            </div>
+
+            <!-- Alt Sekmeler (SubTabs) -->
+            <div class="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm text-xs font-medium">
+                <button onclick="switchLicenseSubTab('matrix')" id="licBtn-matrix" class="px-3 py-1.5 rounded-lg bg-ks-navy text-white shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>5 Katmanlı Değer Matrisi</span>
+                </button>
+                <button onclick="switchLicenseSubTab('inventory')" id="licBtn-inventory" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>SKU Envanteri</span>
+                </button>
+                <button onclick="switchLicenseSubTab('personas')" id="licBtn-personas" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span>Persona & Risk Denetimi</span>
+                </button>
+                <button onclick="switchLicenseSubTab('smb_azure')" id="licBtn-smb_azure" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-cloud"></i>
+                    <span>KOBİ Sınırı & Azure Kaynakları</span>
+                </button>
+                <button onclick="switchLicenseSubTab('diff')" id="licBtn-diff" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Tarihsel Snapshot & Diff</span>
+                </button>
+                <button onclick="switchLicenseSubTab('catalog_feed')" id="licBtn-catalog_feed" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-pdf text-red-500"></i>
+                    <span>Microsoft PDF Besleme Durumu</span>
+                </button>
+            </div>
+
+            <!-- SUBVIEW 1: 5 KATMANLI DEĞER MATRİSİ -->
+            <div id="licView-matrix" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">15 Güvenlik İş Yükü 5 Katmanlı Değer Gerçekleştirme</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">1. Hak Sahipliği &bull; 2. Atama &bull; 3. Servis Planı &bull; 4. İlke Kapsamı &bull; 5. Canlı Telemetri Kanıtı</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-2.5 px-3">İş Yükü</th>
+                                <th class="py-2.5 px-3 text-right">1. Hak</th>
+                                <th class="py-2.5 px-3 text-right">2. Atama</th>
+                                <th class="py-2.5 px-3 text-right">3. Plan</th>
+                                <th class="py-2.5 px-3 text-right">4. İlke</th>
+                                <th class="py-2.5 px-3 text-right">5. Kanıt</th>
+                                <th class="py-2.5 px-3">Değer Statüsü</th>
+                                <th class="py-2.5 px-3">Boşluk / Açıklama</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licMatrixTbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 2: SKU ENVANTERİ -->
+            <div id="licView-inventory" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Microsoft 365 Subscribed SKUs & Tüketim Detayı</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-2.5 px-3">Paket / Lisans Adı</th>
+                                <th class="py-2.5 px-3">SKU Part Number</th>
+                                <th class="py-2.5 px-3 text-right">Satın Alınan</th>
+                                <th class="py-2.5 px-3 text-right">Atanmış</th>
+                                <th class="py-2.5 px-3 text-right">Boşta</th>
+                                <th class="py-2.5 px-3 text-right">Kullanım Oranı</th>
+                                <th class="py-2.5 px-3 text-center">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licInventoryTbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 3: PERSONA & RİSK ANALİZİ -->
+            <div id="licView-personas" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap justify-between items-center gap-2">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Kullanıcı Persona ve Lisans Hijyen Analizi</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="filterUserPersonas('all')" class="text-xs bg-slate-200 hover:bg-slate-300 px-2.5 py-1 rounded font-semibold text-slate-700">Tümü</button>
+                        <button onclick="filterUserPersonas('duplicate')" class="text-xs bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded font-semibold text-rose-800">Mükerrer Lisanslar</button>
+                        <button onclick="filterUserPersonas('inactive_licensed')" class="text-xs bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded font-semibold text-amber-800">Pasif Hesap Lisansı</button>
+                        <button onclick="filterUserPersonas('unlicensed_active')" class="text-xs bg-blue-100 hover:bg-blue-200 px-2.5 py-1 rounded font-semibold text-blue-800">Kapsam Dışı Aktifler</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold">
+                            <tr>
+                                <th class="py-2.5 px-3">Kullanıcı (UPN) & Görev</th>
+                                <th class="py-2.5 px-3">Persona Tipi</th>
+                                <th class="py-2.5 px-3">Atanan SKU'lar</th>
+                                <th class="py-2.5 px-3">Risk Bulgusu</th>
+                                <th class="py-2.5 px-3">Optimizasyon Aksiyonu</th>
+                                <th class="py-2.5 px-3 text-center">Hesap Durumu</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licPersonasTbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 4: KOBİ & AZURE PLANLARI -->
+            <div id="licView-smb_azure" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-users-slash text-amber-600 text-lg"></i>
+                        <h4 class="text-sm font-bold text-slate-800">KOBİ 300 Kullanıcı Tavanı Denetimi</h4>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="text-xs text-slate-500 font-medium">Toplam KOBİ Lisans Tüketimi (Business Basic + Standard + Premium)</div>
+                        <div id="licSmbUnits" class="text-2xl font-black text-slate-800 mt-1">-- / 300</div>
+                        <div id="licSmbMessage" class="text-xs text-slate-600 mt-2 font-medium">--</div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Microsoft sözleşme kuralları gereği KOBİ planları 300 koltuk sınırına tabidir. Bu sınır aşıldığında kurumsal M365 E3 / E5 geçişi zorunludur.
+                    </p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-server text-blue-600 text-lg"></i>
+                        <h4 class="text-sm font-bold text-slate-800">Azure Tüketim Modeli Ayrımı (Defender for Cloud)</h4>
+                    </div>
+                    <div class="bg-blue-50/50 p-4 rounded-lg border border-blue-200">
+                        <div class="text-xs font-bold text-blue-900">Kullanıcı Koltuk (Seat) Lisansından Tamamen Bağımsızdır</div>
+                        <div class="text-xs text-blue-700 mt-1 leading-relaxed">
+                            Defender for Servers, Containers, Storage, SQL ve CSPM planları kullanıcı ataması gerektirmez. Doğrudan Azure abonelik kaynağı tüketimi ile korunur ve izlenir.
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Platformumuz bu iş yüklerini kullanıcı lisans açığı olarak yanlış raporlamaz; ayrı Azure kaynak koruma katmanı olarak doğrular.
+                    </p>
+                </div>
+            </div>
+
+            <!-- SUBVIEW 5: TARİHSEL SNAPSHOT & DIFF -->
+            <div id="licView-diff" class="hidden bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Aylık Lisans Zekâsı Snapshot Kayıtları</h4>
+                </div>
+                <ul id="licSnapshotsList" class="space-y-2">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+
+            <!-- SUBVIEW 6: MİCROSOFT RESMİ PDF BESLEME DURUMU -->
+            <div id="licView-catalog_feed" class="hidden bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Microsoft Resmi Plan Karşılaştırma Dokümanları İzleyicisi</h4>
+                        <p class="text-[11px] text-slate-500">cdn-dynmedia-1.microsoft.com üzerinden Enterprise & SMB PDF kaynakları aylık otomatik taranır.</p>
+                    </div>
+                    <button onclick="checkUpstreamPdfUpdates()" class="bg-ks-navy hover:bg-ks-navylight text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-cloud-arrow-down mr-1"></i>Şimdi Güncelleme Kontrolü Yap
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-800">Enterprise Plan Comparison (PDF)</span>
+                            <span id="licFeedEntStatus" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Doğrulandı</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-mono break-all">
+                            https://cdn-dynmedia-1.microsoft.com/.../Modern-Work-Plan-Comparison-Enterprise.pdf
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-800">SMB Plan Comparison (PDF)</span>
+                            <span id="licFeedSmbStatus" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Doğrulandı</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-mono break-all">
+                            https://cdn-dynmedia-1.microsoft.com/.../Modern-Work-Plan-Comparison-SMB.pdf
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-600 flex justify-between items-center pt-2 border-t border-slate-100">
+                    <div>Son Kontrol Tarihi: <strong id="licFeedLastCheck">--</strong></div>
+                    <div>Bir Sonraki Zamanlanmış Kontrol: <strong id="licFeedNextCheck">--</strong></div>
+                </div>
+            </div>
+
+        </div>
 
         <!-- ========================================================================= -->
         <!-- 7. YETKİLENDİRME & RBAC YÖNETİM MERKEZİ (PHASE 4 - PHASE 10) -->
@@ -2978,23 +3270,23 @@
                 if (res.ok) {
                     const data = await res.json();
                     const badge = document.getElementById('headerVersionBadge');
-                    if (badge) badge.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (badge) badge.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
 
                     const loginBadge = document.getElementById('loginVersionBadge');
-                    if (loginBadge) loginBadge.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (loginBadge) loginBadge.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
                     
                     const buildSpan = document.getElementById('headerVersionBuild');
                     if (buildSpan && data.last_updated) {
                         const d = new Date(data.last_updated);
-                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.10.03';
+                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('tr-TR') : '2026.10.09';
                         buildSpan.textContent = `| ${dateStr}`;
                     }
 
                     // Update settings version cards
                     const cRel = document.getElementById('verCardRelease');
-                    if (cRel) cRel.textContent = data.release || 'v3.0.0-ENTERPRISE';
+                    if (cRel) cRel.textContent = data.release || 'v3.1.0-REPORTING-VISIBILITY';
                     const cBuild = document.getElementById('verCardBuild');
-                    if (cBuild) cBuild.textContent = data.build || '2026.10.03.1';
+                    if (cBuild) cBuild.textContent = data.build || '2026.10.09.1';
                     const cNum = document.getElementById('verCardBuildNum');
                     if (cNum) cNum.textContent = `Derleme #${data.build_number || 1}`;
                     const cLast = document.getElementById('verCardLastUpdated');
@@ -3052,7 +3344,7 @@
         // ==========================================
         function switchTab(tabId) {
             currentTab = tabId;
-            const tabs = ['dashboard', 'tenants', 'studio', 'dispatch', 'kql', 'teams', 'settings', 'rbac'];
+            const tabs = ['dashboard', 'tenants', 'studio', 'licenses', 'dispatch', 'kql', 'teams', 'settings', 'rbac'];
             tabs.forEach(t => {
                 const elView = document.getElementById(`view-${t}`);
                 const elBtn = document.getElementById(`tabBtn-${t}`);
@@ -3078,6 +3370,8 @@
                     dispSel.value = topSel.value;
                     onDispatchTenantChange();
                 }
+            } else if (tabId === 'licenses') {
+                initLicenseIntelligenceView();
             } else if (tabId === 'tenants') {
                 filterTenants();
             } else if (tabId === 'settings') {
@@ -4835,11 +5129,11 @@ let allUsers = [];
                     if (statScoreSub) statScoreSub.innerText = `${t.Name} M365 skoru`;
 
                     if (bannerBadge) {
-                        bannerBadge.innerText = `Kiracı Yönetici Kokpiti • ${t.Name}`;
+                        bannerBadge.innerText = `Kiracı Yönetilen Servis & Raporlama Kokpiti • ${t.Name}`;
                         bannerBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider backdrop-blur-sm';
                     }
-                    if (bannerTitle) bannerTitle.innerText = `${t.Name} — Yönetici & SOC Operasyon Kokpiti`;
-                    if (bannerDesc) bannerDesc.innerText = `Bu kiracı için 4 Sütunlu Hizmet Değer Atıfları, C-Level Karar Matrisi ve Canlı Savunma Göstergeleri.`;
+                    if (bannerTitle) bannerTitle.innerText = `${t.Name} — Yönetilen Hizmet & Görünürlük Kokpiti`;
+                    if (bannerDesc) bannerDesc.innerText = `Bu kiracı için 4 Sütunlu Hizmet Değer Atıfları, C-Level Karar Matrisi ve Yönetilen Güvenlik Göstergeleri.`;
 
                     if (globalFleet) globalFleet.classList.add('hidden');
                     if (singleCockpit) {
@@ -5113,8 +5407,8 @@ let allUsers = [];
             }
             alert(`[AV BAŞLATILDI] ${tenantId} müşterisi üzerinde "${currentSelectedKql.title}" sorgusu Graph Hunting API ile çalıştırıldı. Sonuçlar denetim kütüğüne kaydediliyor.`);
         }
-    </script>
     <script src="rbac_portal.js"></script>
+    <script src="license_portal.js"></script>
     <script>
         // ==========================================
         // PLANLANMIŞ RAPOR DAĞITIMI (SCHEDULED DISPATCH)

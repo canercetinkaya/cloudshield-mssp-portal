@@ -9,7 +9,7 @@ PORT=${PORT:-8080}
 VERSION=$(python3 -c "import json, os; p='/app/version.json'; print(json.load(open(p))['release']) if os.path.exists(p) else 'v3.0.0-ENTERPRISE'" 2>/dev/null || echo "v3.0.0-ENTERPRISE")
 
 echo "================================================================================"
-echo "  CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal)"
+echo "  CloudShield Security Reporting & Managed Services Visibility Platform"
 echo "  Sürüm: ${VERSION} | Ortam: ${ENVIRONMENT:-Production}"
 echo "  Port : ${PORT}"
 echo "================================================================================"

@@ -200,6 +200,45 @@ function Get-ServiceRawData {
         }
     }
 
+    # Advanced Hunting KQL Sorguları (ASR & TVM)
+    try {
+        $graphToken = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'CoreSecurityReporting'
+        
+        # 1. ASR Sorgusu
+        $kqlAsr = @{
+            Query = "DeviceEvents | where ActionType startswith 'Asr' | summarize Blocks=countif(ActionType endswith 'Blocked'), Audits=countif(ActionType endswith 'Audited') by Rule=tostring(AdditionalFields.RuleName)"
+        } | ConvertTo-Json -Compress
+        $asrResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/runHuntingQuery" -AccessToken $graphToken -Method POST -Body $kqlAsr
+        if ($asrResp.results) {
+            $hunt['Asr'] = @($asrResp.results | ForEach-Object {
+                [pscustomobject]@{
+                    Mod   = if ($_.Blocks -gt 0) { 'Blok' } else { 'Denetim' }
+                    Kural = $_.Rule
+                    Adet  = [int]($_.Blocks + $_.Audits)
+                    Cihaz = 1
+                }
+            })
+        }
+
+        # 2. TVM Top Zafiyetler
+        $kqlTvm = @{
+            Query = "DeviceTvmSoftwareVulnerabilities | summarize DistinctDevices=dcount(DeviceId) by CveId | top 5 by DistinctDevices desc"
+        } | ConvertTo-Json -Compress
+        $tvmResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/runHuntingQuery" -AccessToken $graphToken -Method POST -Body $kqlTvm
+        if ($tvmResp.results) {
+            $hunt['CisaKevTop5'] = @($tvmResp.results | ForEach-Object {
+                [pscustomobject]@{
+                    CveId                      = $_.CveId
+                    VulnerabilitySeverityLevel = 'High'
+                    AffectedDevices            = [int]$_.DistinctDevices
+                }
+            })
+        }
+    }
+    catch {
+        Write-Verbose "Advanced Hunting ek sorguları çalıştırılamadı: $($_.Exception.Message)"
+    }
+
     if ($devices.Count -eq 0 -and $availabilityState -eq 'SupportedAppOnly') {
         $availabilityState = 'NoData'
     }

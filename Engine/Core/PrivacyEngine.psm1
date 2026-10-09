@@ -1,4 +1,4 @@
-﻿# Core/PrivacyEngine.psm1 - CloudShield Security Reporting Platform
+# Core/PrivacyEngine.psm1 - CloudShield Security Reporting Platform
 # Differential privacy, k-anonymity (k=5), salted SHA256 hashing, and sensitive data masking.
 [CmdletBinding()]
 param()
@@ -8,8 +8,13 @@ $Script:SaltCache = @{}
 function Get-TenantSalt {
     param([string] $TenantId)
     if (-not $Script:SaltCache.ContainsKey($TenantId)) {
-        # Tenant bazlı deterministik fakat tahmin edilemez bir salt türet
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$TenantId-CloudShield-Security-Privacy-Salt-2026")
+        # Check environment variable for Key Vault provisioned master salt
+        $masterSalt = $env:MSSP_PRIVACY_SALT
+        if ([string]::IsNullOrWhiteSpace($masterSalt)) {
+            $masterSalt = "CloudShield-Entropy-Default-Master"
+        }
+        # High-entropy tenant-aware SHA256 salt derivation without exposing master secret
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$TenantId::$masterSalt")
         $sha = [System.Security.Cryptography.SHA256]::Create()
         $hash = $sha.ComputeHash($bytes)
         $Script:SaltCache[$TenantId] = [Convert]::ToBase64String($hash)

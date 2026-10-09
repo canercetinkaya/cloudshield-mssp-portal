@@ -479,46 +479,13 @@ function Get-ServiceKpis {
         @()
     }
 
-    # Kullanıcı Kural Aşımı Niteliksel Dağılımı (Directive 2 - Aritmetik Tutarlılık)
+    # Kullanıcı Kural Aşımı Niteliksel Dağılımı (Doğrulanmış Veri İlkesi)
     $overrideBreakdown = if ($ovr -eq 0) {
         @()
     } elseif ($RawData.UserOverrideBreakdown -and $RawData.UserOverrideBreakdown.Count -gt 0) {
         @($RawData.UserOverrideBreakdown)
     } else {
-        $c1 = [math]::Round($ovr * 0.60)
-        $c2 = [math]::Round($ovr * 0.25)
-        $c3 = [math]::Round($ovr * 0.10)
-        $c4 = [math]::Max(0, ($ovr - ($c1 + $c2 + $c3)))
-        @(
-            [pscustomobject]@{
-                Category          = 'Meşru İş Gereksinimi / Acil Müşteri Talebi'
-                Count             = $c1
-                Percentage        = [math]::Round(($c1 / $ovr) * 100, 1)
-                ComplianceVerdict = 'Geçerli İş Akışı. Onaylı sözleşme/teklif aktarımı. Güvenli B2B portala yönlendirme yapıldı.'
-                RiskStatus        = 'Düşük Risk (Kontrol Altında)'
-            },
-            [pscustomobject]@{
-                Category          = 'Yanlış Pozitif (False Positive / Hatalı Algılama)'
-                Count             = $c2
-                Percentage        = [math]::Round(($c2 / $ovr) * 100, 1)
-                ComplianceVerdict = 'Politika İyileştirmesi Planlandı. Malzeme seri no/barkod TCKN ile karışmış; regex güven seviyesi artırıldı.'
-                RiskStatus        = 'Optimizasyon Bekleniyor'
-            },
-            [pscustomobject]@{
-                Category          = 'Müşteri / Yönetici Yetkili Onayı Mevcut'
-                Count             = $c3
-                Percentage        = [math]::Round(($c3 / $ovr) * 100, 1)
-                ComplianceVerdict = 'Yetkili İstisna. Direktör yazılı onayı denetim kaydına eklendi.'
-                RiskStatus        = 'Onaylı İstisna'
-            },
-            [pscustomobject]@{
-                Category          = 'Yetersiz / Şüpheli Gerekçe (İnceleme Altında)'
-                Count             = $c4
-                Percentage        = [math]::Round(($c4 / $ovr) * 100, 1)
-                ComplianceVerdict = 'Kullanıcı Farkındalık Eğitimi & SecOps Mühendislik Triyajı. Geçersiz metin girildi; kullanıcı yöneticisine eskalasyon yapıldı.'
-                RiskStatus        = 'Orta Risk (Triyajda)'
-            }
-        )
+        @()
     }
 
     $state = if ($RawData.AvailabilityState) { $RawData.AvailabilityState } else { 'SupportedAppOnly' }

@@ -1,45 +1,42 @@
-# Contributing to CloudShield MSSP Platform
+# Katkıda Bulunma Kılavuzu (CONTRIBUTING.md)
+## CloudShield Security Reporting & Managed Services Visibility Platform
 
-Thank you for contributing to **CloudShield MSSP Platform**!
-
----
-
-## 1. Core Engineering Principles
-
-1. **Implementation is the Source of Truth:** Documentation, tests, and API schemas must describe only what actually executes in code.
-2. **Zero External Dependencies:** The backend REST API server (`Portal/api/server.py`) and authorization engine run strictly on Python 3 Standard Library. Do not introduce third-party pip dependencies.
-3. **Single-Source Versioning:** Never edit version strings manually across files. Always use the authoritative version tool:
-   ```bash
-   python Engine/Core/Update-Version.py "feat(module): description of changes"
-   ```
+CloudShield projesine katkıda bulunmak istediğiniz için teşekkür ederiz. Bu belge, platform geliştirme standartlarını, kod kalitesi kurallarını ve çekme isteği (Pull Request) süreçlerini açıklar.
 
 ---
 
-## 2. Automated Quality Gates & Verification
+### 1. Temel Mühendislik İlkeleri
 
-Before submitting any Pull Request, you must execute and pass all quality suites:
+1. **Kod Gerçeğin Tek Kaynağıdır:** Dokümantasyon, şablonlar ve testler yalnızca kodda gerçekten çalışan kabiliyetleri anlatmalıdır. Uygulanmamış hiçbir özellik "tamamlandı" olarak iddia edilemez.
+2. **Sıfır Dış Bağımlılık (Standard Library First):** Backend REST API sunucusu (`Portal/api/server.py`) ve yetkilendirme motoru saf Python 3 Standart Kütüphanesi (`urllib`, `http.server`, `sqlite3`, `hashlib`, `secrets`) ile çalışır. Zorunlu olmadıkça harici paket eklenmemelidir.
+3. **Sıfır Sentetik Çarpan & Veri Dürüstlüğü:** Kodda veya şablonlarda alarm sayılarını artıran katsayılar veya tahminî müşteri oranları kullanılamaz. Eksik veri açıkça `N/A` olarak sunulmalıdır.
+4. **Sıfır Bilet / Sıfır CR:** Mimaride Change Request, Ticket, ServiceNow, Jira veya manuel mühendis saati kavramları bulunmaz. Tüm iyileştirmeler doğrudan tenant telemetrisi ve denetim kütüklerinden türetilmelidir.
 
-```powershell
-# 1. Python Syntax & Module Compilation
+---
+
+### 2. Zorunlu Test ve Kalite Kapıları
+
+Herhangi bir Pull Request göndermeden önce yerel ortamınızda aşağıdaki testlerin hatasız geçtiğini doğrulamanız zorunludur:
+
+```bash
+# 1. Python Sözdizimi Kontrolü
 python -m py_compile Portal/api/server.py Portal/api/report_generator.py Portal/api/rbac_engine.py Portal/api/rbac_handlers.py database/db.py
 
-# 2. Automated Semantic Report Quality Gate (14 rules)
-python test_report_quality_gate.py
+# 2. Birim ve Güvenlik Testleri (92 Test)
+python -m unittest discover tests
 
-# 3. Independent Post-Remediation Verification Gate (21 tests)
-python test_post_remediation_independent_gate.py
+# 3. Kapsamlı Platform QA Test Paketi (60 Test)
+python tests/test_comprehensive_qa.py
 
-# 4. Enterprise RBAC & Authorization Suite (10 security assertions)
-python test_rbac_authorization.py
-
-# 5. Comprehensive Platform End-to-End QA Suite (65 automated tests)
-python test_comprehensive_qa.py
+# 4. Kolektör - Rapor Mutabakat Testi (9 Test)
+python -m unittest tests/test_collector_to_report_reconciliation.py
 ```
 
 ---
 
-## 3. Pull Request Guidelines
+### 3. Dal (Branch) ve Commit Standartları
 
-- **Branch Naming:** `feat/feature-name`, `fix/bug-name`, `docs/doc-update`.
-- **Commit Messages:** Follow Conventional Commits format (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
-- **No Force Pushing to Main:** Direct pushes to `main` must maintain passing CI/CD checks.
+- **Dal Adlandırma:** `feat/ozellik-adi`, `fix/duzeltme-adi`, `docs/dokuman-adi`
+- **Commit Mesajları:** Conventional Commits standardı (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`)
+- **Doğrudan Main'e Push:** `main` dalına doğrudan push korumalıdır; değişiklikler Pull Request üzerinden doğrulanarak aktarılmalıdır.
+- **Hassas Veri / Secret:** Commit'lere kesinlikle `.env`, yerel veritabanı, API anahtarı veya gerçek müşteri bilgisi dahil edilmemelidir (`.gitignore` kurallarına uyunuz).
