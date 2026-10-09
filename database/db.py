@@ -13,31 +13,80 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DB_PATH = os.path.join(ROOT_DIR, "Data", "cloudshield_rbac.db")
 MIGRATIONS_DIR = os.path.join(ROOT_DIR, "database", "migrations")
 
+def verify_replica_safety():
+    """
+    Controlled Pilot Guard:
+    Refuse to run in multi-replica mode while SQLite is used on shared storage.
+    Prevents silent database page corruption caused by concurrent CIFS writes.
+    """
+    for env_var in ("MAX_REPLICAS", "CONTAINER_APP_MAX_REPLICAS", "REPLICA_COUNT"):
+        val = os.environ.get(env_var)
+        if val:
+            try:
+                if int(val) > 1:
+                    raise RuntimeError(
+                        f"FATAL CONFIGURATION ERROR: Multi-replica deployment ({env_var}={val}) "
+                        "is prohibited when using SQLite over shared storage. "
+                        "Set MAX_REPLICAS=1 or migrate to Azure Database for PostgreSQL before scaling horizontally."
+                    )
+            except ValueError:
+                pass
+    return True
+
+def verify_database_integrity(db_path=None):
+    """Run PRAGMA integrity_check on the database and return (is_healthy, message)."""
+    conn = get_db(db_path)
+    cur = conn.cursor()
+    try:
+        cur.execute("PRAGMA integrity_check;")
+        rows = cur.fetchall()
+        result = [r[0] for r in rows]
+        is_ok = len(result) == 1 and result[0] == "ok"
+        return is_ok, result
+    finally:
+        conn.close()
+
+def backup_database(destination_path, source_db_path=None):
+    """
+    Perform a safe online backup of the SQLite database using the SQLite backup API.
+    Guarantees consistent, uncorrupted backup snapshots even during active connections.
+    """
+    src_conn = get_db(source_db_path)
+    os.makedirs(os.path.dirname(os.path.abspath(destination_path)), exist_ok=True)
+    dst_conn = sqlite3.connect(destination_path)
+    try:
+        src_conn.backup(dst_conn)
+        return True, destination_path
+    finally:
+        dst_conn.close()
+        src_conn.close()
+
 def get_db(db_path=None):
+    verify_replica_safety()
     path = db_path or os.environ.get("DB_PATH") or DB_PATH
     dir_name = os.path.dirname(path)
     if dir_name:
         os.makedirs(dir_name, exist_ok=True)
 
-    # Use SQLite URI with nolock=1 to support Azure Files CIFS/SMB mounts without POSIX lock hangs
+    # Remove unsafe nolock=1 assumptions (Finding 6 / Phase 2.E).
+    # Standard SQLite connection with WAL mode and busy_timeout provides safe concurrency.
+    # nolock is strictly an opt-in fallback via USE_SQLITE_NOLOCK=1 for specialized read-only network shares.
+    use_nolock = os.environ.get("USE_SQLITE_NOLOCK", "false").lower() == "true"
     conn = None
-    try:
-        uri = pathlib.Path(os.path.abspath(path)).as_uri() + "?nolock=1"
-        conn = sqlite3.connect(uri, uri=True, timeout=30.0)
-    except Exception as ex:
-        print(f"[WARN] Failed to open SQLite URI at {path} ({ex}). Trying standard path...")
+    if use_nolock:
         try:
-            conn = sqlite3.connect(path, timeout=30.0)
-        except Exception as ex2:
-            print(f"[ERROR] Failed to open DB at {path} ({ex2}). Falling back to local temp database.")
-            fallback_dir = "/tmp" if os.name != "nt" else os.environ.get("TEMP", ".")
-            fallback_path = os.path.join(fallback_dir, "cloudshield_rbac.db")
-            os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
-            uri = pathlib.Path(os.path.abspath(fallback_path)).as_uri() + "?nolock=1"
+            uri = pathlib.Path(os.path.abspath(path)).as_uri() + "?nolock=1"
             conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+        except Exception as ex:
+            print(f"[WARN] Failed to open SQLite URI at {path} ({ex}). Trying standard path...")
+            conn = sqlite3.connect(path, timeout=30.0)
+    else:
+        conn = sqlite3.connect(path, timeout=30.0)
 
     conn.row_factory = sqlite3.Row
     try:
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA busy_timeout = 30000;")
         conn.execute("PRAGMA foreign_keys = ON;")
     except Exception:
         pass

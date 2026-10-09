@@ -430,15 +430,52 @@ def handle_rbac_post(handler, path, body):
             handler.send_json_response({"success": True, "message": "Erişim ataması başarıyla oluşturuldu.", "assignmentId": asgn_id, "assignment_id": asgn_id})
             return
 
-        # 3.B. JIT Self-Activation Elevation for Authorized Engineers and Platform Administrators
+        # 3.B. JIT Elevation (Phase 2 & D: Production Dual Custody & Max 8h Bounds)
         elif path == "/api/rbac/jit/elevate":
+            # Production Feature Toggle
+            enable_jit = os.environ.get("ENABLE_JIT_ELEVATION", "1")
+            if enable_jit.lower() in ("0", "false", "disabled", "no"):
+                record_audit_event("AUTH_DENY", user_id=user["id"], user_upn=user["upn"],
+                                   resource=path, decision="DENY", reason="JITFeatureDisabledInProduction", ip_address=client_ip)
+                handler.send_json_response({
+                    "success": False,
+                    "error": "JIT Süreli Yetki Yükseltme özelliği üretim ortamında kısıtlanmıştır (403 Forbidden: Feature Disabled in Production Mode)."
+                }, status=403)
+                return
+
             cust_id = body.get("customerId") or body.get("customer_id")
             if not cust_id:
                 handler.send_json_response({"success": False, "error": "customerId zorunludur."}, status=400)
                 return
 
-            duration_hours = int(body.get("durationHours") or body.get("duration_hours", 4))
-            justification = (body.get("justification") or "Operasyonel Rapor Üretimi ve Güvenlik Denetimi").strip()
+            ticket_ref = (body.get("ticketId") or body.get("ticketRef") or body.get("ticket_ref") or "").strip()
+            if not ticket_ref:
+                handler.send_json_response({
+                    "success": False,
+                    "error": "Geçerli bir onay/talep referansı (ticketId veya ticketRef, örn: CHG-10293) zorunludur."
+                }, status=400)
+                return
+
+            try:
+                raw_hours = int(body.get("durationHours") or body.get("duration_hours", 4))
+            except (ValueError, TypeError):
+                raw_hours = 4
+
+            if raw_hours > 8 or raw_hours < 1:
+                handler.send_json_response({
+                    "success": False,
+                    "error": "Geçersiz süre: JIT yetki süresi en az 1, en fazla 8 saat olabilir (Sunucu Güvenlik Sınırı: Max 8 Hours)."
+                }, status=400)
+                return
+            duration_hours = raw_hours
+
+            justification = (body.get("justification") or "").strip()
+            if len(justification) < 10:
+                handler.send_json_response({
+                    "success": False,
+                    "error": "Geçerli ve açıklayıcı bir gerekçe (justification, en az 10 karakter) zorunludur."
+                }, status=400)
+                return
 
             cur.execute("""
                 SELECT aa.id, r.name, r.is_platform_role
@@ -450,43 +487,38 @@ def handle_rbac_post(handler, path, body):
             is_authorized = any(r["is_platform_role"] or r["name"] in ("PlatformAdmin", "SecurityEngineer") for r in user_roles)
             if not is_authorized:
                 record_audit_event("AUTH_DENY", user_id=user["id"], user_upn=user["upn"], customer_id=cust_id,
-                                   resource=path, decision="DENY", reason="JITElevationDenied: UserNotAuthorizedForSelfElevation",
+                                   resource=path, decision="DENY", reason="JITElevationDenied: UserNotAuthorizedForJITRequest",
                                    ip_address=client_ip)
                 handler.send_json_response({
                     "success": False,
-                    "error": "Yetkisiz Erişim (403 Forbidden): Sadece Platform Yöneticileri ve Güvenlik Mühendisleri doğrudan JIT yükseltmesi başlatabilir."
+                    "error": "Yetkisiz Erişim (403 Forbidden): Sadece Platform Yöneticileri ve Güvenlik Mühendisleri JIT yükseltme talebinde bulunabilir."
                 }, status=403)
                 return
 
-            valid_to = (datetime.now(timezone.utc) + timedelta(hours=duration_hours)).isoformat()
-            asgn_id = f"asgn-jit-{uuid.uuid4().hex[:8]}"
-            approval_id = f"appr-jit-auto-{uuid.uuid4().hex[:6]}"
+            approval_id = f"appr-jit-{uuid.uuid4().hex[:8]}"
 
+            # DUAL CUSTODY RULE: Request created in PENDING state. Self-approval is strictly prohibited!
+            full_reason = f"[{ticket_ref}] {justification}"
             cur.execute("""
                 INSERT INTO access_approvals (id, requester_id, approver_id, requested_role_id, customer_id,
                                               service_id, duration_hours, reason, status, decision_reason, created_at, decided_at)
-                VALUES (?, ?, ?, 'role-security-engineer', ?, 'ALL', ?, ?, 'Approved', 'JIT Self-Activation Policy Verified', ?, ?)
-            """, (approval_id, user["id"], user["id"], cust_id, duration_hours, justification, now, now))
-
-            cur.execute("""
-                INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
-                                                service_scope, service_id, valid_from, valid_to, is_temporary, is_active,
-                                                approval_id, created_by, created_at)
-                VALUES (?, 'User', ?, 'role-security-engineer', 'Specific', ?, 'ALL', NULL, ?, ?, 1, 1, ?, ?, ?)
-            """, (asgn_id, user["id"], cust_id, now, valid_to, approval_id, user["upn"], now))
+                VALUES (?, ?, NULL, 'role-security-engineer', ?, 'ALL', ?, ?, 'Pending', 'Awaiting Independent Dual Approval', ?, NULL)
+            """, (approval_id, user["id"], cust_id, duration_hours, full_reason, now))
             conn.commit()
 
-            record_audit_event("ROLE_ASSIGN", user_id=user["id"], user_upn=user["upn"], customer_id=cust_id,
+            record_audit_event("PIM_REQUEST", user_id=user["id"], user_upn=user["upn"], customer_id=cust_id,
                                resource=path, decision="ALLOW",
-                               reason=f"JITElevationActivated: {duration_hours}h for customer '{cust_id}' ({justification})",
-                               ip_address=client_ip, details={"assignmentId": asgn_id, "durationHours": duration_hours, "validTo": valid_to})
+                               reason=f"JITElevationRequested: {duration_hours}h for customer '{cust_id}' ({ticket_ref}) - Awaiting Dual Approval",
+                               ip_address=client_ip, details={"approvalId": approval_id, "durationHours": duration_hours, "ticketRef": ticket_ref})
 
             handler.send_json_response({
                 "success": True,
-                "message": f"'{cust_id}' müşterisi için {duration_hours} saatlik Süreli (JIT) Operasyonel Yetki başarıyla etkinleştirildi.",
-                "assignmentId": asgn_id,
-                "validTo": valid_to
-            })
+                "status": "Pending",
+                "message": f"'{cust_id}' müşterisi için {duration_hours} saatlik JIT yetki talebi oluşturuldu (Talep No: {approval_id}). Görevler ayrılığı (Dual Custody) gereği bağımsız bir yönetici onayı beklenmektedir.",
+                "approvalId": approval_id,
+                "durationHours": duration_hours,
+                "requiresApproval": True
+            }, status=202)
             return
 
         # 4. Access Approvals: Request PIM Access (Phase 6 & 10)

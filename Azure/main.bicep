@@ -127,7 +127,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     }
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
   }
 }
@@ -224,8 +224,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
       ]
       scale: {
-        minReplicas: 1 // Cold Start gecikmesini onlemek icin her an en az 1 aktif kopya
-        maxReplicas: 3 // Eszamanli rapor uretimlerinde bellek tasmasini onlemek icin 3 kopya
+        minReplicas: 1 // Controlled Pilot: Strict single-replica mode
+        maxReplicas: 1 // Prohibits multi-replica race conditions on shared SQLite storage
         rules: [
           {
             name: 'http-rule'
