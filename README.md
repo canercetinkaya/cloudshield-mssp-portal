@@ -1,203 +1,255 @@
 # CloudShield Security Reporting & Managed Services Visibility Platform
 
-[![Release](https://img.shields.io/badge/Release-v3.1.0--REPORTING--VISIBILITY-brightgreen.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal)
-[![Status](https://img.shields.io/badge/Status-Production%20GA-success.svg)](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)
-[![Security](https://img.shields.io/badge/Auth-Zero%20Trust%20%7C%20Entra%20OIDC%20PKCE%20%2B%20CBA-0078D4.svg)](SECURITY.md)
-[![Unit Tests](https://img.shields.io/badge/Unit%20Tests-77%2F77%20Passing-brightgreen.svg)](tests/)
-[![QA Gates](https://img.shields.io/badge/QA%20Gates-59%2F59%20Passing-brightgreen.svg)](tests/test_comprehensive_qa.py)
-[![CI/CD](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
+> **Microsoft Güvenlik ve Uyumluluk İş Yükleri İçin Aylık Raporlama, Yönetilen Hizmet Görünürlüğü ve Denetim Platformu**
 
-**CloudShield Security Reporting & Managed Services Visibility Platform** — an enterprise-grade multi-tenant reporting, executive visibility, and managed service accountability platform engineered specifically for Microsoft Defender XDR and Microsoft Purview managed services customers.
-
-> **Live Portal:** [cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io](https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/)  
-> **Hosting Architecture:** Azure Container Apps · West Europe · `minReplicas=1`, `maxReplicas=1` (Single-replica constraint ensuring SQLite WAL mode transaction serialization and zero lock contention).
+[![CI/CD Pipeline](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/canercetinkaya/cloudshield-mssp-portal/actions/workflows/ci-cd.yml)
+[![Sürüm](https://img.shields.io/badge/Sürüm-v3.1.0--REPORTING--VISIBILITY-blue.svg)](RELEASE_NOTES.md)
+[![Durum](https://img.shields.io/badge/Durum-Kontrollü%20Pilot-orange.svg)](CONTROLLED_PILOT.md)
+[![Python](https://img.shields.io/badge/Python-3.11%20StdLib-green.svg)](Portal/api/)
+[![PowerShell](https://img.shields.io/badge/PowerShell-7.4%20Core-blue.svg)](Engine/)
 
 ---
 
-## Strategic Product Positioning
+## 1. Ürün Adı ve Kısa Tanım
 
-CloudShield is purposefully positioned as a **Security Reporting & Managed Services Visibility Platform**, not a SOC operations console, SIEM alternative, or SOAR incident responder.
+**CloudShield Security Reporting & Managed Services Visibility Platform**, Microsoft güvenlik ve uyumluluk servislerini yönetilen hizmet olarak alan kurumsal müşteriler için tasarlanmış; **güvenilir, müşteri bazlı, ürün özelinde aylık güvenlik raporları üreten, yönetilen hizmet görünürlüğü sağlayan ve raporları güvenli şekilde sunan** bir platformdur.
 
-Its core mission is to demonstrate tangible managed service value to enterprise CISOs and IT leadership:
-- **Secure Telemetry Ingestion:** Zero-trust read-only Graph API & KQL collection across customer tenants.
-- **Tenant Isolation:** Cryptographically bounded multi-tenant data barriers preventing cross-customer exposure.
-- **Monthly Managed Service Reports:** Automated, boardroom-ready executive summaries & technical scorecards in bilingual HTML and vector PDF.
-- **Service Value Attribution:** Hard metric evidence of autonomous blocks, policy hygiene, engineer hours saved, and posture elevation.
-- **Report Provenance & Registry:** Tamper-evident, immutable report archive with SHA-256 integrity verification.
-
-> **Roadmap Boundary Note:** Operational SOC workflows, alert triage workbenches, case management, and SIEM/SOAR automations are intentionally reserved for post-pilot lifecycle phases.
+Platform; SIEM, SOAR, MDR veya canlı alarm kuyruğu (SOC analyst workbench) değildir. Odak noktası, dağınık Microsoft telemetrisini yönetici ve teknik seviyede anlamlandırarak **yönetilen hizmet değerini kanıtlanabilir çıktılarla görünür kılmaktır**.
 
 ---
 
-## Executive Value Proposition
+## 2. Ürünün Çözdüğü Problem
 
-CloudShield delivers four quantified pillars of business value to every managed customer tenant:
-
-| Pillar | Capability | Business Outcome |
-| :--- | :--- | :--- |
-| **1. Autonomous Threat Mitigation** | Microsoft Defender XDR auto-blocks, ZAP, ASR enforcements | Threat containment without engineer intervention |
-| **2. MSSP Engineering Excellence** | Deep configuration, policy tuning, DLP rule authoring, PIM governance | Senior engineer capacity augmentation |
-| **3. Customer IT Enablement** | Approved remediation actions, self-service customer portal | IT team efficiency and ownership |
-| **4. Shared Posture Intelligence** | 6-month trend lines, benchmark deltas, regulatory compliance posture | Board-level risk visibility and audit readiness |
-
-Every report card and metric is traceable to a live Microsoft Graph API or KQL Advanced Hunting query — **zero static, hardcoded, or estimated figures**.
+Kurumsal Microsoft güvenlik ekosistemlerinde yöneticilerin ve servis sağlayıcıların karşılaştığı temel problemler:
+- **Farklı Portallarda Dağınık Veri:** Defender for Endpoint, Defender for Office 365, Intune ve Purview'un ayrı konsollarda telemetri üretmesi nedeniyle bütünleşik risk tablosunun görülememesi.
+- **Görünmeyen Yönetilen Hizmet Değeri:** Hizmet sağlayıcı mühendislerin yaptığı politika optimizasyonlarının, kural tuning'lerinin ve sıkılaştırmaların müşterinin üst yönetimi tarafından fark edilmemesi.
+- **Teknik Veriyi Anlamlandırma Zorluğu:** Ham alarm sayılarının ve telemetri loglarının C-Level yöneticiler (CISO, CIO) için stratejik karara dönüştürülememesi.
+- **İzlenebilirlik ve Doğruluk Eksikliği:** Raporlarda yer alan sayıların hangi API'den, hangi sorguyla çekildiğinin belirsiz olması ve sentetik çarpanlarla güven erozyonu yaratılması.
 
 ---
 
-## System Architecture
+## 3. Platform Ne Yapar?
+
+Platform, doğrulanmış kod yetenekleriyle şu işlevleri icra eder:
+1. **Telemetri Toplama:** Microsoft Graph API, Defender Advanced Hunting KQL ve Purview AuditLog üzerinden telemetri toplar.
+2. **Normalizasyon:** Toplanan verileri 15 iş yükü özelinde standart veri modeline dönüştürür.
+3. **Doğrulanmış KPI Üretimi:** Her metrik için kaynak, formül ve güven düzeyi bilgisiyle (KPI provenance) metrik hesaplar.
+4. **Şeffaf Eksik Veri:** Veri toplanamadığında sıfır yazmak yerine durumu açıkça `N/A`, `Yapılandırılmamış` veya `İzin Yok` olarak sunar.
+5. **Gözlemlenen Değişiklikleri Raporlama:** Bilet veya form doldurma yükü olmadan, tenant konfigürasyonundaki somut iyileştirmeleri denetim izlerinden otomatik gösterir.
+6. **Çift Format Çıktı:** Vektörel HTML5 ve baskıya hazır A4 PDF çıktısı üretir; SHA-256 kriptografik mühür ile rapor bütünlüğü sağlar.
+7. **Zero Trust Kiracı İzolasyonu:** Müşterilerin yalnızca kendi raporlarına erişebileceği katı izolasyon duvarı uygular.
+
+---
+
+## 4. Desteklenen Microsoft İş Yükleri
+
+| İş Yükü | Toplanan Veri Türleri | Raporda Gösterilen Temel Alanlar | Gerekli İzin / Lisans | Doğrulama Statüsü |
+| :--- | :--- | :--- | :--- | :--- |
+| **Microsoft Defender for Endpoint** | Cihaz envanteri, sensör sağlığı, TVM zafiyetleri, ASR olayları | İzlenen Cihaz, Sensör Kapsamı %, Otonom Bloklar, TVM Uyum % | `Machine.Read.All`, `AdvancedHunting.Read.All` (MDE P2 / E5) | **Canlı Tenant Üzerinde Doğrulandı** |
+| **Microsoft Defender for Office 365** | E-posta trafiği, kimlik avı, zararlı ekler, Safe Links, ZAP | Taranan Posta, Phishing/Malware Blokları, ZAP Sayısı, Şüpheli Bildirim Triyajı | `SecurityEvents.Read.All` (MDO P2 / E5) | **Canlı Tenant Üzerinde Doğrulandı** |
+| **Microsoft Intune** | Cihaz uyumluluk durumları, BitLocker/FileVault şifreleme, OS | Cihaz Uyum %, Şifrelenmiş Cihaz Sayısı, Platform Ayrışımı (Win/iOS/Android/macOS) | `DeviceManagementManagedDevices.Read.All` (Intune Plan 1) | **Canlı Tenant Üzerinde Doğrulandı** |
+| **Microsoft Purview DLP** | DLP kural eşleşmeleri, bloklama olayları, kural aşımları | DLP Eşleşme, Otonom Blok, Koruma Oranı %, Override Dağılımı ve Gerekçeleri | `InformationProtectionPolicy.Read.All` (M365 E5 / Compliance) | **Canlı Tenant Üzerinde Doğrulandı** |
+| **Purview Information Protection** | Sensitivity Labels, etiketleme trendleri, şifreleme duruşu | Etiketli Belge Hacmi, En Çok Kullanılan Etiketler, Etiket Değişiklik Kütüğü | `InformationProtectionPolicy.Read.All` (M365 E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Purview Sensitive Info Types (SIT)** | Standart ve özel SIT tanımları, regex ve doğruluk eşikleri | Tanımlı SIT Sayısı, En Çok Tetiklenen SIT'ler (TCKN, Kredi Kartı, IBAN) | `InformationProtectionPolicy.Read.All` (M365 E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Defender for Identity (MDI)** | DC telemetrisi, NTLMv1/v2 kullanımı, Kerberos alarmları | Sağlıklı DC Sayısı, Güvensiz Protokol Kullanımı, Şüpheli Kimlik Hareketleri | `SecurityAlert.Read.All`, `IdentityLogonEvents` (MDI / E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Defender for Cloud Apps (MDCA)** | Shadow IT keşif verisi, onaylı/onaysız uygulamalar, OAuth | Keşfedilen SaaS Uygulamaları, Yüksek Riskli Uygulama Sayısı, Sanction Kararları | `CloudAppSecurity.Read.All` (MDCA / E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Defender for Cloud (MDC)** | Azure Secure Score, bulut güvenlik önerileri, açık portlar | Secure Score %, Kritik Güvenlik Önerileri, İnternete Açık Kaynaklar | `Microsoft.Security/assessments/read` (Defender CSPM) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Purview Insider Risk Management** | İç tehdit politikası göstergeleri, veri dışarı çıkarma riski | Aktif Politika Sayısı, Yüksek Riskli Kullanıcı Trendleri | `AuditLog.Read.All`, `SecurityAlert.Read.All` (M365 E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Purview Communication Compliance** | Kurumsal iletişim denetim kuralları, uygunsuz içerik | Eşleşen İletişim Olayları, İncelenen Mesaj Oranı | `Compliance.Read.All` (M365 E5) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Purview Data Lifecycle Management** | Saklama (retention) ilkeleri, otomatik etiketleme/silme | Aktif Saklama İlkeleri, Konum Kapsamı (SPO/OD/EXO) | `InformationProtectionPolicy.Read.All` (M365 E3/E5) | **Kısmi Destekleniyor** |
+| **Purview Records Management** | Kayıt (record) tanımları, imha (disposition) süreçleri | Kayıt Olarak İşaretlenen Öğe Sayısı, İmha Bekleyenler | `RecordsManagement.Read.All` (M365 E5 Compliance) | **Kısmi Destekleniyor** |
+| **Microsoft Purview DSPM** | Çoklu bulut veri depoları, hassas veri haritası, erişimler | Taranan Veri Deposu Hacmi, Hassas Veri Yoğunluğu | `DataSecurityPosture.Read.All` (Purview DSPM) | **Kodlandı, Canlı Doğrulama Bekliyor** |
+| **Purview DSPM for AI** | Copilot ve GenAI etkileşimlerinde hassas veri kullanımı | AI Güvenlik Olayları, Prompt Sızıntı Denetimi, Etiketli Veri Tüketimi | `SecurityEvents.Read.All`, `AuditLog.Read.All` (Copilot & Purview E5) | **İzin veya Lisans Engelli** |
+
+---
+
+## 5. Raporlarda Neler Gösterilir?
+
+Her aylık raporda yer alan temel bölümler:
+- **C-Level Yönetici Bilgi Notu (Executive Brief):** 6 soruluk yönetici özeti (Ne oldu, neden önemli, Microsoft ne sağladı, CloudShield ne yaptı, hangi artık riskler var, hangi kararlar bekleniyor).
+- **Dört Temel Değer Sütunu (Service Value Attribution):** Microsoft otonom aksiyonları, CloudShield yönetilen hizmet değeri, müşteri BT eforu ve artık risk ayrımı.
+- **🛡️ Bu Ay Gerçekleştirilen İyileştirmeler:** Tenant denetim kütüklerinden (Audit Logs) otomatik türetilen somut politika güncellemeleri ve teknik güvenlik çıktıları.
+- **Operasyonel Performans & Tehdit Barometresi:** İş yükü özelinde sensör kapsamı, kural eşleşmeleri, karantina triyajı veya DLP kanal dağılımı.
+- **12 Aylık Trend Analizi:** Geçen aya ve geçmiş dönemlere kıyasla risklerin yönelimi (artan/azalan riskler).
+- **Müşteri Stratejik Karar Matrisi:** Müşteri yönetiminin onaylaması önerilen P0, P1 ve P2 öncelikli güvenlik kararları.
+
+Örnek çıktıları incelemek için [Örnek Raporlar Dokümanına](docs/samples/README.md) göz atabilirsiniz.
+
+---
+
+## 6. Veri Doğruluğu Yaklaşımı
+
+- **Sıfır Sentetik Çarpan:** Alarm veya olay sayıları katsayılarla çarpılamaz; cihaz oranları tahminlenemez.
+- **Sıfır Mock Veri:** Üretim raporlarına sentetik veya mock veri aktarılamaz.
+- **Eksik Veri Şeffaflığı:** Veri yoksa `0` gösterilmez; `N/A` veya `Yapılandırılmamış` durumu açıklanır.
+- **Kolektör-Rapor Mutabakatı:** Kolektörden gelen ham sayı ile rapordaki sayı birebir test edilir (`test_collector_to_report_reconciliation.py`).
+- **Test Filigranı:** Canlı doğrulanmamış her rapora belirgin uyarı afişi eklenir.
+
+---
+
+## 7. Mimari
 
 ```mermaid
 flowchart TD
-    subgraph Identity ["Zero Trust Identity & Access"]
-        CISO["Enterprise Security Operator / CISO"]
-        EntraID["Microsoft Entra ID\n(OIDC Authorization Code + PKCE)"]
-        PreEnroll["Pre-Enrollment Verification\n(UPN Whitelist & Enterprise App Assignment)"]
+    subgraph Sources ["1. Microsoft Kiracısı & Veri Kaynakları"]
+        MDE["Microsoft Defender for Endpoint"]
+        MDO["Defender for Office 365"]
+        PRV["Microsoft Purview (DLP, MIP, SIT)"]
+        INT["Microsoft Intune (MDM / MAM)"]
     end
 
-    subgraph ACA ["Azure Container Apps — cs-mssp-poc-app"]
-        APIGateway["REST API Gateway (Python 3.11)\nPortal/api/server.py"]
-        RBACEngine["8-Stage RBAC Authorization Engine\nCustomerViewer | MSSPEngineer | PlatformAdmin"]
-        ReportEngine["Bilingual Executive Report Engine\nHTML + Headless Chromium Vector PDF (TR/EN)"]
-        PSCollector["PowerShell 7.4 Telemetry Engine\n12 Parallel Workload Collectors"]
-        QualityGate["14-Rule Semantic Quality Gate\nZero fiction · k-Anonymity · Provenance"]
+    subgraph Ingestion ["2. Kimlik & Telemetri Motoru"]
+        CBA["RFC 7523 Certificate-Based Auth (CBA)"]
+        PSMotor["PowerShell 7.4 Telemetry Engine"]
+        Normalize["Veri Normalizasyonu & JSON Fikstür"]
     end
 
-    subgraph Storage ["Durable Storage & Secrets Tier"]
-        AzureFiles[("Azure File Share\ncloudshield-data · /app/Data")]
-        SQLiteDB[("SQLite RBAC & Audit DB\ncloudshield_rbac.db + Migration 002")]
-        KeyVault["Azure Key Vault\ncs-mssp-kv · Managed Identity CBA Keys"]
+    subgraph Quality ["3. Kalite Kapıları & Veri Güvencesi"]
+        Catalog["Merkezi KPI Kataloğu (23+ Alan)"]
+        Reconciliation["Kolektör-Rapor Mutabakat Testi"]
+        Watermark["Doğrulama Statüsü & Test Filigranı"]
     end
 
-    subgraph Tenants ["Managed Customer Workloads (12 Services)"]
-        CBA["CBA (RFC 7523 X.509 mTLS) / CSP GDAP"]
-        MDE["Defender for Endpoint"] & MDO["Defender for Office 365"]
-        MDI["Defender for Identity"] & MDCA["Defender for Cloud Apps"]
-        XDR["Defender XDR"] & Purview["Purview DLP · Classification · Insider Risk · AI Hub"]
-        Intune["Intune"] & EntraPIM["Entra ID PIM"]
+    subgraph Generation ["4. Raporlama Motoru"]
+        RepGen["Python 3.11 Report Generator"]
+        HTMLOut["Vektörel HTML5 Şablonu"]
+        PDFOut["Headless Chromium / Edge A4 PDF"]
+        Seal["SHA-256 Kriptografik Mühür"]
     end
 
-    CISO -->|1. SSO Login| EntraID
-    EntraID --> PreEnroll
-    PreEnroll -->|2. Session Cookie| APIGateway
-    APIGateway --> RBACEngine
-    RBACEngine <-->|Permissions| SQLiteDB
-    APIGateway --> ReportEngine
-    ReportEngine --> PSCollector
-    PSCollector -->|3. Acquire Token| KeyVault
-    PSCollector -->|4. Live KQL & Graph| CBA
-    CBA --> MDE & MDO & MDI & MDCA & XDR & Purview & Intune & EntraPIM
-    PSCollector -->|5. Normalized JSON| ReportEngine
-    ReportEngine --> QualityGate
-    QualityGate -->|6. Boardroom PDF/HTML| CISO
-    AzureFiles --- SQLiteDB
+    subgraph Delivery ["5. Güvenli Teslimat"]
+        EntraSSO["Microsoft Entra ID OIDC SSO (PKCE)"]
+        RBAC["8 Kademeli RBAC İzolasyon Duvarı"]
+        SecureDownload["/api/reports/{id}/download"]
+    end
+
+    Sources --> CBA --> PSMotor --> Normalize --> Catalog --> Reconciliation --> Watermark --> RepGen
+    RepGen --> HTMLOut & PDFOut --> Seal
+    EntraSSO --> RBAC --> SecureDownload
 ```
 
 ---
 
-## Security Architecture at a Glance
-
-| Control | Implementation |
-| :--- | :--- |
-| **Identity** | Microsoft Entra ID OIDC SSO · Authorization Code + PKCE · Assignment Required |
-| **Pre-Enrollment Gate** | UPN whitelist verified in SQLite; non-enrolled users receive `403` after token validation |
-| **Session Security** | `HttpOnly` · `Secure` · `SameSite=Lax` cryptographic session cookies |
-| **Customer Auth** | Certificate-Based Auth (RFC 7523 X.509) or Microsoft CSP GDAP — **zero plaintext secrets** |
-| **RBAC** | 8-stage `evaluate_access()` chain: Identity → Role → Customer Scope → Service Scope → Temporal → SoD → Audit |
-| **Tenant Isolation** | `CustomerViewer` role: hard-walled to own tenant data only · `403 Forbidden` on cross-tenant calls |
-| **Privacy-by-Design** | $k$-Anonymity ($k=5$) grouping + salted SHA-256 UPN/file masking for KVKK & GDPR |
-| **Zero Fiction** | Missing sensors → `N/A` (never 100%); every metric bound to Catalog Query ID |
-| **Audit Trail** | Append-only `audit_events` table; DENY/ALLOW + duration recorded for every API call |
-| **Secret Scanning** | Gitleaks + TruffleHog + CodeQL SAST on every commit via GitHub Actions |
-
----
-
-## Supported Managed Workloads & Telemetry Connectors
-
-| Service ID | Managed Service Workload | Primary Telemetry Sources & Focus |
-| :--- | :--- | :--- |
-| `SVC-MDE` | Microsoft Defender for Endpoint | `DeviceInfo`, `DeviceAlertEvents`, `DeviceTvmSoftwareVulnerabilities`, ASR blocks |
-| `SVC-MDO` | Microsoft Defender for Office 365 | `EmailEvents`, `EmailPostDeliveryEvents`, ZAP telemetry, Phishing & Malware blocks |
-| `SVC-MDI` | Microsoft Defender for Identity | `IdentityLogonEvents`, `IdentityQueryEvents`, Pass-the-Hash/Ticket, Honeytokens |
-| `SVC-MDCA` | Microsoft Defender for Cloud Apps | `CloudAppEvents`, `OAuthAppAuthorizations`, Shadow IT discovery, SaaS risks |
-| `SVC-MDC` | Microsoft Defender for Cloud | Cloud Security Posture (CSPM), Secure Score, CWPP workload recommendations |
-| `SVC-XDR` | Microsoft Defender XDR | Unified incidents, MTTA/MTTR resolution velocity, cross-domain attack story |
-| `SVC-INTUNE` | Microsoft Intune | `DeviceManagement/managedDevices`, Compliance policies, BitLocker encryption hygiene |
-| `SVC-ENTRA-PIM`| Microsoft Entra ID PIM | `riskyUsers`, PIM eligible/active role activations, privileged identity governance |
-| `SVC-PRV-DLP` | Microsoft Purview DLP | Sensitive Info Type (SIT) violations, USB/Cloud/Print exfiltration stops, overrides |
-| `SVC-PRV-CLASS`| Purview Info Protection & SITs | Sensitivity label coverage, trainable classifiers, SIT discovery across estates |
-| `SVC-PRV-GOV` | Purview Data Lifecycle & DSPM | Data Security Posture Management (DSPM), retention label enforcement, disposition |
-| `SVC-PRV-RISK` | Purview Insider Risk Management | Exfiltration indicators, privacy-safe $k=5$ risk event aggregation, Comm Compliance |
-| `SVC-AI-SECURITY`| Purview DSPM for AI & Copilot | Copilot interactions, GenAI sensitive data routing, synthetic AI threat indicators |
-
----
-
-## Repository Layout
+## 8. Repository Yapısı
 
 ```
-KocSistemMSSPPortal/
-├── .github/                      # CI/CD, secret scanning, CodeQL, security policies
-│   └── workflows/                # ci-cd.yml · secret-scanning.yml · codeql.yml · auto-deploy
-├── Azure/                        # Infrastructure as Code (Bicep + ARM + deploy script)
-├── config/                       # Service catalog, KPI catalog, permission catalog
-├── Data/                         # Persistent: tenants.json, auth_config.json, RBAC DB
-│   └── cloudshield_rbac.db       # SQLite DB with Migration 001 (RBAC schema) + 002 (historical trends)
-├── database/                     # db.py connection manager + versioned SQL migrations
-├── Docker/                       # Multi-stage production Dockerfile
-├── docs/                         # Architecture, compliance, reviews, governance
-├── Engine/                       # PowerShell 7.4 Telemetry Engine
-│   ├── Core/                     # Authentication (CBA/GDAP), DPAPI, PrivacyEngine, PluginLoader
-│   └── Plugins/                  # 12 Workload Collector Modules (*.Plugin.psm1)
-├── Portal/
-│   ├── api/                      # Python 3.11 REST API, RBAC engine, report generator
-│   └── web/                      # Single-page app (Tailwind CSS, Vanilla JS, Lucide)
-├── Scripts/                      # Tenant onboarding, local dev, GitHub sync
-├── tests/                        # 54 unit + 59 QA automated tests
-├── ARCHITECTURE.md               # Master architecture spec & Mermaid diagrams
-├── DEPLOYMENT.md                 # Azure & Docker deployment guide
-├── SECURITY.md                   # Vulnerability disclosure & Zero Trust policy
-└── version.json                  # Single source of version truth (v3.0.0-ENTERPRISE)
+├── .github/                  # CI/CD iş akışları, issue ve pull request şablonları
+├── Azure/                    # Azure Container Apps Bicep ve dağıtım betikleri
+├── config/                   # Merkezi KPI, sorgu, izin ve servis katalogları
+├── Data/                     # Kiracı tanımları, versiyon bilgisi ve şablon yapılandırmaları
+├── database/                 # SQLite şeması ve artımlı migrasyon dosyaları (001-004)
+├── Docker/                   # Hardened multi-stage Dockerfile ve entrypoint betiği
+├── docs/                     # Sistem mimarisi, güvenlik, uyumluluk dokümanları
+│   └── samples/              # Sentetik etiketli HTML ve PDF örnek raporlar
+├── Engine/                   # PowerShell 7.4 telemetri kolektörleri ve KQL motoru
+├── Portal/                   # Python 3.11 REST API, RBAC motoru, raporlama motoru ve web arayüzü
+├── Scripts/                  # Kurulum, test ve örnek rapor üretim yardımcı betikleri
+└── tests/                    # Birim, güvenlik, kalite kapısı ve mutabakat testleri
 ```
 
 ---
 
-## Local Quick Start
+## 9. Hızlı Başlangıç
 
-### Prerequisites
-- Python 3.11+ · PowerShell 7.4+ · Microsoft Edge or Chrome
+### Gereksinimler
+- Python 3.11+
+- PowerShell 7.4+ Core
+- Google Chrome veya Microsoft Edge (PDF çıktısı için)
+- Docker (isteğe bağlı)
 
-### 1. Bootstrap & Run
-```powershell
-# Initialize database and run tests
-pwsh ./Scripts/setup_project.ps1
+### Yerel Çalıştırma
+```bash
+# 1. Depoyu klonlayın
+git clone https://github.com/canercetinkaya/cloudshield-mssp-portal.git
+cd cloudshield-mssp-portal
 
-# Launch local portal at http://localhost:8080
-pwsh ./Scripts/Start-LocalPortal.ps1 -Port 8080
-```
+# 2. Veritabanını başlatın
+python -c "from database.db import init_db; init_db()"
 
-### 2. Run Test Suites
-```powershell
-# 54 unit & authorization tests
+# 3. Testleri çalıştırın
 python -m unittest discover tests
 
-# 59-test end-to-end platform QA
-python tests/test_comprehensive_qa.py
+# 4. Web portalını başlatın
+python Portal/api/server.py 8080
 ```
+Tarayıcınızda `http://localhost:8080` adresini açınız.
 
-### 3. Safe GitHub Sync
-```powershell
-pwsh ./Scripts/Sync-ToGitHub.ps1 -Message "feat: your change description"
+### Container ile Çalıştırma
+```bash
+docker build -t cloudshield-reporting-platform:3.1.0 -f Docker/Dockerfile .
+docker run -d -p 8080:8080 --name cloudshield-app -e ENVIRONMENT=production -e MAX_REPLICAS=1 cloudshield-reporting-platform:3.1.0
 ```
 
 ---
 
-## Compliance & Legal
+## 10. Konfigürasyon
 
-- **KVKK / GDPR:** Privacy-by-Design with mathematical $k=5$ anonymity and cryptographic audit trail.
-- **ISO 27001:** Append-only audit log, Separation of Duties, Least Privilege Graph API scopes.
-- **Zero Hardcoded Credentials:** Enforced via Gitleaks, TruffleHog, and CodeQL on every commit.
-- **Principle of Least Privilege:** Graph permissions scoped to read-only security workloads only.
+| Değişken Adı | Amaç | Zorunlu mu? | Güvenlik Notu |
+| :--- | :--- | :---: | :--- |
+| `PORT` | Web dinleme portu | Opsiyonel (8080) | Standart non-privileged port. |
+| `ENVIRONMENT` | Çalışma modu (`production`/`development`) | Zorunlu | Üretimde yerel parola ile giriş kilitlenir. |
+| `MAX_REPLICAS` | Container replika sayısı | Zorunlu | SQLite WAL modu için **kesinlikle `1` olmalıdır**. |
+| `CLOUDSHIELD_SESSION_SECRET` | 256-bit oturum imzalama anahtarı | Zorunlu (Prod) | En az 32 karakter olmalıdır. |
+| `ENTRA_CLIENT_ID` | Entra ID Uygulama ID | Zorunlu (Prod) | OIDC SSO için Azure portalından temin edilir. |
+| `ENTRA_TENANT_ID` | Entra ID Kiracı ID | Zorunlu (Prod) | Token imza doğrulaması için kullanılır. |
+| `KEY_VAULT_URL` | Azure Key Vault HTTPS URL'i | Opsiyonel (Azure) | Managed Identity ile anahtar okuma. |
 
 ---
 
-Copyright &copy; 2026 **KoçSistem Microsoft Managed Security & Compliance Services**. All Rights Reserved.  
-Proprietary and Confidential. Unauthorized reproduction, modification, or distribution is strictly prohibited.
+## 11. Test ve Kalite Kapıları
+
+Platformda 4 kademeli otomatik test güvencesi bulunmaktadır:
+- **Birim ve Güvenlik Testleri (`tests/`):** 92 otomatik test (`python -m unittest discover tests`).
+- **Kapsamlı QA Test Paketi (`tests/test_comprehensive_qa.py`):** 60 platform kalite kapısı.
+- **Kolektör-Rapor Mutabakat Testi (`tests/test_collector_to_report_reconciliation.py`):** 9 iş yükü mutabakat testi.
+- **Veri Doğruluk Kapıları (`tests/test_data_accuracy_gates.py`):** Sentetik çarpan ve bilet referansı yasağı kontrolleri.
+
+---
+
+## 12. Güvenlik Modeli
+
+- **Entra ID OIDC SSO & PKCE:** Üretim ortamında yerel parola kapalıdır (`403 Forbidden`).
+- **8 Kademeli RBAC:** Her API isteği kimlik, izin, kiracı ve servis kontrolünden geçer.
+- **Kayıt Defteri Tabanlı Rapor İndirme:** Yetkisiz dizin gezinmesini (path traversal) engelleyen `report_id` doğrulaması.
+- **k-Anonymity Dinamik Maskeleme:** Kişisel veriler ve dosya adları maskelenerek sunulur (`k-anon***@domain.com`).
+- **Tek Replika SQLite Kilidi:** `verify_replica_safety()` çoklu replikada açılışı durdurur.
+
+---
+
+## 13. Kontrollü Pilot Sınırları
+
+- **SQLite Tek Replika:** Yatay ölçekleme kapalıdır (`MAX_REPLICAS=1`).
+- **Hedef Mimari:** Faz 3 kapsamında Azure Database for PostgreSQL ve Azure Redis Cache'e geçilecektir.
+- **Lisans Bağımlılıkları:** M365 E5 / Compliance lisansı olmayan kiracılarda ilgili servisler `Lisans Yok` olarak işaretlenir.
+
+---
+
+## 14. Ürün Kapsamı Dışında Olanlar
+
+- SIEM (Microsoft Sentinel alternatifi değildir)
+- SOAR ve otomatik orkestrasyon
+- SOC analist alarm izleme kuyruğu
+- Olay müdahale (Incident response / case management)
+- ServiceNow, Jira veya Azure DevOps bilet yönetimi
+
+---
+
+## 15. Yol Haritası (Roadmap)
+
+- **Faz 1 (Tamamlandı):** Raporlama stüdyosu, yönetilen hizmet görünürlüğü, sıfır bilet modeli, veri doğruluk kapıları.
+- **Faz 2 (Mevcut Aşama):** Kontrollü pilot müşterilerde canlı tenant API doğrulamasının tamamlanması.
+- **Faz 3 (Planlandı):** Azure Database for PostgreSQL geçişi, Azure Private Endpoint altyapısı.
+- **İleri Dönem:** Çoklu bulut genişletmeleri ve gelişmiş kıyaslama (benchmarking).
+
+---
+
+## 16. Lisans, Gizlilik ve Kullanım
+
+Bu yazılım kurumsal mülkiyete (Proprietary) tabidir. İzinsiz kopyalanamaz veya dağıtılamaz. Üretilen raporlar TLP:AMBER gizlilik seviyesindedir ve ticari sır niteliğindedir.
+
+---
+
+## 17. Katkı ve Güvenlik Bildirimi
+
+- Projeye katkıda bulunmak için [CONTRIBUTING.md](CONTRIBUTING.md) kılavuzunu inceleyiniz.
+- Güvenlik açığı bildirimleri için lütfen herkese açık issue açmayınız; [SECURITY.md](SECURITY.md) doğrultusunda [GitHub Security Advisories](https://github.com/canercetinkaya/cloudshield-mssp-portal/security/advisories) üzerinden özel bildirimde bulununuz.
