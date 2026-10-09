@@ -342,10 +342,43 @@ def render_missing_telemetry_catalog_section(services, live_data, language="tr")
 # 3. PROVENANCE & COLLECTION HEALTH COMPONENTS
 # ─────────────────────────────────────────────────────────────
 
+def classify_workload_status(raw_state, is_verified=False):
+    """
+    Classifies workload collection state into one of the 5 canonical audit statuses:
+    1. Canlı Tenant Üzerinde Doğrulandı
+    2. Kodlandı, Canlı Doğrulama Bekliyor
+    3. Kısmi Veri Toplanıyor
+    4. API veya İzin Engelli
+    5. Yalnızca Test/DryRun
+    """
+    if is_verified and raw_state in ("LiveVerified", "Verified"):
+        return ("Canlı Tenant Üzerinde Doğrulandı", "p-ok", "Canlı Microsoft Graph/Defender API telemetrisi doğrulandı.")
+    elif raw_state in ("DryRunMock", "Mock", "Simulation", "Test"):
+        return ("Yalnızca Test/DryRun", "p-warn", "Test simülasyonu verisi. Üretim ortamında canlı doğrulanmamıştır.")
+    elif raw_state in ("PermissionMissing", "AuthenticationFailed", "CollectionFailed"):
+        return ("API veya İzin Engelli", "p-crit", "Gerekli Graph/Defender API izinleri veya Key Vault secret eksik/engelli.")
+    elif raw_state in ("PartialData", "Partial", "DerivedFromSupportedFields"):
+        return ("Kısmi Veri Toplanıyor", "p-warn", "Kısmi telemetri alındı; alt tablolar veya KQL Hunting yapılandırma bekliyor.")
+    elif "Supported" in str(raw_state):
+        return ("Kodlandı, Canlı Doğrulama Bekliyor", "p-info", "Collector ve API sözleşmesi kodlandı; canlı müşteri tenant bağlantısı/yetkilendirmesi bekleniyor.")
+    else:
+        return ("Kodlandı, Canlı Doğrulama Bekliyor", "p-info", "Canlı tenant telemetrisi bekleniyor.")
+
+def get_test_data_notice_banner(is_test=True):
+    """
+    Returns an explicit, prominent watermark banner for test/simulation/unverified reports.
+    """
+    if not is_test:
+        return ""
+    return '''<div class="test-data-watermark-banner" style="background:#fffbeb; border:1.5px solid #f59e0b; padding:10px 14px; border-radius:6px; margin:12px 0; color:#b45309; font-size:11px; line-height:1.5;">
+  <b>⚠️ DOĞRULAMA STATÜSÜ: TEST / SİMÜLASYON VERİSİ (Canlı Tenant Doğrulaması Bekleniyor)</b><br>
+  Bu rapordaki tüm metrikler, cihaz/olay sayıları, tehdit göstergeleri, kanıt kayıtları ve mühendislik süreleri geliştirme ve test ortamı simülasyonudur. Canlı müşteri tenant doğrulaması henüz tamamlanmamıştır. Gerçek müşteri verisine dayanmayan hiçbir finansal tasarruf (ROI) veya kesin mevzuat uyumu taahhüdü teşkil etmez.
+</div>'''
+
 def render_collection_health_card(services, live_data):
     """
     Semantic Rule 6 & 10: CollectionFailed and unloaded services must be disclosed on page one.
-    Move raw 'Bölüm yüklenemedi' messages into a consolidated collection-health section.
+    Consolidated collection-health section adhering to the 5 canonical audit statuses.
     """
     service_names = {
         "SVC-MDE": "Microsoft Defender for Endpoint (EDR)",
@@ -372,33 +405,23 @@ def render_collection_health_card(services, live_data):
         s_data = live_data.get(s) if live_data else None
         
         if not s_data:
-            state = "Yüklenmedi / Telemetri Eksik"
-            badge = "<span class='pill p-warn'>Yüklenmedi</span>"
-            notes = "Bu servis abonelik listesinde yer almakta ancak aktif telemetri yanıtı dönmemiştir."
+            state, badge_cls, notes = ("Kodlandı, Canlı Doğrulama Bekliyor", "p-info", "Bu servis kodlandı ancak aktif telemetri yanıtı henüz bağlanmamıştır.")
+            badge = f"<span class='pill {badge_cls}'>{state}</span>"
             ts = "N/A"
         else:
             raw_state = s_data.get("availabilityState", "SupportedAppOnly")
+            is_verified = bool(s_data.get("isLiveVerified", False))
             ts = s_data.get("collectedAtUtc", "Dönem İçi")
-            if raw_state == "CollectionFailed":
-                state = "Veri Toplanamadı (CollectionFailed)"
-                badge = "<span class='pill p-crit'>Hata</span>"
-                notes = "API yetkilendirmesi veya ajan bağlantısı başarısız oldu. Mühendislik incelemesi gerekmektedir."
-            elif "Supported" in raw_state:
-                state = "Aktif / Telemetri Alındı"
-                badge = "<span class='pill p-ok'>Destekleniyor</span>"
-                notes = "Telemetri veri hattı sağlıklı çalışmaktadır."
-            else:
-                state = raw_state
-                badge = "<span class='pill p-info'>Bilgi</span>"
-                notes = "Simülasyon veya çevrimdışı veri kümesi."
+            state, badge_cls, notes = classify_workload_status(raw_state, is_verified=is_verified)
+            badge = f"<span class='pill {badge_cls}'>{state}</span>"
                 
-        rows.append(f"<tr><td><b>{s}</b></td><td>{s_title}</td><td>{badge} {state}</td><td class='num'>{ts}</td><td>{notes}</td></tr>")
+        rows.append(f"<tr><td><b>{s}</b></td><td>{s_title}</td><td>{badge}</td><td class='num'>{ts}</td><td>{notes}</td></tr>")
         
     return f'''
 <div class="collection-health">
-  <h3>📡 Veri Toplama ve Servis Sağlık Durumu (Collection Health &amp; Completeness)</h3>
+  <h3>📡 Veri Toplama ve Servis Doğrulama Statüsü (Collection Health &amp; Verification Status)</h3>
   <table>
-    <tr><th>Servis Kodu</th><th>Servis Tanımı</th><th>Toplama Durumu</th><th>Zaman Damgası (UTC)</th><th>Operasyonel Kapsam</th></tr>
+    <tr><th>Servis Kodu</th><th>Servis Tanımı</th><th>Doğrulama Statüsü</th><th>Zaman Damgası (UTC)</th><th>Operasyonel Kapsam</th></tr>
     {"".join(rows)}
   </table>
 </div>
@@ -1257,6 +1280,8 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
     page_title = f"Monthly EDR Security Report - {customer_name}" if is_en else f"Aylık EDR Güvenlik Raporu - {customer_name}"
     h1_text = "Monthly EDR Security Report" if is_en else "Aylık EDR Güvenlik Raporu"
     sub_text = f"{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint Managed Security Service<br>Reporting Period: {period_label} &nbsp;|&nbsp; Generated at: {now_str} &nbsp;|&nbsp; Telemetry: {data_source_note}" if is_en else f"{customer_name} &nbsp;|&nbsp; Microsoft Defender for Endpoint (EDR) Yönetilen Güvenlik Hizmeti<br>Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}"
+    is_live_verified = bool(mde.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
 
     b1_label = "Monitored Devices" if is_en else "İzlenen Cihaz"
     b2_label = "Sensor Coverage" if is_en else "Sensör Kapsamı"
@@ -1281,6 +1306,7 @@ def build_golden_mde_html(customer_name, period_tag="2026-08", period_label="Ağ
   <h1>{h1_text}</h1>
   <div class="sub">{sub_text}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">{b1_label}: <b>{total_devices}</b></div>
@@ -1358,6 +1384,8 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
 
     prv = live_data.get("SVC-PURVIEW") or live_data.get("SVC-PRV-DLP") or {}
     kpis = prv.get("kpis", {})
+    is_live_verified = bool(prv.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
     state = prv.get("availabilityState", "SupportedAppOnly")
 
     total_matches = int(kpis.get("TotalMatches") or kpis.get("TotalRuleMatches") or 0)
@@ -1421,6 +1449,7 @@ def build_golden_purview_html(customer_name, period_tag="2026-08", period_label=
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Purview Veri Kaybi Onleme ve Uyum Yonetilen Hizmeti<br>
   Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">DLP Eşleşmesi: <b>{total_matches}</b></div>
@@ -1495,6 +1524,8 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
 
     mdo = live_data.get("SVC-MDO") or live_data.get("DefenderOffice") or {}
     kpis = mdo.get("kpis", {})
+    is_live_verified = bool(mdo.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
     state = mdo.get("availabilityState", "SupportedAppOnly")
 
     total_inbound = int(kpis.get("ToplamGelenPosta") or kpis.get("TotalInbound") or 0)
@@ -1564,6 +1595,7 @@ def build_golden_mdo_html(customer_name, period_tag="2026-08", period_label="Ağ
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Office 365 (MDO &amp; EOP) Yonetilen Hizmeti<br>
   Kapsanan donem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">Toplam E-Posta: <b>{fmt_num(total_inbound)}</b></div>
@@ -1834,7 +1866,9 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
     b3_label = "Expert Analyst" if is_en else "Uzman Analist"
     b4_label = "Hours Saved" if is_en else "Kazanılan Efor"
     b3_val = f"{total_analyst_actions} Actions" if is_en else f"{total_analyst_actions} Aksiyon"
-    b4_val = f"{saved_hours:.1f} hrs (~{fte_equiv} FTE)" if is_en else f"{saved_hours:.1f} sa (~{fte_equiv} FTE)"
+    is_live_verified = bool(live_data.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
+    b4_val = f"{saved_hours:.1f} hrs (~{fte_equiv} FTE) [Test Verisi]" if is_en else f"{saved_hours:.1f} sa (~{fte_equiv} FTE) [Test Verisi]"
 
     stamp_p1 = "Page 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
     stamp_p2 = "Page 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard" if is_en else "Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard"
@@ -1871,6 +1905,7 @@ def build_golden_consolidated_html(customer_name, services, period_tag="2026-08"
   <div class="sub">{customer_name} &nbsp;|&nbsp; {sub_service}<br>
   {sub_period}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">{b1_label}: <b>{len(services)}</b></div>
@@ -2119,7 +2154,9 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     intune = live_data.get("SVC-INTUNE", {})
-    kpis = intune.get("kpis", {}) if isinstance(intune, dict) and isinstance(intune.get("kpis"), dict) else {}
+    kpis = intune.get("kpis", {})
+    is_live_verified = bool(intune.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified)) if isinstance(intune, dict) and isinstance(intune.get("kpis"), dict) else {}
     state = intune.get("availabilityState", "SupportedAppOnly") if isinstance(intune, dict) else "SupportedAppOnly"
 
     total_devices = int(kpis.get("ToplamCihaz") or kpis.get("TotalDevices") or 0)
@@ -2202,6 +2239,7 @@ def build_golden_intune_html(customer_name, period_tag="2026-08", period_label="
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Intune Yönetilen Uç Nokta Uyumu ve Cihaz Hijyeni<br>
   Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">Yönetilen Cihaz: <b>{total_devices}</b></div>
@@ -2291,6 +2329,8 @@ def build_golden_mdi_html(customer_name, period_tag="2026-08", period_label="Ağ
 
     mdi = live_data.get("SVC-MDI") or live_data.get("DefenderIdentity") or {}
     kpis = mdi.get("kpis", {})
+    is_live_verified = bool(mdi.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
     state = mdi.get("availabilityState", "SupportedAppOnly")
 
     total_dc = kpis.get("ToplamDcSayisi", "N/A")
@@ -2328,6 +2368,7 @@ def build_golden_mdi_html(customer_name, period_tag="2026-08", period_label="Ağ
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Identity (MDI) Yönetilen Hizmeti<br>
   Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">Kimlik Tehdidi: <b>{total_threats}</b></div>
@@ -2491,6 +2532,8 @@ def build_golden_mdca_html(customer_name, period_tag="2026-08", period_label="A�
 
     mdca = live_data.get("SVC-MDCA") or live_data.get("DefenderCloudApps") or {}
     kpis = mdca.get("kpis", {})
+    is_live_verified = bool(mdca.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
     state = mdca.get("availabilityState", "SupportedAppOnly")
 
     total_apps = kpis.get("ToplamKesfedilenUygulama", "N/A")
@@ -2530,6 +2573,7 @@ def build_golden_mdca_html(customer_name, period_tag="2026-08", period_label="A�
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Cloud Apps (MDCA) Yönetilen Hizmeti<br>
   Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">Keşfedilen Uygulama: <b>{total_apps}</b></div>
@@ -2692,6 +2736,8 @@ def build_golden_mdc_html(customer_name, period_tag="2026-08", period_label="Ağ
 
     mdc = live_data.get("SVC-MDC") or live_data.get("DefenderCloud") or {}
     kpis = mdc.get("kpis", {})
+    is_live_verified = bool(mdc.get("isLiveVerified", False))
+    test_banner_html = get_test_data_notice_banner(is_test=(not is_live_verified))
     state = mdc.get("availabilityState", "SupportedAppOnly")
 
     secure_score = kpis.get("BulutGuvenlikSkoru", "N/A")
@@ -2728,8 +2774,8 @@ def build_golden_mdc_html(customer_name, period_tag="2026-08", period_label="Ağ
   {f"<img class='logo-r' src='{logo_r}' alt='{PROVIDER_NAME}'/>" if logo_r else f"<span class='brand'>{PROVIDER_NAME}</span>"}
   <h1>Aylık Bulut Güvenlik Duruşu (CSPM) Raporu</h1>
   <div class="sub">{customer_name} &nbsp;|&nbsp; Microsoft Defender for Cloud (CSPM &amp; CWPP) Yönetilen Hizmeti<br>
-  Kapsanan dönem: {period_label} &nbsp;|&nbsp; Rapor tarihi: {now_str} &nbsp;|&nbsp; Veri: {data_source_note}</div>
 </header>
+{test_banner_html}
 
 <div class="ciso-badge">
   <div class="ciso-badge-item">Güvenlik Skoru (CSPM): <b>{score_display}</b></div>
@@ -2899,7 +2945,7 @@ def generate_html_report(customer_name, services, period_tag="2026-08", period_l
     if len(services) == 1 and services[0] in ("SVC-ENTRA-ID", "SVC-ENTRA-PIM", "SVC-ENTRA"):
         return build_golden_entra_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
-    if (len(services) == 1 and services[0] in ("SVC-PURVIEW", "SVC-PRV-DLP")) or all(s.startswith("SVC-PRV-") or s in ("SVC-PURVIEW", "SVC-AI-SECURITY") for s in services):
+    if len(services) == 1 and (services[0] in ("SVC-PURVIEW", "SVC-PRV-DLP") or services[0].startswith("SVC-PRV-")):
         return build_golden_purview_html(customer_name, period_tag, period_label, live_data, data_source_note, language=language, tenant_id=tenant_id)
 
     if len(services) == 1 and services[0] == "SVC-INTUNE":
