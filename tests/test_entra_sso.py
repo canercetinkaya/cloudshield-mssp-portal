@@ -77,6 +77,8 @@ class TestEntraIdOidcSSO(unittest.TestCase):
             self.assertIn("scope=openid+profile+email", loc)
             self.assertIn("state=", loc)
             self.assertIn("nonce=", loc)
+            self.assertIn("sso_reload=true", loc)
+            self.assertEqual(e.headers.get("Content-Length"), "0")
 
     def test_03_jwt_payload_decoder(self):
         """Verify pure Python JWT payload decoding without external dependencies."""

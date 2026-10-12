@@ -932,7 +932,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         }, status=401)
         return False
 
-    def _handle_entra_authorize(self):
+    def _handle_entra_authorize(self, query=None):
         """Initiate Microsoft Entra ID Authorization Code flow with PKCE S256."""
         if not self._check_rate_limit("auth_entra_authorize", max_req=15, window_sec=60):
             return
@@ -983,12 +983,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "nonce": nonce,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
-            "prompt": "select_account"
+            "prompt": "select_account",
+            "sso_reload": "true"
         }
+        if query and "domain_hint" in query:
+            params["domain_hint"] = query["domain_hint"][0]
+        if query and "login_hint" in query:
+            params["login_hint"] = query["login_hint"][0]
+
         auth_url = f"{cfg['authorize_endpoint']}?{urllib.parse.urlencode(params)}"
 
         self.send_response(302)
         self.send_header("Location", auth_url)
+        self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
         self.end_headers()
 
@@ -1848,7 +1855,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path in ("/api/auth/entra/authorize", "/api/auth/entra/login"):
-            self._handle_entra_authorize()
+            self._handle_entra_authorize(query)
             return
 
         elif path == "/api/auth/entra/callback":
