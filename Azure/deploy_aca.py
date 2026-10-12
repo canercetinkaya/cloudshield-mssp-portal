@@ -243,12 +243,12 @@ def main():
                 print(f"Deactivating stale revision: {old_rev}")
                 run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
-    print("=== Ensuring scale: strictly single-replica (min=1 max=1) ===")
+    print("=== Ensuring serverless scale-to-zero: strictly single-replica (min=0 max=1) ===")
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
-        "--min-replicas", "1",
+        "--min-replicas", "0",
         "--max-replicas", "1"
     ], check=False)
 
