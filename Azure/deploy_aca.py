@@ -6,6 +6,7 @@ Dynamically resolves Resource Group, Container App Name, and Environment.
 Uses `az containerapp update --image` (minimal-diff update pattern).
 """
 
+import hashlib
 import json
 import os
 import subprocess
