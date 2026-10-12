@@ -1,0 +1,55 @@
+{
+  "module": "CloudShield License Intelligence Catalog Monitor",
+  "version": "1.0.0",
+  "last_checked_at": "2026-10-09T11:56:05.905214+00:00",
+  "next_scheduled_check": "2026-11-08T11:56:05.905214+00:00",
+  "check_interval_days": 30,
+  "sources": {
+    "enterprise_comparison": {
+      "title": "Microsoft 365 Enterprise Plan Comparison",
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-Enterprise.pdf",
+      "last_status": "BaselineRecorded",
+      "etag": null,
+      "last_modified": "Tue, 06 Oct 2026 18:25:40 GMT",
+      "content_length": 2295248,
+      "sha256": "8b024fbf74a96ecab5ec21eab4c50a4d4e7de5d189dd61fe0810b0022514774a",
+      "last_checked": "2026-10-09T11:56:05.905214+00:00",
+      "notes": "Kurumsal planlar (E3, E5, F1, F3, E5 Security/Compliance eklentileri)"
+    },
+    "smb_comparison": {
+      "title": "Microsoft 365 SMB Plan Comparison",
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-SMB.pdf",
+      "last_status": "BaselineRecorded",
+      "etag": null,
+      "last_modified": "Tue, 06 Oct 2026 18:25:39 GMT",
+      "content_length": 1060961,
+      "sha256": "9d56012359376c2acd6ecd9349699080ab00ec263d7ef6c6c7c0fa903bf9168c",
+      "last_checked": "2026-10-09T11:56:05.905214+00:00",
+      "notes": "KOBİ planları (Business Basic, Standard, Premium; 300 kullanıcı sınırı)"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-09T11:56:05.905214+00:00",
+      "results": {
+        "enterprise_comparison": {
+          "id": "enterprise_comparison",
+          "title": "Microsoft 365 Enterprise Plan Comparison",
+          "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-Enterprise.pdf",
+          "checked_at": "2026-10-09T11:56:05.905214+00:00",
+          "status": "BaselineRecorded",
+          "message": "İlk kontrol: Temel referans hash kaydedildi (8b024fbf74a9...)."
+        },
+        "smb_comparison": {
+          "id": "smb_comparison",
+          "title": "Microsoft 365 SMB Plan Comparison",
+          "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-SMB.pdf",
+          "checked_at": "2026-10-09T11:56:05.905214+00:00",
+          "status": "BaselineRecorded",
+          "message": "İlk kontrol: Temel referans hash kaydedildi (9d5601235937...)."
+        }
+      },
+      "changes_count": 0
+    }
+  ]
+}

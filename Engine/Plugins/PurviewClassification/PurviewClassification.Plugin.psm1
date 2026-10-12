@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/PurviewClassification/PurviewClassification.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Data Classification & Sensitivity Labels Service Plugin.
 [CmdletBinding()]
 param()
@@ -82,12 +82,36 @@ function Get-ServiceRawData {
     }
 
     # Canlı modda Purview API / Compliance
+    $labels = @()
+    $availabilityState = 'SupportedAppOnly'
+    try {
+        $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'PurviewReporting'
+        $resp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/informationProtection/sensitivityLabels" -AccessToken $token
+        if ($resp.value) {
+            foreach ($item in $resp.value) {
+                $labels += [pscustomobject]@{
+                    Name       = $item.name
+                    Priority   = if ($item.priority) { [int]$item.priority } else { 0 }
+                    FileCount  = 0
+                    EmailCount = 0
+                }
+            }
+        }
+    }
+    catch {
+        $errMsg = $_.Exception.Message
+        $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                             elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                             else { 'CollectionFailed' }
+    }
+
     return [pscustomobject]@{
-        SensitivityLabels     = @()
+        SensitivityLabels     = $labels
         TopSensitiveInfoTypes = @()
         LabelDowngrades       = 0
         StartDate             = $StartDate
         EndDate               = $EndDate
+        AvailabilityState     = $availabilityState
         IsMock                = $false
     }
 }
@@ -104,20 +128,35 @@ function Get-ServiceKpis {
     )
 
     $labels = @($RawData.SensitivityLabels)
-    $toplamEtiketliDosya = 0
-    $toplamEtiketliPosta = 0
-    foreach ($l in $labels) {
-        $toplamEtiketliDosya += [int]$l.FileCount
-        $toplamEtiketliPosta += [int]$l.EmailCount
+    $hasLabels = $labels.Count -gt 0
+
+    if ($RawData.IsMock) {
+        $toplamEtiketliDosya = 0
+        $toplamEtiketliPosta = 0
+        foreach ($l in $labels) {
+            $toplamEtiketliDosya += [int]$l.FileCount
+            $toplamEtiketliPosta += [int]$l.EmailCount
+        }
+
+        return [ordered]@{
+            TanimliEtiketSayisi  = $labels.Count
+            EtiketliToplamDosya  = $toplamEtiketliDosya
+            EtiketliToplamPosta  = $toplamEtiketliPosta
+            Etiketler            = $labels
+            EnCokEslesenSIT      = @($RawData.TopSensitiveInfoTypes)
+            EtiketDusurmeSayisi  = $RawData.LabelDowngrades
+            AvailabilityState    = 'DirectAndVerified'
+        }
     }
 
     return [ordered]@{
-        TanimliEtiketSayisi  = $labels.Count
-        EtiketliToplamDosya  = $toplamEtiketliDosya
-        EtiketliToplamPosta  = $toplamEtiketliPosta
+        TanimliEtiketSayisi  = if ($hasLabels) { $labels.Count } else { 'N/A - InformationProtectionPolicy.Read.All izni gerekli' }
+        EtiketliToplamDosya  = 'N/A - Purview İçerik Gezgini yetkisi gerekli'
+        EtiketliToplamPosta  = 'N/A - Purview İçerik Gezgini yetkisi gerekli'
         Etiketler            = $labels
-        EnCokEslesenSIT      = @($RawData.TopSensitiveInfoTypes)
-        EtiketDusurmeSayisi  = $RawData.LabelDowngrades
+        EnCokEslesenSIT      = @()
+        EtiketDusurmeSayisi  = 0
+        AvailabilityState    = if ($hasLabels) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
     }
 }
 

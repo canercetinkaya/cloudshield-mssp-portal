@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Aylık Birleşik Güvenlik ve Uyum Raporu - Demo Kurum A.S. (Ornek Musteri)</title>
+<style>/* CloudShield Security Reporting Platform - Golden Standard Style (A4 Vector Print & Web) */
+@page { size: A4 portrait; margin: 8mm 7mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, sans-serif; color:#1a1a1a; font-size:9pt; margin:0; background:#eef2f6; }
+.wrap { max-width:960px; margin:0 auto; background:#fff; padding:10px 14px; box-shadow:0 0 10px rgba(0,0,0,0.05); }
+
+/* Sayfa kirilmasi: Kesin A4 sayfa sinirlamasi */
+.page { page-break-before: always; page-break-inside: avoid; max-height: 275mm; box-sizing: border-box; overflow: hidden; padding-bottom: 4px; }
+.page:first-child { page-break-before: avoid; }
+
+/* Tablolar ve kart satirlari sayfa ortasinda bolunmesin */
+table { page-break-inside: avoid; width:100%; border-collapse:collapse; margin-top:3px; font-size:8pt; }
+.cards, .value { page-break-inside: avoid; }
+h2 { page-break-after: avoid; color:#0f4c81; font-size:11pt; margin:8px 0 4px; border-left:3.5px solid #0f4c81; padding-left:7px; }
+
+header { border-bottom:2px solid #0f4c81; padding-bottom:4px; margin-bottom:6px; overflow:hidden; }
+header h1 { color:#0f4c81; font-size:15pt; margin:0; }
+header .sub { color:#555; font-size:8pt; margin-top:2px; line-height:1.35; }
+.brand { float:right; color:#0f4c81; font-weight:700; font-size:10.5pt; }
+.logo { float:right; max-height:32px; }
+.logo-l { float:left;  max-height:32px; max-width:160px; margin:0 10px 4px 0; object-fit:contain; }
+.logo-r { float:right; max-height:30px; max-width:150px; margin:0 0 4px 10px; object-fit:contain; }
+header::after { content:""; display:block; clear:both; }
+
+.cards { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin-top:4px; }
+.card { display:table-cell; text-align:center; border:1px solid #dfe5ec; border-radius:4px; padding:5px 3px; background:#f7fafd; }
+.card b { display:block; font-size:15pt; color:#0f4c81; line-height:1.15; }
+.card span { font-size:7.2pt; color:#555; }
+.card.warn { background:#fdf4f2; border-color:#f0c8c4; }
+.card.warn b { color:#c0392b; }
+.card.good { background:#f2faf4; border-color:#c8e6d0; }
+.card.good b { color:#1e7d32; }
+.card.auto { background:#eef7f0; border-color:#1e7d32; }
+.card.auto b { color:#1e7d32; }
+
+a { text-decoration: none; color: #464feb; }
+th { background:#f1f5f9; color:#0f4c81; text-align:left; padding:4px 6px; font-weight:600; font-size:7.8pt; border: 1px solid #cbd5e1; }
+td { border: 1px solid #e2e8f0; padding:3px 5px; vertical-align:top; font-size:7.8pt; }
+tr:nth-child(even) td { background:#fafcfe; }
+td.num { text-align:right; white-space:nowrap; }
+
+.note { font-size:7.2pt; color:#64748b; margin-top:5px; line-height:1.35; }
+.up { color:#c0392b; font-weight:600; } 
+.down { color:#1e7d32; font-weight:600; }
+
+.value { background:#f8fafc; border-left:3px solid #0f4c81; border-radius:4px; padding:6px 10px; margin:6px 0; font-size:7.8pt; }
+.value h3 { margin:0 0 3px; font-size:9pt; color:#0f4c81; }
+.value p { margin:1px 0; font-size:7.8pt; line-height:1.35; }
+.value dl { margin:3px 0 0; font-size:7.8pt; }
+.value dt { font-weight:600; color:#0f4c81; margin-top:3px; }
+.value dd { margin:1px 0 0 0; }
+
+.pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:6.8pt; font-weight:600; color:#fff; }
+.p-crit { background:#c0392b; } 
+.p-warn { background:#d68910; } 
+.p-ok   { background:#1e7d32; } 
+.p-info { background:#64748b; }
+
+.stamp { text-align:right; font-size:6.8pt; color:#94a3b8; margin-top:6px; border-top:1px solid #e2e8f0; padding-top:3px; }
+
+/* Executive Readability Brief (6-Question Answer Matrix) */
+.executive-brief { background:#f8fafc; border:1px solid #0f4c81; border-radius:5px; padding:6px 8px; margin:6px 0; }
+.executive-brief h3 { margin:0 0 4px; font-size:9pt; color:#0f4c81; }
+.brief-grid { display:table; width:100%; table-layout:fixed; border-spacing:5px 3px; }
+.brief-row { display:table-row; }
+.brief-col { display:table-cell; vertical-align:top; background:#ffffff; border:1px solid #e2e8f0; border-radius:4px; padding:4px 6px; width:50%; }
+.brief-col b { font-size:7.5pt; color:#0f2744; display:block; margin-bottom:1px; }
+.brief-col p { margin:0; font-size:7.2pt; color:#334155; line-height:1.3; }
+
+/* Service Value Attribution Model (4 Distinct Pillars) */
+.attribution-grid { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin:5px 0 6px; }
+.attribution-card { display:table-cell; text-align:center; border-radius:4px; padding:5px 3px; vertical-align:top; }
+.attribution-card.msft { background:#f0f9ff; border:1px solid #0284c7; }
+.attribution-card.koc  { background:#ecfdf5; border:1px solid #059669; }
+.attribution-card.cust { background:#fffbeb; border:1px solid #d97706; }
+.attribution-card.shared { background:#f5f3ff; border:1px solid #7c3aed; }
+.attribution-card b { display:block; font-size:13pt; line-height:1.15; }
+.attribution-card.msft b { color:#0284c7; }
+.attribution-card.koc  b { color:#059669; }
+.attribution-card.cust b { color:#d97706; }
+.attribution-card.shared b { color:#7c3aed; }
+.attr-title { font-size:6.8pt; font-weight:700; text-transform:uppercase; display:block; margin-bottom:2px; }
+.attr-sub { font-size:6.8pt; color:#475569; display:block; margin-top:2px; line-height:1.2; }
+
+/* Customer Decision Framework (4 Structured Quadrants) */
+.decision-framework { margin-top:6px; }
+.decision-box { margin-bottom:5px; border-radius:4px; padding:5px 6px; font-size:7.2pt; }
+.decision-box h4 { margin:0 0 3px; font-size:8pt; }
+.decision-box table { font-size:7.2pt; margin-top:2px; }
+.decision-box th { padding:2px 4px; font-size:6.8pt; }
+.decision-box td { padding:2px 4px; font-size:6.8pt; }
+.decision-box.approved { background:#f0fdf4; border:1px solid #86efac; }
+.decision-box.approved h4 { color:#166534; }
+.decision-box.pending { background:#eff6ff; border:1px solid #93c5fd; }
+.decision-box.pending h4 { color:#1e40af; }
+.decision-box.deferred { background:#fff7ed; border:1px solid #fdba74; }
+.decision-box.deferred h4 { color:#9a3412; }
+.decision-box.recommended { background:#faf5ff; border:1px solid #d8b4fe; }
+.decision-box.recommended h4 { color:#6b21a8; }
+
+/* KPI Provenance & Subtitle */
+.kpi-prov { display:block; font-size:6.5pt; color:#64748b; margin-top:2px; }
+
+/* Collection Health & Empty State */
+.collection-health { background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; padding:5px 8px; margin:5px 0; }
+.collection-health h3 { margin:0 0 3px; font-size:8.5pt; color:#0f4c81; }
+.empty-state-notice { background:#f8fafc; border:1px dashed #94a3b8; border-radius:4px; padding:6px; text-align:center; color:#475569; font-size:7.5pt; margin:3px 0; }
+.service-notice-box { padding:5px 8px; border-radius:4px; margin:5px 0; font-size:7.5pt; }
+.service-notice-box.warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+
+/* CISO Badge */
+.ciso-badge { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin-bottom:5px; }
+.ciso-badge-item { display:table-cell; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; padding:4px; text-align:center; font-size:7.2pt; font-weight:600; color:#334155; }
+</style></head><body><div class="wrap">
+
+<!-- SAYFA 1: KONSOLİDE YÖNETİCİ ÖZETİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Aylık Birleşik Güvenlik ve Uyum Raporu</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Microsoft 365 E5 Yönetilen Güvenlik ve Purview Hizmetleri<br>
+  Kapsanan dönem: Agustos 2026 Donemi &nbsp;|&nbsp; Rapor tarihi: 2026-10-09 14:40 &nbsp;|&nbsp; Hizmet sağlayıcı: CloudShield</div>
+</header>
+<div style="background:#fee2e2; border:2px dashed #ef4444; color:#991b1b; padding:10px 16px; font-size:12px; font-weight:700; text-align:center; border-radius:6px; margin:12px 0 16px 0;">&#9888;&#65039; ORNEK / SENTETIK VERI: Bu rapor yalnizca urun kabiliyetlerini gostermek amaciyla olusturulmustur. Gercek musteri veya canli tenant verisi icermez.</div>
+<div class="test-data-watermark-banner" style="background:#fffbeb; border:1.5px solid #f59e0b; padding:10px 14px; border-radius:6px; margin:12px 0; color:#b45309; font-size:11px; line-height:1.5;">
+  <b>⚠️ DOĞRULAMA STATÜSÜ: TEST / SİMÜLASYON VERİSİ (Canlı Tenant Doğrulaması Bekleniyor)</b><br>
+  Bu rapordaki tüm metrikler, cihaz/olay sayıları, tehdit göstergeleri, kanıt kayıtları ve mühendislik süreleri geliştirme ve test ortamı simülasyonudur. Canlı müşteri tenant doğrulaması henüz tamamlanmamıştır. Gerçek müşteri verisine dayanmayan hiçbir finansal tasarruf (ROI) veya kesin mevzuat uyumu taahhüdü teşkil etmez.
+</div>
+
+<div class="ciso-badge">
+  <div class="ciso-badge-item">Yönetilen Servis: <b>1</b></div>
+  <div class="ciso-badge-item">Otonom Müdahale: <b>0</b></div>
+  <div class="ciso-badge-item">Uzman Analist: <b>0 Aksiyon</b></div>
+  <div class="ciso-badge-item">Kazanılan Efor: <b>0.0 sa (~0.0 FTE) [Test Verisi]</b></div>
+</div>
+
+
+<div class="collection-health">
+  <h3>📡 Veri Toplama ve Servis Doğrulama Statüsü (Collection Health &amp; Verification Status)</h3>
+  <table>
+    <tr><th>Servis Kodu</th><th>Servis Tanımı</th><th>Doğrulama Statüsü</th><th>Zaman Damgası (UTC)</th><th>Operasyonel Kapsam</th></tr>
+    <tr><td><b>SVC-PURVIEW-DLP</b></td><td>SVC-PURVIEW-DLP</td><td><span class='pill p-info'>Kodlandı, Canlı Doğrulama Bekliyor</span></td><td class='num'>N/A</td><td>Bu servis kodlandı ancak aktif telemetri yanıtı henüz bağlanmamıştır.</td></tr>
+  </table>
+</div>
+
+
+<div class="missing-telemetry-catalog" style="margin-top:20px;">
+  <h3 style="font-size:13px; font-weight:700; color:#b45309;">⚠️ Telemetri Eksiklikleri ve Lisans / İzin Gereksinim Kataloğu</h3>
+  <table>
+    <tr><th>Servis</th><th>Toplanamayan Telemetri</th><th>Gerekli İzin / API</th><th>Gerekli Lisans</th><th>Kullanım Amacı</th><th>Durum</th></tr>
+    <tr><td><b>SVC-PURVIEW-DLP</b></td><td>Temel Telemetri Hattı</td><td><code class='code-kw'>Graph Security / Read</code></td><td>Microsoft 365 E5</td><td>Detaylı telemetri</td><td><span class='pill p-warn'>Yapılandırma Bekleniyor</span></td></tr>
+  </table>
+</div>
+
+<div class="executive-brief">
+  <h3>🎯 C-Level Birleşik Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Birleşik Operasyon):</b>
+        <p>1 aktif Microsoft güvenlik ve uyum servisi yönetilmiş, toplam 0 tehdit ve sızıntı otonom engellenmiştir.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (Kurumsal Risk):</b>
+        <p>EDR ve Purview entegrasyonu sayesinde uç noktadan buluta kadar çok katmanlı savunma hattı işletilmiştir.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Teknolojisi Ne Sağladı?:</b>
+        <p>XDR ve Purview makine hızında otonom müdahale ile 0 olayı yayılmadan izole etmiştir.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>Dönem içinde çapraz servis triyajı gerektiren açık kritik güvenlik olayı yaşanmamıştır.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>Uç nokta hijyen eksiklikleri ve istisna politikaları Sayfa 3 Karar Çerçevesi'nde yetkilendirme beklemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Karar Matrisi'ndeki P1 öncelikli BitLocker ve USB DLP politikalarının onaylanması gerekmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
+    <b>0</b>
+    <span class="attr-sub">Toplam Otonom Engel<br>(XDR &amp; Purview Kalkanı)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
+    <b>0.0 sa</b>
+    <span class="attr-sub">Kazanılan Zaman (~0.0 FTE)<br>0 Uzman Müdahalesi</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>1 Servis</b>
+    <span class="attr-sub">Aktif Güvenlik Kapsamı<br>BT &amp; Altyapı Yönetimi</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>Bütünleşik Savunma</b>
+    <span class="attr-sub">Çapraz Tehdit Dayanıklılığı<br>Operasyonel Hizmet Standardı</span>
+  </div>
+</div>
+
+<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 2: ÇAPRAZ TEHDİT VE KORUMA KARNESİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Çapraz Tehdit ve Yönetişim Karnesi</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Agustos 2026 Donemi</div>
+</header>
+
+<h2>Servis Bazlı Koruma Karnesi</h2>
+<table>
+  <tr><th>Yönetilen Servis</th><th>Kapsanan Varlık</th><th>Otonom Müdahale</th><th>Analist Eforu</th><th>Durum</th></tr>
+  <tr><td>SVC-PURVIEW-DLP</td><td>Bulut &amp; Uç Nokta</td><td class='num'>0 Olay</td><td class='num'>0 Aksiyon</td><td><span class='pill p-ok'>Aktif</span></td></tr>
+</table>
+
+<h2>Dönemdeki Kritik Güvenlik Olayları</h2>
+<div class='empty-state-notice'>Dönem içinde çapraz servislerde müdahale gerektiren açık kritik incident saptanmamıştır.</div>
+
+
+
+
+<h2>Çapraz Güvenlik Trendi ve Dayanıklılık Duruşu</h2>
+<table>
+  <tr><th>Güvenlik Katmanı</th><th>Kapsanan Varlıklar</th><th>Otonom Koruma Kalkanı</th><th>Analist Yönetişim Duruşu</th></tr>
+  <tr><td><b>Uç Nokta &amp; Cihaz (MDE)</b></td><td>Windows, macOS, Linux İstemciler</td><td>AIR Otonom İzolasyon &amp; AV</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>E-Posta &amp; İletişim (MDO)</b></td><td>Exchange Online &amp; Posta Kutuları</td><td>Safe Links / Attachments &amp; ZAP</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Kimlik &amp; Erişim (Entra ID / MDI)</b></td><td>Kullanıcı Hesapları &amp; Dizin Rolleri</td><td>PIM Just-In-Time &amp; NTLMv1 Hijyeni</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Bulut &amp; Altyapı (MDCA / MDC)</b></td><td>SaaS Uygulamaları &amp; Azure Abonelikleri</td><td>OAuth Denetimi &amp; Secure Score</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Cihaz Hijyen &amp; Uyum (Intune)</b></td><td>Windows, iOS, Android Cihazlar</td><td>BitLocker &amp; MAM Uyum Zorlaması</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+  <tr><td><b>Veri &amp; Uyum (Purview &amp; Copilot)</b></td><td>SharePoint, OneDrive, Endpoint &amp; AI</td><td>DLP Otonom Engelleme &amp; DSPM</td><td><span class="pill p-ok">Güçlendirilmiş</span></td></tr>
+</table>
+
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 3: KONSOLİDE KARAR VE YÖNETİŞİM MATRİSİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Birleşik Karar ve Yönetişim Matrisi</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Agustos 2026 Donemi</div>
+</header>
+
+
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-M365-APP-01</b></td>
+        <td>XDR Bütünleşik Olay Yönetimi ve EDR Otomatik İyileştirme (AIR) Aktivasyonu</td>
+        <td>CISO / BT Güvenlik Müdürü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>RB-MDE-AIR-01</td>
+        <td>Uç nokta ve bulut tehditlerinin otonom olarak sınırlandırılması</td>
+      </tr>
+      <tr>
+        <td><b>DEC-M365-APP-02</b></td>
+        <td>Purview DLP ve CloudShield MSSP Mühendislik Triyaj Entegrasyonu</td>
+        <td>Bilgi Güvenliği Direktörü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>RB-DLP-INT-02</td>
+        <td>Hassas veri transferlerinin teknik denetim altına alınması</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-M365-PEND-01</b></td>
+        <td>Uç nokta DLP kurallarının kullanıcı gerekçeli blok moduna geçirilmesi ve hayalet cihaz tasfiyesi</td>
+        <td>CISO &amp; BT Altyapı Direktörü</td>
+        <td><span class="pill p-warn">P1 - Yüksek</span></td>
+        <td>Intune &amp; Purview Telemetrisi</td>
+        <td>Uç nokta veri kaçağı ve lisans israfı riskinin kontrol altına alınması</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-M365-DEF-01</b></td>
+        <td>Eski Muhasebe Sunucusunda Legacy Protokol İstisnası</td>
+        <td>Finans &amp; BT Direktörü</td>
+        <td><span class="pill p-warn">Risk Kabulü</span></td>
+        <td>ERP Bağımlılık Analizi</td>
+        <td>2026-Q4 dönemine kadar izole ağ segmentinde risk kabulü</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-M365-REC-01</b></td>
+        <td>BitLocker XTS-AES 256 Donanım Şifrelemesi ve Credential Guard Zorunluluğu</td>
+        <td>BT Altyapı &amp; Uç Nokta</td>
+        <td><span class="pill p-crit">P1 - Yüksek</span></td>
+        <td>Intune Donanım Hijyen Karnesi</td>
+        <td>Fiziksel ve bellek tabanlı kimlik hırsızlığı saldırı yüzeyinin asgariye indirilmesi</td>
+      </tr>
+      <tr>
+        <td><b>DEC-M365-REC-02</b></td>
+        <td>Kural Aşımı Yapan Personel İçin Hedefli KVKK ve Bilgi Güvenliği Eğitimi</td>
+        <td>İK &amp; Kurumsal Uyum</td>
+        <td><span class="pill p-warn">P2 - Orta</span></td>
+        <td>Purview Denetim Kütüğü</td>
+        <td>İstisna tekrarlanma sıklığında ölçülebilir azalma sağlanması</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br><b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: 2026-10-09 14:40 &nbsp;|&nbsp; Tenant: Demo Kurum A.S. (Ornek Musteri)</div>
+</div>
+
+</div></body></html>

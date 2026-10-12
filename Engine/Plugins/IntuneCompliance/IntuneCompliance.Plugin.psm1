@@ -162,12 +162,16 @@ function Get-ServiceKpis {
     $sifreli = @($devs | Where-Object { $_.isEncrypted -eq $true }).Count
     $sifrelemeOrani = if ($toplam -gt 0) { [math]::Round(($sifreli / $toplam) * 100, 1) } else { 0.0 }
 
-    $winCount = @($devs | Where-Object { $_.operatingSystem -eq 'Windows' }).Count
-    $mobilCount = $toplam - $winCount
+    $winCount = @($devs | Where-Object { $_.operatingSystem -match 'Windows' }).Count
+    $iosCount = @($devs | Where-Object { $_.operatingSystem -match 'iOS|iPadOS' }).Count
+    $androidCount = @($devs | Where-Object { $_.operatingSystem -match 'Android' }).Count
+    $macosCount = @($devs | Where-Object { $_.operatingSystem -match 'macOS|OS X' }).Count
+    $mobilCount = $iosCount + $androidCount
 
-    $otonom = [math]::Round($uyumlu * 0.85)
-    $manuel = [math]::Max($uyumsuz, 3) + 5
-    $kazanilanSaat = [math]::Round($otonom * 0.25 + $manuel * 0.5)
+    # Gerçek telemetriye dayalı otonom ve mühendis aksiyonları - sıfır yapay çarpan
+    $otonom = $uyumlu
+    $manuel = if ($uyumsuz -gt 0) { $uyumsuz } else { 0 }
+    $kazanilanSaat = if ($manuel -gt 0) { [math]::Round($manuel * 0.5, 1) } else { 0.0 }
 
     return [ordered]@{
         AvailabilityState      = $state
@@ -178,6 +182,9 @@ function Get-ServiceKpis {
         SifreliCihaz           = $sifreli
         SifrelemeOrani         = $sifrelemeOrani
         WindowsSayisi          = $winCount
+        IosSayisi              = $iosCount
+        AndroidSayisi          = $androidCount
+        MacOsSayisi            = $macosCount
         MobilSayisi            = $mobilCount
         OtonomUyumAksiyonu     = $otonom
         ManuelMuhendisEylemi   = $manuel

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Aylık Intune Cihaz Uyum &amp; Hijyen Raporu - Demo Kurum A.S. (Ornek Musteri)</title>
+<style>/* CloudShield Security Reporting Platform - Golden Standard Style (A4 Vector Print & Web) */
+@page { size: A4 portrait; margin: 8mm 7mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, sans-serif; color:#1a1a1a; font-size:9pt; margin:0; background:#eef2f6; }
+.wrap { max-width:960px; margin:0 auto; background:#fff; padding:10px 14px; box-shadow:0 0 10px rgba(0,0,0,0.05); }
+
+/* Sayfa kirilmasi: Kesin A4 sayfa sinirlamasi */
+.page { page-break-before: always; page-break-inside: avoid; max-height: 275mm; box-sizing: border-box; overflow: hidden; padding-bottom: 4px; }
+.page:first-child { page-break-before: avoid; }
+
+/* Tablolar ve kart satirlari sayfa ortasinda bolunmesin */
+table { page-break-inside: avoid; width:100%; border-collapse:collapse; margin-top:3px; font-size:8pt; }
+.cards, .value { page-break-inside: avoid; }
+h2 { page-break-after: avoid; color:#0f4c81; font-size:11pt; margin:8px 0 4px; border-left:3.5px solid #0f4c81; padding-left:7px; }
+
+header { border-bottom:2px solid #0f4c81; padding-bottom:4px; margin-bottom:6px; overflow:hidden; }
+header h1 { color:#0f4c81; font-size:15pt; margin:0; }
+header .sub { color:#555; font-size:8pt; margin-top:2px; line-height:1.35; }
+.brand { float:right; color:#0f4c81; font-weight:700; font-size:10.5pt; }
+.logo { float:right; max-height:32px; }
+.logo-l { float:left;  max-height:32px; max-width:160px; margin:0 10px 4px 0; object-fit:contain; }
+.logo-r { float:right; max-height:30px; max-width:150px; margin:0 0 4px 10px; object-fit:contain; }
+header::after { content:""; display:block; clear:both; }
+
+.cards { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin-top:4px; }
+.card { display:table-cell; text-align:center; border:1px solid #dfe5ec; border-radius:4px; padding:5px 3px; background:#f7fafd; }
+.card b { display:block; font-size:15pt; color:#0f4c81; line-height:1.15; }
+.card span { font-size:7.2pt; color:#555; }
+.card.warn { background:#fdf4f2; border-color:#f0c8c4; }
+.card.warn b { color:#c0392b; }
+.card.good { background:#f2faf4; border-color:#c8e6d0; }
+.card.good b { color:#1e7d32; }
+.card.auto { background:#eef7f0; border-color:#1e7d32; }
+.card.auto b { color:#1e7d32; }
+
+a { text-decoration: none; color: #464feb; }
+th { background:#f1f5f9; color:#0f4c81; text-align:left; padding:4px 6px; font-weight:600; font-size:7.8pt; border: 1px solid #cbd5e1; }
+td { border: 1px solid #e2e8f0; padding:3px 5px; vertical-align:top; font-size:7.8pt; }
+tr:nth-child(even) td { background:#fafcfe; }
+td.num { text-align:right; white-space:nowrap; }
+
+.note { font-size:7.2pt; color:#64748b; margin-top:5px; line-height:1.35; }
+.up { color:#c0392b; font-weight:600; } 
+.down { color:#1e7d32; font-weight:600; }
+
+.value { background:#f8fafc; border-left:3px solid #0f4c81; border-radius:4px; padding:6px 10px; margin:6px 0; font-size:7.8pt; }
+.value h3 { margin:0 0 3px; font-size:9pt; color:#0f4c81; }
+.value p { margin:1px 0; font-size:7.8pt; line-height:1.35; }
+.value dl { margin:3px 0 0; font-size:7.8pt; }
+.value dt { font-weight:600; color:#0f4c81; margin-top:3px; }
+.value dd { margin:1px 0 0 0; }
+
+.pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:6.8pt; font-weight:600; color:#fff; }
+.p-crit { background:#c0392b; } 
+.p-warn { background:#d68910; } 
+.p-ok   { background:#1e7d32; } 
+.p-info { background:#64748b; }
+
+.stamp { text-align:right; font-size:6.8pt; color:#94a3b8; margin-top:6px; border-top:1px solid #e2e8f0; padding-top:3px; }
+
+/* Executive Readability Brief (6-Question Answer Matrix) */
+.executive-brief { background:#f8fafc; border:1px solid #0f4c81; border-radius:5px; padding:6px 8px; margin:6px 0; }
+.executive-brief h3 { margin:0 0 4px; font-size:9pt; color:#0f4c81; }
+.brief-grid { display:table; width:100%; table-layout:fixed; border-spacing:5px 3px; }
+.brief-row { display:table-row; }
+.brief-col { display:table-cell; vertical-align:top; background:#ffffff; border:1px solid #e2e8f0; border-radius:4px; padding:4px 6px; width:50%; }
+.brief-col b { font-size:7.5pt; color:#0f2744; display:block; margin-bottom:1px; }
+.brief-col p { margin:0; font-size:7.2pt; color:#334155; line-height:1.3; }
+
+/* Service Value Attribution Model (4 Distinct Pillars) */
+.attribution-grid { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin:5px 0 6px; }
+.attribution-card { display:table-cell; text-align:center; border-radius:4px; padding:5px 3px; vertical-align:top; }
+.attribution-card.msft { background:#f0f9ff; border:1px solid #0284c7; }
+.attribution-card.koc  { background:#ecfdf5; border:1px solid #059669; }
+.attribution-card.cust { background:#fffbeb; border:1px solid #d97706; }
+.attribution-card.shared { background:#f5f3ff; border:1px solid #7c3aed; }
+.attribution-card b { display:block; font-size:13pt; line-height:1.15; }
+.attribution-card.msft b { color:#0284c7; }
+.attribution-card.koc  b { color:#059669; }
+.attribution-card.cust b { color:#d97706; }
+.attribution-card.shared b { color:#7c3aed; }
+.attr-title { font-size:6.8pt; font-weight:700; text-transform:uppercase; display:block; margin-bottom:2px; }
+.attr-sub { font-size:6.8pt; color:#475569; display:block; margin-top:2px; line-height:1.2; }
+
+/* Customer Decision Framework (4 Structured Quadrants) */
+.decision-framework { margin-top:6px; }
+.decision-box { margin-bottom:5px; border-radius:4px; padding:5px 6px; font-size:7.2pt; }
+.decision-box h4 { margin:0 0 3px; font-size:8pt; }
+.decision-box table { font-size:7.2pt; margin-top:2px; }
+.decision-box th { padding:2px 4px; font-size:6.8pt; }
+.decision-box td { padding:2px 4px; font-size:6.8pt; }
+.decision-box.approved { background:#f0fdf4; border:1px solid #86efac; }
+.decision-box.approved h4 { color:#166534; }
+.decision-box.pending { background:#eff6ff; border:1px solid #93c5fd; }
+.decision-box.pending h4 { color:#1e40af; }
+.decision-box.deferred { background:#fff7ed; border:1px solid #fdba74; }
+.decision-box.deferred h4 { color:#9a3412; }
+.decision-box.recommended { background:#faf5ff; border:1px solid #d8b4fe; }
+.decision-box.recommended h4 { color:#6b21a8; }
+
+/* KPI Provenance & Subtitle */
+.kpi-prov { display:block; font-size:6.5pt; color:#64748b; margin-top:2px; }
+
+/* Collection Health & Empty State */
+.collection-health { background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; padding:5px 8px; margin:5px 0; }
+.collection-health h3 { margin:0 0 3px; font-size:8.5pt; color:#0f4c81; }
+.empty-state-notice { background:#f8fafc; border:1px dashed #94a3b8; border-radius:4px; padding:6px; text-align:center; color:#475569; font-size:7.5pt; margin:3px 0; }
+.service-notice-box { padding:5px 8px; border-radius:4px; margin:5px 0; font-size:7.5pt; }
+.service-notice-box.warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+
+/* CISO Badge */
+.ciso-badge { display:table; width:100%; table-layout:fixed; border-spacing:4px 0; margin-bottom:5px; }
+.ciso-badge-item { display:table-cell; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; padding:4px; text-align:center; font-size:7.2pt; font-weight:600; color:#334155; }
+</style></head><body><div class="wrap">
+
+<!-- SAYFA 1: CISO VE YÖNETİCİ ÖZETİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Aylık Intune Cihaz Uyum &amp; Hijyen Raporu</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Microsoft Intune Yönetilen Uç Nokta Uyumu ve Cihaz Hijyeni<br>
+  Kapsanan dönem: Agustos 2026 Donemi &nbsp;|&nbsp; Rapor tarihi: 2026-10-09 14:40 &nbsp;|&nbsp; Veri: Gosterim Telemetrisi (Ornek Veri)</div>
+</header>
+<div style="background:#fee2e2; border:2px dashed #ef4444; color:#991b1b; padding:10px 16px; font-size:12px; font-weight:700; text-align:center; border-radius:6px; margin:12px 0 16px 0;">&#9888;&#65039; ORNEK / SENTETIK VERI: Bu rapor yalnizca urun kabiliyetlerini gostermek amaciyla olusturulmustur. Gercek musteri veya canli tenant verisi icermez.</div>
+{}
+
+<div class="ciso-badge">
+  <div class="ciso-badge-item">Yönetilen Cihaz: <b>0</b></div>
+  <div class="ciso-badge-item">Uyum Oranı: <b>N/A</b></div>
+  <div class="ciso-badge-item">Disk Şifreleme: <b>N/A</b></div>
+  <div class="ciso-badge-item">Uzman Eforu: <b>0 Aksiyon</b></div>
+</div>
+
+
+<div class="collection-health">
+  <h3>📡 Veri Toplama ve Servis Doğrulama Statüsü (Collection Health &amp; Verification Status)</h3>
+  <table>
+    <tr><th>Servis Kodu</th><th>Servis Tanımı</th><th>Doğrulama Statüsü</th><th>Zaman Damgası (UTC)</th><th>Operasyonel Kapsam</th></tr>
+    <tr><td><b>SVC-INTUNE</b></td><td>Microsoft Intune (Cihaz Hijyen & Uyum)</td><td><span class='pill p-info'>Kodlandı, Canlı Doğrulama Bekliyor</span></td><td class='num'>N/A</td><td>Bu servis kodlandı ancak aktif telemetri yanıtı henüz bağlanmamıştır.</td></tr>
+  </table>
+</div>
+
+
+<div class="executive-brief">
+  <h3>🎯 C-Level Intune Yönetici Bilgi Notu (Executive Brief — 6 Soru &amp; 6 Cevap)</h3>
+  <div class="brief-grid">
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>1. Ne Oldu? (Cihaz Hijyen &amp; Uyum Özeti):</b>
+        <p>Intune yönetimindeki 0 kurumsal uç noktadan 0 adedi (N/A) uyumluluk kriterlerini karşılamış; 0 cihazda disk şifrelemesi doğrulanmıştır.</p>
+      </div>
+      <div class="brief-col">
+        <b>2. Neden Önemli? (Kurumsal Risk):</b>
+        <p>Uyumsuz cihazlar ve şifrelenmemiş taşınabilir donanımlar kayıp/çalıntı durumunda kurumsal veri sızıntısına ve yetkisiz kaynak erişimine yol açar.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>3. Microsoft Intune Ne Sağladı?:</b>
+        <p>Microsoft Intune uyumluluk motoru kayıtlı cihazlar üzerinde güvenlik ilkelerini aktif olarak denetlemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>4. CloudShield Yönetilen Hizmeti Ne Sağladı?:</b>
+        <p>Dönem içinde cihaz uyumsuzluğu nedeniyle manuel mühendislik müdahalesi gerektiren açık bir kriz yaşanmamıştır.</p>
+      </div>
+    </div>
+    <div class="brief-row">
+      <div class="brief-col">
+        <b>5. Ortamda Hangi Artık Riskler Kaldı?:</b>
+        <p>0 adet uyumsuz veya BitLocker doğrulaması bekleyen uç nokta Sayfa 3 Karar Matrisi'nde yetkilendirme beklemektedir.</p>
+      </div>
+      <div class="brief-col">
+        <b>6. Liderlikten Hangi Kararlar Bekleniyor?:</b>
+        <p>Karar Matrisi'ndeki P1 öncelikli Uyumsuz Cihaz Koşullu Erişim engeli ve TPM 2.0 donanım yenileme kararlarının onaylanması beklenmektedir.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Dört Temel Değer Sütunu (Service Value Attribution Model)</h2>
+
+<div class="attribution-grid">
+  <div class="attribution-card msft">
+    <span class="attr-title" style="color:#0284c7;">1. Microsoft Teknolojisi</span>
+    <b>0</b>
+    <span class="attr-sub">Otonom İlke Uyumu<br>(Intune Zorlama Motoru)</span>
+  </div>
+  <div class="attribution-card koc">
+    <span class="attr-title" style="color:#059669;">2. CloudShield Yönetilen Hizmeti</span>
+    <b>0.0 sa</b>
+    <span class="attr-sub">Kazanılan Zaman (~0.0 FTE)<br>0 Uzman Müdahalesi (Uyumsuzluk Yok)</span>
+  </div>
+  <div class="attribution-card cust">
+    <span class="attr-title" style="color:#d97706;">3. Müşteri Eylem Alanı</span>
+    <b>0 Cihaz</b>
+    <span class="attr-sub">BT Hijyen &amp; Düzeltme<br>Uyumsuzluk Aksiyonu</span>
+  </div>
+  <div class="attribution-card shared">
+    <span class="attr-title" style="color:#7c3aed;">4. Ortak Başarı &amp; Değer</span>
+    <b>Sıfır Güven (Zero Trust)</b>
+    <span class="attr-sub">Uç Nokta Hijyeni &amp; Sağlığı<br>Koşullu Erişim Koruma Kalkanı</span>
+  </div>
+</div>
+
+<div class="stamp">Sayfa 1 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 2: CİHAZ HİJYEN DURUMU VE DONANIM ENVANTERİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Cihaz Hijyen Durumu ve Donanım Envanteri</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Agustos 2026 Donemi</div>
+</header>
+
+<h2>Uç Nokta Envanteri ve Uyumluluk Durumu</h2>
+<div class="cards">
+  <div class="card" data-kpi-id="KPI-INT-01" data-source-query="managedDevices | count" data-origin="Intune ManagedDevices" data-collection-status="SupportedAppOnly">
+  <span>Toplam Cihaz </span>
+  <b>0 <small style="font-size:8pt; font-weight:normal;">Cihaz</small></b>
+  <span class="kpi-prov">Kaynak: Intune ManagedDevices &bull; Durum: SupportedAppOnly</span>
+</div>
+  <div class="card" data-kpi-id="KPI-INT-02" data-source-query="complianceState eq 'compliant'" data-origin="Intune DeviceCompliance" data-collection-status="SupportedAppOnly">
+  <span>Uyumlu Cihaz </span>
+  <b>0 <small style="font-size:8pt; font-weight:normal;">Cihaz</small></b>
+  <span class="kpi-prov">Kaynak: Intune DeviceCompliance &bull; Durum: SupportedAppOnly</span>
+</div>
+  <div class="card" data-kpi-id="KPI-INT-03" data-source-query="Compliant / Total" data-origin="Intune ComplianceEngine" data-collection-status="SupportedAppOnly">
+  <span>Genel Uyum Oranı <span class='pill p-info'>N/A</span></span>
+  <b>N/A <small style="font-size:8pt; font-weight:normal;"></small></b>
+  <span class="kpi-prov">Kaynak: Intune ComplianceEngine &bull; Durum: SupportedAppOnly</span>
+</div>
+  <div class="card" data-kpi-id="KPI-INT-04" data-source-query="isEncrypted eq true / Total" data-origin="Intune BitLocker/FileVault" data-collection-status="SupportedAppOnly">
+  <span>Disk Şifreleme Oranı <span class='pill p-info'>N/A</span></span>
+  <b>N/A <small style="font-size:8pt; font-weight:normal;"></small></b>
+  <span class="kpi-prov">Kaynak: Intune BitLocker/FileVault &bull; Durum: SupportedAppOnly</span>
+</div>
+</div>
+
+<h2>İşletim Sistemi ve Platform Dağılımı</h2>
+<table>
+  <tr><th>Platform / İşletim Sistemi</th><th>Toplam Cihaz</th><th>Uyumlu Adet</th><th>Şifreli Adet</th><th>Yönetim Durumu</th></tr>
+  
+        <tr><td><b>Windows 11 / 10 Enterprise</b></td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td><span class='pill p-ok'>Yönetilen Kurumsal PC</span></td></tr>
+        <tr><td><b>Mobil &amp; Tablet Cihazlar</b></td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td><span class='pill p-ok'>Intune MAM / MDM</span></td></tr>
+        
+</table>
+
+<h2>Temel Güvenlik ve Uyum İlkeleri Denetim Karnesi</h2>
+<table>
+  <tr><th>Güvenlik Uyumluluk İlkesi</th><th>Kapsam &amp; Eşik Değeri</th><th>Koruma Mekanizması</th><th>Sonuç</th></tr>
+  
+    <tr><td><b>BitLocker / FileVault Tam Disk Şifrelemesi</b></td><td>XTS-AES 256 / TPM 2.0</td><td>Donanımsal şifreleme ve kurtarma anahtarı yedekleme</td><td><span class='pill p-info'>N/A Şifreli</span></td></tr>
+    <tr><td><b>Minimum İşletim Sistemi Sürüm Eşiği</b></td><td>Son 2 Ana Sürüm (N-1)</td><td>Eski ve desteklenmeyen sürümlerin engellenmesi</td><td><span class='pill p-ok'>Denetlendi</span></td></tr>
+    <tr><td><b>Ekran Kilidi &amp; Parola Karmaşıklığı</b></td><td>6+ Hane / Biyometrik</td><td>Cihaza yetkisiz fiziksel erişimin durdurulması</td><td><span class='pill p-ok'>Zorunlu</span></td></tr>
+    <tr><td><b>Jailbreak &amp; Root Bütünlük Denetimi</b></td><td>SafetyNet / Cihaz Sağlığı</td><td>Kırılmış sistem yazılımlarına kurumsal tecrit</td><td><span class='pill p-info'>Denetim İlkesi Aktif</span></td></tr>
+    
+</table>
+
+
+
+
+<div class="stamp">Sayfa 2 / 3 &nbsp;|&nbsp; CloudShield MSSP Golden Standard</div>
+</div>
+
+<!-- SAYFA 3: INTUNE KARAR VE YÖNETİŞİM MATRİSİ -->
+<div class="page">
+<header>
+  <img class='logo-l' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBmNGM4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWU3ZDMyIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTIiIGhlaWdodD0iNTIiIHJ4PSIxMCIgZmlsbD0idXJsKCNnKSIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzciIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ESzwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjI3IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iIzBmNGM4MSI+RGVtbyBLdXJ1bSBBLlMuIDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjgiIHk9IjQ1IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxZTdkMzIiIGxldHRlci1zcGFjaW5nPSIxIj5FTlRSQSBJRCBWRVJJRklFRDwvdGV4dD4KICAgIDwvc3ZnPg==' alt='Müşteri'/>
+  <img class='logo-r' src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiPgogICAgICA8dGV4dCB4PSIxMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjMGY0YzgxIj5DbG91ZFNoaWVsZDwvdGV4dD4KICAgICAgPHRleHQgeD0iMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iU2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjNjQ3NDhiIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5NU1NQIE1BTkFHRUQgU0VSVklDRVM8L3RleHQ+CiAgICA8L3N2Zz4=' alt='CloudShield'/>
+  <h1>Intune Karar ve Yönetişim Matrisi</h1>
+  <div class="sub">Demo Kurum A.S. (Ornek Musteri) &nbsp;|&nbsp; Agustos 2026 Donemi</div>
+</header>
+
+
+<div class="decision-framework">
+  <h2>🎯 Müşteri Karar ve Yönetişim Çerçevesi (Customer Decision Framework)</h2>
+  
+  <div class="decision-box approved">
+    <h4>✅ 1. Onaylanmış ve Tamamlanmış Kararlar (Approved Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-APP-01</b></td>
+        <td>Intune Donanımsal BitLocker / FileVault Şifreleme Zorlama İlkesi</td>
+        <td>BT Güvenlik Direktörü</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>RB-INT-COMP-01 (Intune İlke Kütüğü)</td>
+        <td>Kayıp ve çalıntı taşınabilir cihazlarda disk verisinin kriptografik güvenliği</td>
+      </tr>
+      <tr>
+        <td><b>DEC-INT-APP-02</b></td>
+        <td>Minimum İşletim Sistemi Sürümü ve Güvenlik Yaması Eşiği Belirlenmesi</td>
+        <td>Altyapı &amp; Sistem Yöneticisi</td>
+        <td><span class="pill p-ok">Tamamlandı</span></td>
+        <td>Intune Compliance Baseline</td>
+        <td>Güvenlik desteği sona ermiş işletim sistemlerinin kurumsal ağdan tecrit edilmesi</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box pending">
+    <h4>⏳ 2. Yetkilendirme Bekleyen Kararlar (Pending Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-PND-01</b></td>
+        <td>Tüm uç noktalar temel güvenlik politikalarıyla uyumludur.</td>
+        <td>Bilgi Güvenliği Komitesi</td>
+        <td><span class="pill p-warn">P1 - Yüksek</span></td>
+        <td>Intune Uyumsuzluk Denetim İzi</td>
+        <td>Düşük risk profili önlenmesi ve sıfır güven cihaz sağlığı standardı</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box deferred">
+    <h4>⏸️ 3. Ertelenmiş Kararlar &amp; Risk Kabulü (Deferred Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-DEF-01</b></td>
+        <td>Saha Tabletlerinde Biyometrik Giriş Zorunluluğu İstisnası</td>
+        <td>Saha Operasyonları Direktörü</td>
+        <td><span class="pill p-warn">Risk Kabulü</span></td>
+        <td>Saha Donanım Değerlendirme Raporu</td>
+        <td>2026-Q4 dönemine kadar karmaşık PIN tabanlı doğrulama ile geçici kullanım</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="decision-box recommended">
+    <h4>💡 4. CloudShield Stratejik Karar Önerileri (Recommended Decisions)</h4>
+    <table>
+      <tr><th>Karar ID</th><th>Aksiyon / Politika Başlığı</th><th>Sorumlu (RACI)</th><th>Öncelik</th><th>Kanıt Kaynağı</th><th>Beklenen Çıktı</th></tr>
+      <tr>
+        <td><b>DEC-INT-REC-01</b></td>
+        <td>Jailbreak / Root Edilmiş Mobil Cihazların Anında Otomatik Karantinaya Alınması</td>
+        <td>BT Sistem &amp; Ağ Güvenliği</td>
+        <td><span class="pill p-crit">P1 - Yüksek</span></td>
+        <td>Intune Cihaz Tehdit Koruması</td>
+        <td>Bütünlüğü bozulmuş mobil cihazların şirket e-posta ve bulut verilerine erişiminin kesilmesi</td>
+      </tr>
+      <tr>
+        <td><b>DEC-INT-REC-02</b></td>
+        <td>Donanım Tabanlı TPM 2.0 Güvenlik Çipi Olmayan Cihazların Emekliye Ayrılması</td>
+        <td>BT Satın Alma Direktörlüğü</td>
+        <td><span class="pill p-warn">P2 - Orta</span></td>
+        <td>Intune Donanım Envanter Raporu</td>
+        <td>Credential Guard ve gelişmiş donanım izolasyonunu desteklemeyen eski donanımların yenilenmesi</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<p class="note"><b>Uyarı &amp; Yasal Dayanak:</b> Bu rapor, telemetri verilerine dayalı teknik güvenlik ve uç nokta uyum durumunu özetler. Mevzuat ve standart uygunluğuna ilişkin nihai değerlendirme veri sorumlusunun denetim ekiplerine aittir.<br>
+<b>Rapor Bütünlük Doğrulaması:</b> Bu raporun veri bütünlüğü SHA-256 kriptografik özet kaydı ile teknik değişiklik kontrolü amacıyla mühürlenmiştir; salt teknik dosya bütünlüğünü teyit eder; tek başına mevzuatsal kesin uygunluk teminatı teşkil etmez.<br>
+Gizlilik: TLP:AMBER &bull; Müşteriye Özel ve Ticari Sır.</p>
+<div class="stamp">Sayfa 3 / 3 &nbsp;|&nbsp; Üretim: 2026-10-09 14:40 &nbsp;|&nbsp; Tenant: Demo Kurum A.S. (Ornek Musteri)</div>
+</div>
+
+</div></body></html>

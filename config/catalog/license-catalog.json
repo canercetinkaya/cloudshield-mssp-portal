@@ -1,0 +1,370 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "catalogVersion": "1.0.0",
+  "releaseDate": "2026-10-09",
+  "sources": [
+    {
+      "title": "Microsoft 365 Plan Comparison - Enterprise",
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-Enterprise.pdf",
+      "documentType": "Official Microsoft Specification",
+      "scope": "Enterprise Information Worker & Frontline Plans"
+    },
+    {
+      "title": "Microsoft 365 Plan Comparison - Small and Medium-sized Businesses",
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/education/Modern-Work-Plan-Comparison-SMB.pdf",
+      "documentType": "Official Microsoft Specification",
+      "scope": "SMB Base Plans & Add-on Suites"
+    }
+  ],
+  "disclaimer": "Bu katalog Microsoft'un resmi yayınlanmış plan karşılaştırma belgelerine dayanır. Lisans hakları ve koşulları Microsoft Product Terms ve CSP sözleşmelerine göre güncellenebilir; nihai ticari doğrulama için resmi sözleşme hükümleri esastır.",
+  "skus": {
+    "06e2b970-d779-4be0-9168-26d6e502024e": {
+      "skuId": "06e2b970-d779-4be0-9168-26d6e502024e",
+      "skuPartNumber": "SPE_E5",
+      "displayName": "Microsoft 365 E5",
+      "productFamily": "Microsoft 365",
+      "tier": "Enterprise",
+      "planType": "Base",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "Plan 2",
+        "mdo": "Plan 2",
+        "mdi": "Included",
+        "mdca": "Full CASB",
+        "intune": "Plan 1",
+        "entra": "Plan 2",
+        "purviewDlp": "Endpoint + Exchange + SPO + Teams",
+        "purviewMip": "AIP Plan 2 + Auto-labeling",
+        "purviewSit": "Included + Advanced Classifiers + EDM",
+        "insiderRisk": "Full + Adaptive Protection",
+        "commCompliance": "Included",
+        "dataLifecycle": "Machine Learning + Records Management",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "MDESIGNAL", "WINDEFATP", "THREAT_DEFENDER", "EQUIVIO_ANALYTICS", "ATP_ENTERPRISE",
+        "AAD_PREMIUM_P2", "INTUNE_A", "EXCHANGE_S_ENTERPRISE", "RMS_S_ENTERPRISE",
+        "SAFEDOCS", "MTP", "ADALLOM_S_STANDALONE", "MIPC"
+      ]
+    },
+    "05e023e4-d397-4574-a818-b27b878ec968": {
+      "skuId": "05e023e4-d397-4574-a818-b27b878ec968",
+      "skuPartNumber": "SPE_E3",
+      "displayName": "Microsoft 365 E3",
+      "productFamily": "Microsoft 365",
+      "tier": "Enterprise",
+      "planType": "Base",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "Plan 1",
+        "mdo": "Plan 1",
+        "mdi": "None",
+        "mdca": "Discovery Only",
+        "intune": "Plan 1",
+        "entra": "Plan 1",
+        "purviewDlp": "Exchange + SPO (Basic)",
+        "purviewMip": "AIP Plan 1 (Manual)",
+        "purviewSit": "Standard SITs Only",
+        "insiderRisk": "None",
+        "commCompliance": "None",
+        "dataLifecycle": "Basic Retention Only",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "INTUNE_A", "AAD_PREMIUM", "RMS_S_ENTERPRISE", "EXCHANGE_S_ENTERPRISE", "OFFICESUBSCRIPTION"
+      ]
+    },
+    "b05e124f-c7cc-45a0-a6aa-8cf78c946968": {
+      "skuId": "b05e124f-c7cc-45a0-a6aa-8cf78c946968",
+      "skuPartNumber": "SPE_E5_SEC",
+      "displayName": "Microsoft Defender Suite (E5 Security)",
+      "productFamily": "Microsoft 365 Security",
+      "tier": "Enterprise",
+      "planType": "AddOn",
+      "userLimit": null,
+      "requiresBaseLicense": ["SPE_E3", "STANDARDPACK", "SPB"],
+      "capabilities": {
+        "mde": "Plan 2",
+        "mdo": "Plan 2",
+        "mdi": "Included",
+        "mdca": "Full CASB",
+        "entra": "Plan 2",
+        "exposureManagement": "Included"
+      },
+      "includedServicePlans": [
+        "WINDEFATP", "THREAT_DEFENDER", "ATP_ENTERPRISE", "AAD_PREMIUM_P2", "ADALLOM_S_STANDALONE"
+      ]
+    },
+    "c7df2760-2c81-4246-93dd-b8830740a6e0": {
+      "skuId": "c7df2760-2c81-4246-93dd-b8830740a6e0",
+      "skuPartNumber": "SPE_E5_COMP",
+      "displayName": "Microsoft Purview Suite (E5 Compliance)",
+      "productFamily": "Microsoft Purview",
+      "tier": "Enterprise",
+      "planType": "AddOn",
+      "userLimit": null,
+      "requiresBaseLicense": ["SPE_E3", "STANDARDPACK", "SPB"],
+      "capabilities": {
+        "purviewDlp": "Endpoint + Exchange + SPO + Teams",
+        "purviewMip": "AIP Plan 2 + Auto-labeling",
+        "purviewSit": "Advanced Classifiers + EDM",
+        "insiderRisk": "Included + Adaptive Protection",
+        "commCompliance": "Included",
+        "dataLifecycle": "Machine Learning + Records Management"
+      },
+      "includedServicePlans": [
+        "EQUIVIO_ANALYTICS", "MIPC", "RECORDSMANAGEMENT"
+      ]
+    },
+    "cbdc14ab-d96c-4c30-b9f4-6da7cca1d17d": {
+      "skuId": "cbdc14ab-d96c-4c30-b9f4-6da7cca1d17d",
+      "skuPartNumber": "SPB",
+      "displayName": "Microsoft 365 Business Premium",
+      "productFamily": "Microsoft 365",
+      "tier": "SMB",
+      "planType": "Base",
+      "userLimit": 300,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "Defender for Business",
+        "mdo": "Plan 1",
+        "mdi": "None",
+        "mdca": "Discovery Only",
+        "intune": "Plan 1",
+        "entra": "Plan 1",
+        "purviewDlp": "Exchange + SPO (Basic)",
+        "purviewMip": "AIP Plan 1 (Manual)",
+        "purviewSit": "Standard SITs Only",
+        "insiderRisk": "None",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "MDESIGNAL", "INTUNE_A", "AAD_PREMIUM", "RMS_S_ENTERPRISE", "EXCHANGE_S_STANDARD"
+      ]
+    },
+    "f2434e36-e3d3-4360-8758-4d8220b81707": {
+      "skuId": "f2434e36-e3d3-4360-8758-4d8220b81707",
+      "skuPartNumber": "SMB_BUSINESS_STD",
+      "displayName": "Microsoft 365 Business Standard",
+      "productFamily": "Microsoft 365",
+      "tier": "SMB",
+      "planType": "Base",
+      "userLimit": 300,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "None",
+        "mdo": "Basic Antispam/Malware",
+        "mdi": "None",
+        "mdca": "None",
+        "intune": "None",
+        "entra": "Free",
+        "purviewDlp": "None",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "EXCHANGE_S_STANDARD", "OFFICESUBSCRIPTION"
+      ]
+    },
+    "3b5550b8-da6a-47c8-94fa-2960fb3d889b": {
+      "skuId": "3b5550b8-da6a-47c8-94fa-2960fb3d889b",
+      "skuPartNumber": "SMB_BUSINESS_BASIC",
+      "displayName": "Microsoft 365 Business Basic",
+      "productFamily": "Microsoft 365",
+      "tier": "SMB",
+      "planType": "Base",
+      "userLimit": 300,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "None",
+        "mdo": "Basic Antispam/Malware",
+        "mdi": "None",
+        "mdca": "None",
+        "intune": "None",
+        "entra": "Free",
+        "purviewDlp": "None",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "EXCHANGE_S_STANDARD"
+      ]
+    },
+    "6470687e-a428-4b7a-befc-eb3d63d7d7f9": {
+      "skuId": "6470687e-a428-4b7a-befc-eb3d63d7d7f9",
+      "skuPartNumber": "ENTERPRISEPACK",
+      "displayName": "Office 365 E3",
+      "productFamily": "Office 365",
+      "tier": "Enterprise",
+      "planType": "Base",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "None",
+        "mdo": "None",
+        "mdi": "None",
+        "mdca": "None",
+        "intune": "None",
+        "entra": "Free",
+        "purviewDlp": "Exchange + SPO (Basic)",
+        "purviewMip": "AIP Plan 1",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "EXCHANGE_S_ENTERPRISE", "OFFICESUBSCRIPTION", "RMS_S_ENTERPRISE"
+      ]
+    },
+    "efccb6f7-5641-4e0e-bd10-b497f69f6716": {
+      "skuId": "efccb6f7-5641-4e0e-bd10-b497f69f6716",
+      "skuPartNumber": "EMS",
+      "displayName": "Enterprise Mobility + Security E3",
+      "productFamily": "EMS",
+      "tier": "Enterprise",
+      "planType": "AddOn",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "intune": "Plan 1",
+        "entra": "Plan 1",
+        "purviewMip": "AIP Plan 1"
+      },
+      "includedServicePlans": [
+        "INTUNE_A", "AAD_PREMIUM", "RMS_S_ENTERPRISE"
+      ]
+    },
+    "b0526e0e-c20e-4362-a25e-3cae771d9999": {
+      "skuId": "b0526e0e-c20e-4362-a25e-3cae771d9999",
+      "skuPartNumber": "EMSPREMIUM",
+      "displayName": "Enterprise Mobility + Security E5",
+      "productFamily": "EMS",
+      "tier": "Enterprise",
+      "planType": "AddOn",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "intune": "Plan 1",
+        "entra": "Plan 2",
+        "mdca": "Full CASB",
+        "purviewMip": "AIP Plan 2"
+      },
+      "includedServicePlans": [
+        "INTUNE_A", "AAD_PREMIUM_P2", "ADALLOM_S_STANDALONE", "MIPC"
+      ]
+    },
+    "f30ebd12-1ac4-4ce6-91b3-4f9999999999": {
+      "skuId": "f30ebd12-1ac4-4ce6-91b3-4f9999999999",
+      "skuPartNumber": "DESKLESSPACK",
+      "displayName": "Microsoft 365 F3",
+      "productFamily": "Microsoft 365 Frontline",
+      "tier": "Frontline",
+      "planType": "Base",
+      "userLimit": null,
+      "requiresBaseLicense": null,
+      "capabilities": {
+        "mde": "Plan 1",
+        "intune": "Plan 1",
+        "entra": "Plan 1",
+        "purviewDlp": "Exchange + SPO",
+        "copilotChat": "Included"
+      },
+      "includedServicePlans": [
+        "INTUNE_A", "AAD_PREMIUM", "EXCHANGE_S_DESKLESS"
+      ]
+    },
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890": {
+      "skuId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "skuPartNumber": "COPILOT_M365",
+      "displayName": "Microsoft 365 Copilot",
+      "productFamily": "Copilot",
+      "tier": "Enterprise / SMB",
+      "planType": "AddOn",
+      "userLimit": null,
+      "requiresBaseLicense": ["SPE_E3", "SPE_E5", "SPB", "STANDARDPACK", "ENTERPRISEPACK"],
+      "capabilities": {
+        "copilot": "Full Microsoft 365 Copilot Integration"
+      },
+      "includedServicePlans": [
+        "COPILOT_STUDIO", "M365_COPILOT"
+      ]
+    }
+  },
+  "standaloneServicePlans": {
+    "WINDEFATP": {
+      "servicePlanName": "WINDEFATP",
+      "friendlyName": "Microsoft Defender for Endpoint Plan 2",
+      "workload": "SVC-MDE"
+    },
+    "MDESIGNAL": {
+      "servicePlanName": "MDESIGNAL",
+      "friendlyName": "Microsoft Defender for Endpoint Plan 1 / Business",
+      "workload": "SVC-MDE"
+    },
+    "ATP_ENTERPRISE": {
+      "servicePlanName": "ATP_ENTERPRISE",
+      "friendlyName": "Microsoft Defender for Office 365 Plan 2",
+      "workload": "SVC-MDO"
+    },
+    "THREAT_DEFENDER": {
+      "servicePlanName": "THREAT_DEFENDER",
+      "friendlyName": "Microsoft Defender for Identity",
+      "workload": "SVC-MDI"
+    },
+    "ADALLOM_S_STANDALONE": {
+      "servicePlanName": "ADALLOM_S_STANDALONE",
+      "friendlyName": "Microsoft Defender for Cloud Apps",
+      "workload": "SVC-MDCA"
+    },
+    "INTUNE_A": {
+      "servicePlanName": "INTUNE_A",
+      "friendlyName": "Microsoft Intune Plan 1",
+      "workload": "SVC-INTUNE"
+    },
+    "AAD_PREMIUM_P2": {
+      "servicePlanName": "AAD_PREMIUM_P2",
+      "friendlyName": "Microsoft Entra ID Plan 2 & PIM",
+      "workload": "SVC-ENTRA-PIM"
+    },
+    "AAD_PREMIUM": {
+      "servicePlanName": "AAD_PREMIUM",
+      "friendlyName": "Microsoft Entra ID Plan 1",
+      "workload": "SVC-ENTRA-ID"
+    },
+    "MIPC": {
+      "servicePlanName": "MIPC",
+      "friendlyName": "Microsoft Purview Information Protection Plan 2 & Auto-labeling",
+      "workload": "SVC-PURVIEW-CLASS"
+    },
+    "EQUIVIO_ANALYTICS": {
+      "servicePlanName": "EQUIVIO_ANALYTICS",
+      "friendlyName": "Microsoft Purview Advanced eDiscovery & DLP",
+      "workload": "SVC-PURVIEW-DLP"
+    }
+  },
+  "azureResourceWorkloads": {
+    "DefenderForServers": {
+      "name": "Microsoft Defender for Servers",
+      "billingModel": "Azure Subscription per-server / hour",
+      "isUserSku": false
+    },
+    "DefenderForContainers": {
+      "name": "Microsoft Defender for Containers",
+      "billingModel": "Azure Subscription per-core / cluster",
+      "isUserSku": false
+    },
+    "DefenderForStorage": {
+      "name": "Microsoft Defender for Storage",
+      "billingModel": "Azure Subscription per-transaction",
+      "isUserSku": false
+    },
+    "DefenderForSQL": {
+      "name": "Microsoft Defender for SQL",
+      "billingModel": "Azure Subscription per-instance",
+      "isUserSku": false
+    },
+    "DefenderCSPM": {
+      "name": "Microsoft Defender CSPM",
+      "billingModel": "Azure Subscription per-billable-resource",
+      "isUserSku": false
+    }
+  }
+}

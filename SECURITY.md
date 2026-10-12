@@ -1,65 +1,60 @@
-# Security Policy & Zero-Trust Posture
+# Güvenlik Politikası ve Zero Trust Mimarisi (SECURITY.md)
+## CloudShield Security Reporting & Managed Services Visibility Platform
 
-## 1. Supported Versions
-Security updates, vulnerability patches, and zero-day remediations are actively maintained for the following releases:
+Bu belge, CloudShield platformunun güvenlik standartlarını, veri gizliliği yaklaşımını ve güvenlik açığı bildirim prosedürlerini açıklar.
 
-| Version | Release Tag | Status | Supported |
+---
+
+### 1. Desteklenen Sürümler
+
+Güvenlik güncellemeleri ve yamaları aşağıdaki sürümler için aktif olarak sağlanır:
+
+| Sürüm | Yayın Etiketi | Durum | Destek |
 | :--- | :--- | :--- | :---: |
-| **v3.0.x** | `v3.0.0-ENTERPRISE` | **Current GA Release** | ✅ Supported |
-| **v2.5.x** | `v2.5.15` | Previous Release | ✅ Security Patches Only |
-| **< v2.5** | Legacy | Deprecated | ❌ End of Life |
+| **v3.1.x** | `v3.1.0-REPORTING-VISIBILITY` | **Aktif Sürüm (Controlled Pilot)** | ✅ Tam Destek |
+| **v3.0.x** | `v3.0.0-ENTERPRISE` | Önceki Sürüm | ⚠️ Yalnızca Güvenlik Yaması |
+| **< v3.0** | Legacy Sürümler | Kullanım Dışı | ❌ Desteklenmiyor |
 
 ---
 
-## 2. Zero-Trust Security & DevSecOps Principles
-CloudShield MSSP Platform adheres to strict enterprise DevSecOps standards and Microsoft Zero-Trust Architecture:
+### 2. Zero Trust Güvenlik İlkeleri
 
-### A. Zero Plaintext Credentials in Git
-* **No Hardcoded Secrets:** No customer tenant secrets, certificates, API tokens, or administrator passwords may ever be committed to the Git repository.
-* **Environment Variable Injection:** Portal credentials and secret keys must be supplied via secure container runtime environment variables or Azure Key Vault references.
-* **Automated Pre-Commit & CI Scanning:** All pull requests and commits are automatically scanned by Gitleaks, TruffleHog, and CodeQL SAST.
-* **Local Isolation:** Local configuration overrides (`Data/tenants.local.json`, `Data/auth.local.json`, `Data/*.db`) are strictly excluded via `.gitignore`.
+1. **Git Deposunda Sıfır Açık Metin Secret:**
+   - Müşteri tenant gizli anahtarları, sertifikalar, API token'ları veya yönetici parolaları depoya commit edilemez.
+   - Tüm kimlik bilgileri Azure Key Vault veya ortam değişkenleri (`ENVIRONMENT VARIABLES`) üzerinden temin edilir.
+   - `.gitignore` ve `.dockerignore` kuralları tüm yerel yapılandırma ve veritabanlarını (`*.db`, `.env`) kesin olarak dışlar.
 
-### B. Customer Identity & Key Vault Isolation
-* **Managed Identity Authentication:** In cloud production (Azure Container Apps), backend services authenticate against Azure Key Vault via Managed Identity (IMDS / OIDC), requiring zero hardcoded storage connection strings or vault secrets.
-* **Least-Privilege RBAC:** The Container App identity is assigned strictly the `Key Vault Secrets User` role (read-only in memory). Write or administrative privileges are strictly prohibited.
-* **In-Memory Credential Lifecycle:** Tenant authentication tokens retrieved from Entra ID / Microsoft Graph are scoped in memory and destroyed upon report compilation. No tokens or decrypted private keys are persisted to disk.
+2. **Managed Identity ve En Az Yetki (Least Privilege):**
+   - Bulut ortamında (Azure Container Apps) Key Vault erişimi için Kullanıcı Tanımlı veya Sistem Tanımlı Managed Identity kullanılır; bağlantı dizesi veya statik credential kullanılmaz.
+   - Kimlik bilgisi için yalnızca `Key Vault Secrets User` (salt okunur) RBAC rolü verilir.
 
-### C. Server-Side RBAC & Session Security
-* **Mandatory Entra ID SSO in Production:** In production and enterprise channels, local password authentication (`/api/auth/login`) is strictly disabled (returns `403 Forbidden` with `"ssoRequired": true`). All portal authentication requires Microsoft Entra ID OIDC SSO. Local auth may only be re-enabled with `CLOUDSHIELD_ALLOW_LOCAL_AUTH=true` in isolated development environments.
-* **8-Stage Authorization Decision Chain:** Every incoming API request passes an 8-stage authorization pipeline evaluating identity active state, permission checks, customer scope, service scope, time bounds, separation of duties, and audit emissions (`Portal/api/rbac_engine.py`).
-* **Zero Trust Least Privilege for Administrators:** Administrative roles (`PlatformAdmin`) are strictly prohibited from automatic access to customer confidential data (reports). Platform administrators do not inherit customer-level content visibility without an explicit customer assignment or approved CloudShield JIT Temporary Access Elevation.
-* **CloudShield JIT Temporary Access Elevation:** Operators require time-bounded, approval-gated Just-In-Time access elevation (compatible with Microsoft Entra PIM zero standing privileges principles) to perform customer-specific investigations.
-* **Separation of Duties (SoD):** The engineer who creates or triggers a report cannot approve that report. Approvals require independent customer or lead engineer ratification.
-* **Multi-Dimensional Scoping:** Access is strictly bounded by Customer ID and Subscribed Service ID, preventing cross-tenant and cross-service data leakage.
-* **Session Security & Cookie Hardening:** Session tokens (`CS_SESSION`) use cryptographically secure 256-bit entropy, enforced with `HttpOnly; SameSite=Strict; Path=/` flags.
+3. **Üretim Ortamında Zorunlu Entra ID OIDC SSO:**
+   - Üretim ortamında yerel parola ile giriş (`/api/auth/login`) varsayılan olarak kapalıdır (`403 Forbidden`).
+   - Tüm oturumlar Microsoft Entra ID OIDC Authorization Code Flow ve PKCE (RFC 7636) ile açılır.
+   - Oturum çerezleri `HttpOnly; Secure; SameSite=Strict; Path=/` bayrakları ile korunur.
 
-### D. Data Privacy & KVKK / GDPR Compliance
-* **Zero Raw Data Persistence:** No raw customer payloads, email bodies, file contents, or personal records are stored on disk.
-* **k-Anonymity Dynamic Masking:** Sensitive customer identifiers, User Principal Names (UPNs), and filenames are masked before rendering (`c***.c***@domain.com`, `Mali_Rapor_***.xlsx`) with an anonymity threshold ($k \ge 3$).
-* **Audit Logs Hygiene:** Runtime operational and authorization audit logs are immutably preserved in the database / Azure Log Analytics and strictly excluded from Git repository tracking.
+4. **Çok Boyutlu Yetkilendirme ve Kiracı İzolasyonu:**
+   - Her API isteği, müşteri kimliği ve abone olunan servis kimliği (`customer_id`, `service_code`) kontrolünden geçer.
+   - Yetkisiz çapraz kiracı (cross-tenant) erişimleri fail-closed mantığıyla `403 Forbidden` ile engellenir.
+   - Rapor indirmeleri rastgele dosya yoluyla değil, merkezi `report_id` kaydı (`/api/reports/{id}/download`) üzerinden doğrulanarak teslim edilir.
+
+5. **Veri Gizliliği, KVKK ve Maskeleme:**
+   - Ham e-posta içerikleri, dosya gövdeleri veya kişisel veriler diske kaydedilmez.
+   - Kullanıcı kimlikleri ve dosya adları dinamik olarak maskelenir (`k-anon***@domain.com`, `Mali_Rapor_***.xlsx`).
+
+6. **SQLite Tek Replika Güvenlik Kilidi:**
+   - SQLite veritabanı bozulmasını önlemek için sistem tek replika (`MAX_REPLICAS=1`) ile kilitlidir. Çoklu replika tespit edildiğinde açılış fail-closed ile durdurulur.
 
 ---
 
-## 3. Reporting a Vulnerability
-We take the security of CloudShield MSSP Platform and our customer tenants extremely seriously. If you identify a security vulnerability or potential credential exposure, please follow our coordinated disclosure policy:
+### 3. Güvenlik Açığı Bildirimi (Vulnerability Disclosure)
+
+Platformda bir güvenlik açığı veya hassas veri sızıntısı riski tespit ettiğinizde:
 
 > [!CAUTION]
-> **DO NOT** file public GitHub issues for security vulnerabilities, potential secret exposures, or remote code execution risks.
+> Güvenlik açıklarını lütfen **herkese açık GitHub Issue** olarak bildirmeyiniz.
 
-### Vulnerability Reporting Process:
-1. **Contact Security Operations:** Email the DevSecOps Lead directly at:
-   * Primary: `security@cloudshield-mssp.com`
-   * Corporate MSSP: `mssp-security@cloudshield-mssp.com`
-   * DevSecOps Team: `devsecops@cloudshield-mssp.com`
-2. **Include Technical Details:**
-   * Detailed description of the vulnerability.
-   * Affected endpoints, modules, or scripts (e.g., `/api/v1/auth/login`, `Portal/api/rbac_engine.py`, `Engine/Core/Authentication.psm1`).
-   * Proof-of-concept (PoC) steps or minimal reproduction script.
-   * Assessment of exploitability and impact (CVSS score if available).
-
-### Response SLAs:
-* **Initial Acknowledgment:** Within 12 hours.
-* **Severity Assessment & Reproduction:** Within 24 hours.
-* **Hotfix & Deployment to Production:** Within 48 hours for Critical / High severity findings.
-* **Coordinated Disclosure:** We kindly request that you refrain from disclosing the issue publicly until a hotfix has been verified and deployed to production.
+Açıkları güvenli şekilde bildirmek için:
+- **GitHub Private Vulnerability Reporting:** Projenin GitHub arayüzünde bulunan **Security > Advisories > Report a vulnerability** seçeneğini kullanınız:
+  `https://github.com/canercetinkaya/cloudshield-mssp-portal/security/advisories`
+- Bildiriminize etkilenen endpoint, teknik detaylar ve yeniden üretme (PoC) adımlarını ekleyiniz. Bildirimler 48 saat içinde incelenerek yanıtlanır.

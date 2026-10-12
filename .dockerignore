@@ -1,0 +1,79 @@
+# ==============================================================================
+# CloudShield Security Reporting & Managed Services Visibility Platform
+# Enterprise .dockerignore - Prevent secret, credential, cache, and db leakage
+# ==============================================================================
+
+# Version Control & CI/CD
+.git
+.gitignore
+.github
+
+# Secrets, Credentials, Tokens & Keys
+.env
+.env.*
+*.secret
+*.token
+*.key
+*.pem
+*.pfx
+*.cer
+*.crt
+TokenCache.dat
+accessTokens.json
+secrets.json
+local.settings.json
+
+# Local SQLite Databases & WAL/SHM Journals
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+Data/*.db
+Data/*.db-journal
+Data/*.db-wal
+Data/*.db-shm
+database/*.db
+test_tmp.db
+
+# Python Bytecode & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# Logs, Diagnostic Transcripts & Output Files
+*.log
+*.jsonl
+*.transcript
+PowerShell_transcript.*
+audit-*.log
+debug.log
+error.log
+Engine/Logs/*
+!Engine/Logs/.gitkeep
+Engine/Output/*
+!Engine/Output/.gitkeep
+Engine/Data/temp/
+Engine/Data/KPI_*.json
+
+# OS & Editor Artifacts
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Test Results & Scratchpad
+qa_test_results.json
+test-results/
+coverage.xml
+scratch/
+*.tmp
+*.temp

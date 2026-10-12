@@ -4,9 +4,9 @@
   "metadata": {
     "_generator": {
       "name": "CloudShield MSSP Architecture Generator",
-      "version": "2.0.0"
+      "version": "3.2.0"
     },
-    "description": "CloudShield Enterprise MSSP Security & Compliance Platform (MSSP Portal) Serverless Deployment for Azure MCT & Production."
+    "description": "CloudShield Security Reporting & Managed Services Visibility Platform (v3.2.0-LICENSE-INTELLIGENCE) Serverless Deployment for Azure Container Apps."
   },
   "parameters": {
     "location": {
@@ -242,8 +242,8 @@
             }
           ],
           "scale": {
-            "minReplicas": 0,
-            "maxReplicas": 3,
+            "minReplicas": 1,
+            "maxReplicas": 1,
             "rules": [
               {
                 "name": "http-rule",

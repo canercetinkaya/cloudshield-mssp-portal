@@ -1,4 +1,4 @@
-﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
+# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview DSPM for AI & Copilot Data Security Service Plugin.
 [CmdletBinding()]
 param()
@@ -68,6 +68,10 @@ function Get-ServiceRawData {
         }
     }
 
+    # Canlı modda Purview DSPM for AI & Copilot Audit
+    $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'PurviewReporting'
+    $availabilityState = 'NotConfigured'
+
     return [pscustomobject]@{
         TotalCopilotPrompts    = 0
         SensitiveFilesAccessed = 0
@@ -76,6 +80,7 @@ function Get-ServiceRawData {
         AiPromptAnomalies      = 0
         StartDate              = $StartDate
         EndDate                = $EndDate
+        AvailabilityState      = $availabilityState
         IsMock                 = $false
     }
 }
@@ -91,12 +96,24 @@ function Get-ServiceKpis {
         [string] $Mode = 'Monthly'
     )
 
+    if ($RawData.IsMock) {
+        return [ordered]@{
+            ToplamCopilotEtkilesimi = $RawData.TotalCopilotPrompts
+            ErisilenHassasDosya     = $RawData.SensitiveFilesAccessed
+            AsiriPaylasilanDosya    = $RawData.OverSharedFiles
+            AsiriPaylasimKategorisi = @($RawData.TopOverSharedTypes)
+            SupheliPromptAnomalisi  = $RawData.AiPromptAnomalies
+            AvailabilityState       = 'DirectAndVerified'
+        }
+    }
+
     return [ordered]@{
-        ToplamCopilotEtkilesimi = $RawData.TotalCopilotPrompts
-        ErisilenHassasDosya     = $RawData.SensitiveFilesAccessed
-        AsiriPaylasilanDosya    = $RawData.OverSharedFiles
-        AsiriPaylasimKategorisi = @($RawData.TopOverSharedTypes)
-        SupheliPromptAnomalisi  = $RawData.AiPromptAnomalies
+        ToplamCopilotEtkilesimi = 'N/A - Microsoft 365 Copilot lisansı gerekli'
+        ErisilenHassasDosya     = 'N/A - Purview Audit (Premium) izni gerekli'
+        AsiriPaylasilanDosya    = 'N/A - DSPM for AI yetkisi gerekli'
+        AsiriPaylasimKategorisi = @()
+        SupheliPromptAnomalisi  = 'N/A - Güvenlik uyarısı bulunmuyor'
+        AvailabilityState       = $RawData.AvailabilityState
     }
 }
 
