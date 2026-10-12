@@ -3062,7 +3062,7 @@
             if (!options.credentials) {
                 options.credentials = 'include';
             }
-            const token = localStorage.getItem('cloudshield_auth_token');
+            const token = localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token');
             if (token && typeof url === 'string' && url.startsWith('/api/')) {
                 options.headers = options.headers || {};
                 if (options.headers instanceof Headers) {
@@ -3081,6 +3081,24 @@
             }
             return _origFetch.call(this, url, options);
         };
+
+        // Erken Yetkilendirme Eşitlemesi (Early Auth Token Hydration from URL Query)
+        (function initEarlyAuthSync() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const qToken = urlParams.get('auth_token');
+                if (qToken) {
+                    localStorage.setItem('cloudshield_auth_token', qToken);
+                    sessionStorage.setItem('cloudshield_auth_token', qToken);
+                    urlParams.delete('auth_token');
+                    const remainingQuery = urlParams.toString();
+                    const cleanUrl = window.location.pathname + (remainingQuery ? '?' + remainingQuery : '') + window.location.hash;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                }
+            } catch(e) {
+                console.warn('Early auth token sync error:', e);
+            }
+        })();
 
         let allTenants = [];
         let allServices = {};
@@ -3114,10 +3132,23 @@
         // KİMLİK DOĞRULAMA (AUTHENTICATION GATE)
         // ==========================================
         async function checkAuth() {
-            let token = localStorage.getItem('cloudshield_auth_token');
+            let token = localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token');
             const overlay = document.getElementById('loginOverlay');
 
-            // 1. Eğer localStorage'da token yoksa, HttpOnly çerez ile aktif oturumu kontrol et
+            // Optimistic UI: Eğer önbellekte token ve kullanıcı profili varsa, login overlay'i HEMEN gizle!
+            // Böylece MFA sonrası veya sayfa yenilemede kullanıcı asla giriş ekranına geri fırlatılmış hissetmez.
+            let cachedUser = null;
+            try {
+                const rawUser = localStorage.getItem('cloudshield_user') || sessionStorage.getItem('cloudshield_user');
+                if (rawUser) cachedUser = JSON.parse(rawUser);
+            } catch (e) {}
+
+            if (token && cachedUser && (cachedUser.id || cachedUser.displayName)) {
+                if (overlay) overlay.classList.add('hidden');
+                applyUserProfile(cachedUser);
+            }
+
+            // 1. Eğer token yoksa, HttpOnly çerez ile aktif oturumu kontrol et
             if (!token) {
                 try {
                     const res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -3126,9 +3157,11 @@
                         if (data.success && data.user) {
                             if (data.token) {
                                 localStorage.setItem('cloudshield_auth_token', data.token);
+                                sessionStorage.setItem('cloudshield_auth_token', data.token);
                                 token = data.token;
                             }
                             localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
+                            sessionStorage.setItem('cloudshield_user', JSON.stringify(data.user));
                             if (overlay) overlay.classList.add('hidden');
                             applyUserProfile(data.user);
                             return true;
@@ -3150,6 +3183,7 @@
                         const data = await res.json();
                         if (data.success && data.user) {
                             localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
+                            sessionStorage.setItem('cloudshield_user', JSON.stringify(data.user));
                             if (overlay) overlay.classList.add('hidden');
                             applyUserProfile(data.user);
                             return true;
@@ -3157,15 +3191,16 @@
                     } else if (res.status === 401) {
                         localStorage.removeItem('cloudshield_auth_token');
                         localStorage.removeItem('cloudshield_user');
+                        sessionStorage.removeItem('cloudshield_auth_token');
+                        sessionStorage.removeItem('cloudshield_user');
                         if (overlay) overlay.classList.remove('hidden');
                         return false;
                     }
                 } catch (e) {
                     // Geçici ağ kopmasında / cold-start durumunda mevcut profille devam et
-                    const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
-                    if (user && (user.id || user.displayName)) {
+                    if (cachedUser && (cachedUser.id || cachedUser.displayName)) {
                         if (overlay) overlay.classList.add('hidden');
-                        applyUserProfile(user);
+                        applyUserProfile(cachedUser);
                         return true;
                     }
                 }
@@ -3287,13 +3322,15 @@
 
         function performLogout() {
             if (confirm('Oturumunuzu kapatmak istediğinize emin misiniz?')) {
-                const tok = localStorage.getItem('cloudshield_auth_token');
+                const tok = localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token');
                 fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${tok}` }
                 }).catch(() => {});
                 localStorage.removeItem('cloudshield_auth_token');
                 localStorage.removeItem('cloudshield_user');
+                sessionStorage.removeItem('cloudshield_auth_token');
+                sessionStorage.removeItem('cloudshield_user');
                 const overlay = document.getElementById('loginOverlay');
                 if (overlay) overlay.classList.remove('hidden');
             }

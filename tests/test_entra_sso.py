@@ -30,7 +30,8 @@ from Portal.api.server import (
     MSSPPortalHandler, SESSIONS, AUTH_FLOWS,
     get_entra_config, decode_jwt_payload, resolve_entra_user,
     save_session, get_session, delete_session,
-    create_stateless_oauth_state, verify_stateless_oauth_state
+    create_stateless_oauth_state, verify_stateless_oauth_state,
+    create_session_token, verify_session_token, get_session_secret
 )
 from database.db import get_db, init_db
 
@@ -304,6 +305,73 @@ class TestEntraIdOidcSSO(unittest.TestCase):
         self.assertIn("nonce", columns)
         self.assertIn("redirect_uri", columns)
         self.assertIn("created_at", columns)
+
+    def test_14_self_contained_hmac_session_token(self):
+        """Verify stateless HMAC-SHA256 session tokens unpack zero-I/O user profile and resist tampering."""
+        test_user = {
+            "id": "usr-001",
+            "upn": "caner@cnrctnky.onmicrosoft.com",
+            "displayName": "Caner Çetinkaya",
+            "role": "PlatformAdmin",
+            "isPlatformAdmin": True
+        }
+        token = create_session_token(test_user, expires_in=3600)
+        self.assertTrue(token.startswith("cst."))
+        parts = token.split(".")
+        self.assertEqual(len(parts), 3)
+
+        # 1. Verification of valid token
+        payload, err = verify_session_token(token)
+        self.assertIsNone(err)
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["uid"], "usr-001")
+        self.assertEqual(payload["u"]["displayName"], "Caner Çetinkaya")
+
+        # 2. get_session must rehydrate without DB or memory dependency
+        SESSIONS.clear()  # wipe in-memory cache to prove zero-I/O rehydration
+        sess = get_session(token)
+        self.assertIsNotNone(sess)
+        self.assertEqual(sess["user"]["id"], "usr-001")
+        self.assertEqual(sess["user"]["role"], "PlatformAdmin")
+
+        # 3. Tampered token signature must fail
+        tampered_token = token[:-4] + ("WXYZ" if not token.endswith("WXYZ") else "ABCD")
+        tampered_payload, tampered_err = verify_session_token(tampered_token)
+        self.assertIsNone(tampered_payload)
+        self.assertIn("İmza doğrulaması başarısız", tampered_err)
+
+        # 4. Expired token must fail
+        expired_token = create_session_token(test_user, expires_in=-10)
+        exp_payload, exp_err = verify_session_token(expired_token)
+        self.assertIsNone(exp_payload)
+        self.assertIn("Oturum süresi dolmuş", exp_err)
+
+    def test_15_deterministic_secret_and_redirect_query_token(self):
+        """Verify get_session_secret is deterministic, and redirect HTML carries auth_token in query."""
+        from io import BytesIO
+        secret1 = get_session_secret()
+        secret2 = get_session_secret()
+        self.assertEqual(secret1, secret2)
+        self.assertEqual(len(secret1), 64)  # SHA-256 hex digest
+
+        token = create_session_token({"id": "usr-001", "displayName": "Caner Çetinkaya"})
+        class DummyHandler:
+            def __init__(self):
+                self.headers_sent = []
+                self.status_code = None
+                self.wfile = BytesIO()
+            def send_response(self, code):
+                self.status_code = code
+            def send_header(self, k, v):
+                self.headers_sent.append((k, v))
+            def end_headers(self):
+                pass
+
+        dh = DummyHandler()
+        MSSPPortalHandler._render_auth_redirect_html(dh, token=token, user={"id": "usr-001"})
+        html_output = dh.wfile.getvalue().decode("utf-8")
+        self.assertIn(f"window.location.replace(\"/?auth_token=", html_output)
+        self.assertIn("sessionStorage.setItem('cloudshield_auth_token'", html_output)
 
 if __name__ == "__main__":
     unittest.main()

@@ -188,7 +188,11 @@ def main():
         "--min-replicas", min_replicas,
         "--max-replicas", max_replicas
     ]
-    env_vars = ["USE_SQLITE_NOLOCK=true"]
+    session_secret = os.environ.get("CLOUDSHIELD_SESSION_SECRET") or hashlib.sha256(b"2fb2bcee-61be-48af-972c-0b11a606578f:15b69eff-dc1e-4bf3-9d72-ebda8d7fff40:CloudShield2026MasterSecret").hexdigest()
+    env_vars = [
+        "USE_SQLITE_NOLOCK=true",
+        f"CLOUDSHIELD_SESSION_SECRET={session_secret}"
+    ]
     if entra_secret:
         env_vars.append("ENTRA_CLIENT_SECRET=secretref:entra-client-secret")
     update_cmd.extend(["--set-env-vars", *env_vars])
