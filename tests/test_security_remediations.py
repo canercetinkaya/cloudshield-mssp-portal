@@ -37,11 +37,15 @@ try:
     from cryptography.hazmat.primitives import serialization
 except ImportError:
     jwt = None
+    rsa = None
+    serialization = None
 
 
 class TestSecurityRemediations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        if not jwt or not rsa:
+            raise unittest.SkipTest("PyJWT ve cryptography kütüphaneleri bulunamadığı için OIDC JWKS testleri atlanıyor.")
         # Generate an ephemeral RSA key pair for testing RFC 7519 JWKS verification
         cls.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         cls.public_key = cls.private_key.public_key()
