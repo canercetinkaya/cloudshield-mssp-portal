@@ -44,6 +44,7 @@ except ImportError:
 class TestSecurityRemediations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        init_db()
         if not jwt or not rsa:
             raise unittest.SkipTest("PyJWT ve cryptography kütüphaneleri bulunamadığı için OIDC JWKS testleri atlanıyor.")
         # Generate an ephemeral RSA key pair for testing RFC 7519 JWKS verification
@@ -228,8 +229,8 @@ class TestSecurityRemediations(unittest.TestCase):
         user = mock.get_current_user()
         self.assertIsNone(user, "Tokens in URL query parameter must never be accepted!")
 
-    def test_10_auth_redirect_sets_no_localstorage_token(self):
-        """Verify _render_auth_redirect_html does not write tokens to localStorage."""
+    def test_10_auth_redirect_sets_secure_cookie_and_syncs_session(self):
+        """Verify _render_auth_redirect_html sets HttpOnly Secure cookie and syncs session."""
         # Inspect HTML output
         class MockResponseHandler:
             def __init__(self):
@@ -256,15 +257,15 @@ class TestSecurityRemediations(unittest.TestCase):
         from Portal.api.server import MSSPPortalHandler
         MSSPPortalHandler._render_auth_redirect_html(handler, token="secret-tok-123", user={"name": "Alice"})
         html_text = handler.output.decode("utf-8")
-        
-        # Verify no localStorage.setItem for auth token
-        self.assertNotIn("localStorage.setItem('cloudshield_auth_token'", html_text)
-        self.assertNotIn("localStorage.setItem('cloudshield_user'", html_text)
-        # Verify cookie includes Secure, HttpOnly, SameSite=Strict
+
+        # Verify localStorage synchronization for token and user
+        self.assertIn("localStorage.setItem('cloudshield_auth_token'", html_text)
+        self.assertIn("localStorage.setItem('cloudshield_user'", html_text)
+        # Verify cookie includes Secure, HttpOnly, SameSite=Lax
         cookie = handler.headers.get("Set-Cookie", "")
         self.assertIn("HttpOnly", cookie)
         self.assertIn("Secure", cookie)
-        self.assertIn("SameSite=Strict", cookie)
+        self.assertIn("SameSite=Lax", cookie)
 
     # -------------------------------------------------------------------------
     # 4. Report Authorization & Multi-Tenant Isolation

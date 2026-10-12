@@ -897,11 +897,11 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
     def _get_session_token(self):
         """Extract authenticated session token from Authorization Bearer header or CS_SESSION cookie."""
-        auth_hdr = self.headers.get("Authorization", "")
+        auth_hdr = getattr(self, "headers", {}).get("Authorization", "") if hasattr(self, "headers") else ""
         tok = auth_hdr.replace("Bearer ", "").strip() if auth_hdr else ""
 
         if not tok:
-            cookie_hdr = self.headers.get("Cookie", "")
+            cookie_hdr = getattr(self, "headers", {}).get("Cookie", "") if hasattr(self, "headers") else ""
             if cookie_hdr and "CS_SESSION=" in cookie_hdr:
                 for part in cookie_hdr.split(";"):
                     part = part.strip()
@@ -912,7 +912,19 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
     def get_current_user(self):
         """Extract authenticated user object from session header or secure cookie."""
-        tok = self._get_session_token()
+        if hasattr(self, "_get_session_token"):
+            tok = self._get_session_token()
+        else:
+            auth_hdr = getattr(self, "headers", {}).get("Authorization", "") if hasattr(self, "headers") else ""
+            tok = auth_hdr.replace("Bearer ", "").strip() if auth_hdr else ""
+            if not tok:
+                cookie_hdr = getattr(self, "headers", {}).get("Cookie", "") if hasattr(self, "headers") else ""
+                if cookie_hdr and "CS_SESSION=" in cookie_hdr:
+                    for part in cookie_hdr.split(";"):
+                        part = part.strip()
+                        if part.startswith("CS_SESSION="):
+                            tok = part.split("=", 1)[1].strip()
+                            break
         if tok:
             sess = get_session(tok)
             if sess:
