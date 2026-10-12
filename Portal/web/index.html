@@ -43,6 +43,24 @@
         .kql-table tr th, .kql-table tr td { border: 1px solid #e6e6e6; }
         .kql-table tr th { background-color: #f5f5f5; }
     </style>
+    <script>
+        // Erken Oturum Görünürlük Koruması (Zero-Flicker Early Auth Shield)
+        (function() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const qTok = params.get('auth_token');
+                if (qTok) {
+                    localStorage.setItem('cloudshield_auth_token', qTok);
+                    sessionStorage.setItem('cloudshield_auth_token', qTok);
+                }
+                const tok = qTok || localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token');
+                const u = localStorage.getItem('cloudshield_user') || sessionStorage.getItem('cloudshield_user');
+                if (tok || u) {
+                    document.write('<style id="earlyAuthHide">#loginOverlay{display:none!important;}</style>');
+                }
+            } catch(e) {}
+        })();
+    </script>
 </head>
 <body class="min-h-screen text-slate-800 flex flex-col antialiased">
 
@@ -3193,6 +3211,8 @@
                         localStorage.removeItem('cloudshield_user');
                         sessionStorage.removeItem('cloudshield_auth_token');
                         sessionStorage.removeItem('cloudshield_user');
+                        const earlyStyle = document.getElementById('earlyAuthHide');
+                        if (earlyStyle) earlyStyle.remove();
                         if (overlay) overlay.classList.remove('hidden');
                         return false;
                     }
@@ -3206,6 +3226,8 @@
                 }
             }
 
+            const earlyStyle = document.getElementById('earlyAuthHide');
+            if (earlyStyle) earlyStyle.remove();
             if (overlay) overlay.classList.remove('hidden');
             return false;
         }
