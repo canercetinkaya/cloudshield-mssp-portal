@@ -296,7 +296,7 @@ def get_entra_config():
 
     base_cfg = load_json_file(AUTH_CONFIG_FILE, {}).get("EntraConfig", {})
     tenant_id = tenant_id or base_cfg.get("TenantId", "2fb2bcee-61be-48af-972c-0b11a606578f")
-    client_id = client_id or base_cfg.get("ClientId", "15b69eff-dc1e-4bf3-9d72-ebda8d7fff40")
+    client_secret = client_secret or base_cfg.get("ClientSecret")
     redirect_uri = redirect_uri or base_cfg.get("RedirectUri", "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/auth/entra/callback")
 
     return {
@@ -946,12 +946,26 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         code_verifier, code_challenge = generate_pkce_pair()
 
         now_ts = time.time()
-        AUTH_FLOWS[state] = {
+        flow_entry = {
             "nonce": nonce,
             "code_verifier": code_verifier,
             "created_at": now_ts,
             "redirect_uri": cfg["redirect_uri"]
         }
+        AUTH_FLOWS[state] = flow_entry
+        try:
+            conn = get_db()
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS auth_flows (state TEXT PRIMARY KEY, nonce TEXT, code_verifier TEXT, redirect_uri TEXT, created_at REAL)"
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO auth_flows (state, nonce, code_verifier, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?)",
+                (state, nonce, code_verifier, cfg["redirect_uri"], now_ts)
+            )
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
 
         # Purge stale flows (> 15 mins)
         stale = [s for s, f in AUTH_FLOWS.items() if now_ts - f.get("created_at", 0) > 900]
@@ -967,7 +981,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "state": state,
             "nonce": nonce,
             "code_challenge": code_challenge,
-            "code_challenge_method": "S256"
+            "code_challenge_method": "S256",
+            "prompt": "select_account"
         }
         auth_url = f"{cfg['authorize_endpoint']}?{urllib.parse.urlencode(params)}"
 
@@ -1005,6 +1020,25 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         flow = AUTH_FLOWS.pop(state, None)
+        if not flow:
+            try:
+                conn = get_db()
+                cur = conn.cursor()
+                cur.execute("SELECT nonce, code_verifier, redirect_uri, created_at FROM auth_flows WHERE state = ?", (state,))
+                row = cur.fetchone()
+                if row:
+                    flow = {
+                        "nonce": row[0],
+                        "code_verifier": row[1],
+                        "redirect_uri": row[2],
+                        "created_at": row[3]
+                    }
+                    conn.execute("DELETE FROM auth_flows WHERE state = ?", (state,))
+                    conn.commit()
+                conn.close()
+            except Exception:
+                pass
+
         if not flow or (time.time() - flow.get("created_at", 0) > 900):
             record_audit_event(
                 event_type="AUTH_DENY",
@@ -1023,12 +1057,13 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         token_req_params = {
             "client_id": cfg["client_id"],
-            "client_secret": cfg["client_secret"],
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirect_uri,
             "scope": "openid profile email"
         }
+        if cfg.get("client_secret"):
+            token_req_params["client_secret"] = cfg["client_secret"]
         if code_verifier:
             token_req_params["code_verifier"] = code_verifier
 
@@ -1056,7 +1091,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 ip_address=client_ip,
                 details={"response": err_body[:300]}
             )
-            self._render_auth_redirect_html(error="Microsoft belirteç değişimi başarısız oldu. Lütfen tekrar deneyin.")
+            self._render_auth_redirect_html(error=f"Microsoft belirteç değişimi başarısız oldu (HTTP {e.code}): {err_body[:200]}")
             return
         except Exception as e:
             self._render_auth_redirect_html(error=f"Belirteç sunucusuna erişilemedi: {str(e)}")

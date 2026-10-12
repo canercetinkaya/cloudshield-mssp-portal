@@ -153,6 +153,16 @@ def main():
         ], check=False)
 
 
+    # 2b. Configure ENTRA_CLIENT_SECRET if provided via environment
+    entra_secret = os.environ.get("ENTRA_CLIENT_SECRET", "").strip()
+    if entra_secret:
+        print("=== Storing ENTRA_CLIENT_SECRET in ACA secrets store ===")
+        run_cmd([
+            "az", "containerapp", "secret", "set",
+            "-n", app_name, "-g", resource_group,
+            "--secrets", f"entra-client-secret={entra_secret}"
+        ], check=False)
+
     # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
     print(f"=== Discovering actual container name inside {app_name} ===")
     cname_res = run_cmd([
@@ -166,14 +176,17 @@ def main():
 
     # 3b. Update container image and enforce serverless scale-to-zero (min: 0, max: 1)
     print(f"=== Updating container image to {image_tag} with serverless scale-to-zero (min: 0, max: 1) ===")
-    run_cmd([
+    update_cmd = [
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--image", image_tag,
         "--min-replicas", "0",
         "--max-replicas", "1"
-    ])
+    ]
+    if entra_secret:
+        update_cmd.extend(["--set-env-vars", "ENTRA_CLIENT_SECRET=secretref:entra-client-secret"])
+    run_cmd(update_cmd)
 
     # 4. Detect active revisions mode
     rev_mode_res = run_cmd([
@@ -244,13 +257,16 @@ def main():
                 run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
     print("=== Ensuring serverless scale-to-zero: strictly single-replica (min=0 max=1) ===")
-    run_cmd([
+    second_update_cmd = [
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--min-replicas", "0",
         "--max-replicas", "1"
-    ], check=False)
+    ]
+    if entra_secret:
+        second_update_cmd.extend(["--set-env-vars", "ENTRA_CLIENT_SECRET=secretref:entra-client-secret"])
+    run_cmd(second_update_cmd, check=False)
 
     # 5. Resolve FQDN dynamically
     fqdn_res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "properties.configuration.ingress.fqdn", "-o", "tsv"], check=False)
