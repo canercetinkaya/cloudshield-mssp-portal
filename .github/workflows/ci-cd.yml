@@ -190,7 +190,7 @@ jobs:
       - name: 🚀 Deploy & Verify Revision in Azure Container Apps
         env:
           GITHUB_SHA: ${{ github.sha }}
-          CONTAINER_IMAGE_TAG: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:3.2.0-pilot"
+          CONTAINER_IMAGE_TAG: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:sha-${{ github.sha }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
         run: |

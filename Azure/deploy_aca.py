@@ -175,12 +175,14 @@ def main():
     print(f"[DISCOVERY] Actual container name in ACA: '{actual_container_name}'")
 
     # 3b. Update container image and enforce serverless scale-to-zero (min: 0, max: 1)
-    print(f"=== Updating container image to {image_tag} with serverless scale-to-zero (min: 0, max: 1) ===")
+    rev_suffix = f"r{github_sha[:7]}" if github_sha and github_sha != "latest" else f"r{int(time.time()) % 1000000}"
+    print(f"=== Updating container image to {image_tag} with revision suffix '{rev_suffix}' and serverless scale-to-zero (min: 0, max: 1) ===")
     update_cmd = [
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--image", image_tag,
+        "--revision-suffix", rev_suffix,
         "--min-replicas", "0",
         "--max-replicas", "1"
     ]
