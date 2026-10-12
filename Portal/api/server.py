@@ -555,8 +555,30 @@ def resolve_entra_user(claims):
             u_email = (u.get("Email") or "").lower().strip()
             u_upn = (u.get("Upn") or "").lower().strip()
             if upn in (alt_upn, u_email, u_upn) or email in (alt_upn, u_email, u_upn):
-                cur.execute("SELECT * FROM users WHERE id = ?", (u.get("Id"),))
+                uid = u.get("Id")
+                cur.execute("SELECT * FROM users WHERE id = ?", (uid,))
                 user_row = cur.fetchone()
+                if not user_row:
+                    dname = u.get("DisplayName", name)
+                    dept = u.get("Department", "MSSP")
+                    role_str = u.get("Role", "PlatformAdmin" if uid == "usr-001" else "ServiceOperator")
+                    now_sync = datetime.now(timezone.utc).isoformat()
+                    cur.execute(
+                        """INSERT INTO users (id, organization_id, upn, display_name, email, department,
+                                            password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
+                           VALUES (?, 'org-cloudshield', ?, ?, ?, ?, NULL, NULL, 1, 1, 'EntraID_OIDC', ?)""",
+                        (uid, u.get("Upn", upn), dname, u.get("Email", email), dept, now_sync)
+                    )
+                    role_id = "role-platform-admin" if role_str == "PlatformAdmin" else "role-service-operator"
+                    cur.execute(
+                        """INSERT OR IGNORE INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope,
+                                                                    service_scope, valid_from, is_temporary, is_active, created_by, created_at)
+                           VALUES (?, 'User', ?, ?, 'ALL', 'ALL', ?, 0, 1, 'system-sync', ?)""",
+                        (f"asgn-{uid}-auto", uid, role_id, now_sync, now_sync)
+                    )
+                    conn.commit()
+                    cur.execute("SELECT * FROM users WHERE id = ?", (uid,))
+                    user_row = cur.fetchone()
                 break
 
     now = datetime.now(timezone.utc).isoformat()
@@ -873,15 +895,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         self.wfile.write(body)
 
-    def get_current_user(self):
-
-        """Extract authenticated user object from session header or secure cookie."""
-
+    def _get_session_token(self):
+        """Extract authenticated session token from Authorization Bearer header or CS_SESSION cookie."""
         auth_hdr = self.headers.get("Authorization", "")
         tok = auth_hdr.replace("Bearer ", "").strip() if auth_hdr else ""
-
-        # Finding 8: Tokens in URL query parameters MUST BE PROHIBITED!
-        # Do not accept ?token= from query parameters under any circumstances.
 
         if not tok:
             cookie_hdr = self.headers.get("Cookie", "")
@@ -891,12 +908,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     if part.startswith("CS_SESSION="):
                         tok = part.split("=", 1)[1].strip()
                         break
+        return tok
 
+    def get_current_user(self):
+        """Extract authenticated user object from session header or secure cookie."""
+        tok = self._get_session_token()
         if tok:
             sess = get_session(tok)
             if sess:
                 return sess.get("user")
-
         return None
 
     def _enforce_auth_gate(self, method, path):
@@ -1166,13 +1186,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
     def _render_auth_redirect_html(self, token=None, user=None, error=None):
         import html
+        import urllib.parse
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         if token:
-            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400")
+            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400")
 
         if error:
             safe_err = html.escape(str(error))
+            quoted_err = urllib.parse.quote(str(error))
             body = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1184,14 +1206,15 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         <div style="font-size:32px;color:#ef4444;margin-bottom:12px;">⚠️</div>
         <h2 style="font-size:20px;font-weight:700;color:#ef4444;margin-top:0;">Giriş Başarısız Oldu</h2>
         <p style="font-size:14px;color:#cbd5e1;line-height:1.5;">{safe_err}</p>
-        <a href="/" style="display:inline-block;margin-top:16px;background:#334155;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 24px;border-radius:8px;">Giriş Ekranına Dön</a>
+        <a href="/?error={quoted_err}" style="display:inline-block;margin-top:16px;background:#334155;color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 24px;border-radius:8px;">Giriş Ekranına Dön</a>
     </div>
 </body>
 </html>"""
         else:
-            # Finding 9: Zero tokens in browser localStorage!
-            # Pure HttpOnly Secure cookie session with immediate redirection.
-            body = """<!DOCTYPE html>
+            token_js = json.dumps(token or "")
+            user_json_str = json.dumps(user or {}, ensure_ascii=False)
+            user_js = json.dumps(user_json_str, ensure_ascii=False)
+            body = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -1203,11 +1226,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         <p style="font-size:13px;color:#94a3b8;">CloudShield MSSP Portalına aktarılıyorsunuz...</p>
     </div>
     <script>
-        // Strictly purge any legacy tokens from browser localStorage
-        try {
-            localStorage.removeItem('cloudshield_auth_token');
-            localStorage.removeItem('cloudshield_user');
-        } catch(e) {}
+        try {{
+            localStorage.setItem('cloudshield_auth_token', {token_js});
+            localStorage.setItem('cloudshield_user', {user_js});
+        }} catch(e) {{
+            console.error('Session storage error:', e);
+        }}
         window.location.replace('/');
     </script>
 </body>
@@ -1851,7 +1875,8 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/auth/me":
             u = self.get_current_user()
             if u:
-                self.send_json_response({"success": True, "user": u})
+                tok = self._get_session_token()
+                self.send_json_response({"success": True, "user": u, "token": tok})
             else:
                 self.send_json_response({"success": False, "error": "Oturum bulunamadı veya süresi dolmuş"}, status=401)
             return

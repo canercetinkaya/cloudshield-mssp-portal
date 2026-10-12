@@ -3055,9 +3055,13 @@
 
     <!-- JAVASCRIPT MOTORU -->
     <script>
-        // Otomatik API Authorization Header Sarmalayıcı (Bearer Token Enjeksiyonu)
+        // Otomatik API Authorization Header Sarmalayıcı (Bearer Token Enjeksiyonu & Cookie Sync)
         const _origFetch = window.fetch;
         window.fetch = function (url, options = {}) {
+            options = options || {};
+            if (!options.credentials) {
+                options.credentials = 'include';
+            }
             const token = localStorage.getItem('cloudshield_auth_token');
             if (token && typeof url === 'string' && url.startsWith('/api/')) {
                 options.headers = options.headers || {};
@@ -3113,10 +3117,32 @@
             let token = localStorage.getItem('cloudshield_auth_token');
             const overlay = document.getElementById('loginOverlay');
 
-            // Eğer localStorage'da token yoksa, HttpOnly çerez ile aktif oturumu kontrol et
+            // 1. Eğer localStorage'da token yoksa, HttpOnly çerez ile aktif oturumu kontrol et
             if (!token) {
                 try {
-                    const res = await fetch('/api/auth/me');
+                    const res = await fetch('/api/auth/me', { credentials: 'include' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.user) {
+                            if (data.token) {
+                                localStorage.setItem('cloudshield_auth_token', data.token);
+                                token = data.token;
+                            }
+                            localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
+                            if (overlay) overlay.classList.add('hidden');
+                            applyUserProfile(data.user);
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('SSO çerez kontrolü hatası:', e);
+                }
+            }
+
+            // 2. Token varsa doğruluğunu /api/auth/me ile teyit et
+            if (token) {
+                try {
+                    const res = await fetch('/api/auth/me', { credentials: 'include' });
                     if (res.ok) {
                         const data = await res.json();
                         if (data.success && data.user) {
@@ -3125,19 +3151,25 @@
                             applyUserProfile(data.user);
                             return true;
                         }
+                    } else if (res.status === 401) {
+                        localStorage.removeItem('cloudshield_auth_token');
+                        localStorage.removeItem('cloudshield_user');
+                        if (overlay) overlay.classList.remove('hidden');
+                        return false;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Geçici ağ kopmasında / cold-start durumunda mevcut profille devam et
+                    const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
+                    if (user && (user.id || user.displayName)) {
+                        if (overlay) overlay.classList.add('hidden');
+                        applyUserProfile(user);
+                        return true;
+                    }
+                }
             }
 
-            if (!token) {
-                if (overlay) overlay.classList.remove('hidden');
-                return false;
-            } else {
-                if (overlay) overlay.classList.add('hidden');
-                const user = JSON.parse(localStorage.getItem('cloudshield_user') || '{}');
-                applyUserProfile(user);
-                return true;
-            }
+            if (overlay) overlay.classList.remove('hidden');
+            return false;
         }
 
         let currentLanguage = 'tr';

@@ -195,6 +195,7 @@ class TestEntraIdOidcSSO(unittest.TestCase):
         data = json.loads(res.read().decode("utf-8"))
         self.assertTrue(data.get("success"))
         self.assertEqual(data["user"]["displayName"], "Caner Çetinkaya")
+        self.assertEqual(data.get("token"), token)
 
     def test_08_api_auth_me_unauthenticated(self):
         """Verify GET /api/auth/me returns 401 when no session cookie or token is provided."""
@@ -233,6 +234,36 @@ class TestEntraIdOidcSSO(unittest.TestCase):
             self.fail("Expected 410 Gone")
         except urllib.error.HTTPError as e:
             self.assertEqual(e.code, 410)
+
+    def test_11_sso_redirect_html_cookie_and_localstorage(self):
+        """Verify _render_auth_redirect_html sets SameSite=Lax cookie and writes token/user to localStorage."""
+        from io import BytesIO
+        token = "tok-redirect-test-12345"
+        test_user = {"id": "usr-001", "displayName": "Caner Çetinkaya"}
+
+        class DummyHandler:
+            def __init__(self):
+                self.headers_sent = []
+                self.status_code = None
+                self.wfile = BytesIO()
+            def send_response(self, code):
+                self.status_code = code
+            def send_header(self, k, v):
+                self.headers_sent.append((k, v))
+            def end_headers(self):
+                pass
+
+        dh = DummyHandler()
+        MSSPPortalHandler._render_auth_redirect_html(dh, token=token, user=test_user)
+        self.assertEqual(dh.status_code, 200)
+        cookie_header = next((v for k, v in dh.headers_sent if k == "Set-Cookie"), "")
+        self.assertIn("SameSite=Lax", cookie_header)
+        self.assertIn(f"CS_SESSION={token}", cookie_header)
+
+        html_output = dh.wfile.getvalue().decode("utf-8")
+        self.assertIn(f"localStorage.setItem('cloudshield_auth_token', \"{token}\")", html_output)
+        self.assertIn("localStorage.setItem('cloudshield_user'", html_output)
+        self.assertIn("Caner Çetinkaya", html_output)
 
 if __name__ == "__main__":
     unittest.main()
