@@ -18,9 +18,10 @@ ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV ENVIRONMENT=production
 
-# Install Python 3.11, Chromium dependencies, and system utilities
+# Install Python 3.11, pip, Chromium dependencies, and system utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
+    python3-pip \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
@@ -33,6 +34,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && (dpkg -i /tmp/google-chrome.deb || apt-get install -y -f --no-install-recommends) \
     && rm -f /tmp/google-chrome.deb \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python production dependencies (PyJWT and Cryptography for RFC 7519 / OIDC JWKS)
+COPY requirements.txt /tmp/requirements.txt
+RUN (python3 -m pip install --no-cache-dir -r /tmp/requirements.txt || \
+     pip3 install --no-cache-dir -r /tmp/requirements.txt || \
+     (curl -sS https://bootstrap.pypa.io/get-pip.py | python3 && python3 -m pip install --no-cache-dir -r /tmp/requirements.txt)) && \
+    rm -f /tmp/requirements.txt
 
 # Create dedicated non-root application user and group
 RUN groupadd -g 10001 cloudshield && \
@@ -60,7 +68,8 @@ RUN python3 -m py_compile /app/Portal/api/report_generator.py && \
     python3 -m py_compile /app/Portal/api/license_catalog_updater.py && \
     python3 -m py_compile /app/Portal/api/license_report_generator.py && \
     python3 -m py_compile /app/database/db.py && \
-    echo "[BUILD] Python syntax verification passed."
+    python3 -c "import jwt, cryptography; print('[BUILD] PyJWT and cryptography verified:', jwt.__version__)" && \
+    echo "[BUILD] Python syntax and security dependencies verification passed."
 
 # Switch to non-root user
 USER cloudshield

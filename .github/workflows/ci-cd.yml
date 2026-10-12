@@ -106,6 +106,7 @@ jobs:
           VERSION_RESP=$(curl --fail http://localhost:8080/api/version)
           echo "Version Response: $VERSION_RESP"
           echo "$VERSION_RESP" | grep -q "v3.2.0-LICENSE-INTELLIGENCE"
+          docker exec test-app python3 -c "import jwt, cryptography; print('[SMOKE] PyJWT & Cryptography verified in running container:', jwt.__version__)"
           docker stop test-app
 
       - name: 🛡️ Container Güvenlik Açığı Taraması (Trivy Scan)
