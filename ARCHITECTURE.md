@@ -6,7 +6,7 @@
 **Sınıflandırma:** Kurumsal Sistem Mimarisi ve Güvenlik Spesifikasyonu  
 **Durum:** Kontrollü Pilot (Controlled Pilot Architecture)  
 **Çalışma Mimarisi:** Çift Motor (Python 3.11 Standart Kütüphane REST API + PowerShell 7.4 Telemetri Motoru)  
-**Bulut Altyapısı:** Azure Container Apps (Tek Replika Güvenlik Kilidi: `minReplicas: 1 | maxReplicas: 1`)  
+**Bulut Altyapısı:** Azure Container Apps (Serverless Scale-to-Zero Maliyet Optimizasyonu & Tek Replika Kilidi: `minReplicas: 0 | maxReplicas: 1`)  
 **Kimlik Sağlayıcı:** Microsoft Entra ID (OIDC SSO, PKCE RFC 7636)  
 
 ---

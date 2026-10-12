@@ -62,7 +62,7 @@ docker compose -f Docker/docker-compose.yml up -d
 
 Platform Azure üzerinde Bicep şablonu (`Azure/main.bicep`) ve minimal yetkili Managed Identity ile çalışır:
 
-1. **Ölçekleme Kilidi:** `Azure/main.bicep` dosyasında `minReplicas: 1` ve `maxReplicas: 1` olarak ayarlanmıştır.
+1. **Ölçekleme ve Maliyet Kilidi:** `Azure/main.bicep` dosyasında `minReplicas: 0` ve `maxReplicas: 1` olarak yapılandırılmıştır. İstek olmadığında (gece saatleri ve boş zamanlarda) otomatik 0 replikaya inerek maliyeti sıfırlar; HTTP isteği geldiğinde 5-10 saniye içinde uyanır. SQLite için eşzamanlı tek replika garantisi korunur.
 2. **Kayıt Defteri (Registry):** GitHub Container Registry (`ghcr.io/canercetinkaya/cloudshield-mssp-portal`) veya Azure Container Registry (ACR).
 3. **Key Vault Yetkisi:** Container App Managed Identity'sine Key Vault üzerinde `Key Vault Secrets User` RBAC rolü verilir.
 

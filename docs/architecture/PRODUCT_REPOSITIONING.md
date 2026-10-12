@@ -62,7 +62,7 @@ The platform supports the following 12 managed service workloads across the Micr
 - **Executive Value Dashboards:** Single-tenant view showcasing the 4 Value Pillars (Autonomous Blocks, MSSP Engineering Hours Saved, IT Actions, Posture Elevation).
 
 #### P2: Infrastructure Hardening & Scalability (Platform Assurance)
-- **Azure Container Apps Single-Replica Constraint:** Locked to `minReplicas=1, maxReplicas=1` while running on SQLite + Azure Files, ensuring zero database locking conflicts and serialized WAL transactions.
+- **Azure Container Apps Scale-to-Zero & Single-Replica Constraint:** Configured with `minReplicas=0, maxReplicas=1` while running on SQLite + Azure Files, ensuring zero off-hours idle compute cost, zero database locking conflicts, and serialized WAL transactions.
 - **DevSecOps Automation:** GitHub Actions workflows incorporating TruffleHog, Gitleaks, CodeQL SAST, and automated quality gates on every pull request.
 - **Scalable Database Blueprint:** Documented migration path to Azure Database for PostgreSQL Flexible Server for post-pilot multi-replica scaling.
 
@@ -138,7 +138,7 @@ flowchart TD
 **Verdict:** **GO WITH CONDITIONS**
 
 #### Operational Conditions for Pilot Deployment:
-1. **Replica Count:** `minReplicas=1` and `maxReplicas=1` must be strictly maintained in the Azure Container App configuration.
+1. **Replica Count & Idle Cost:** `minReplicas=0` and `maxReplicas=1` must be strictly maintained in the Azure Container App configuration for idle scale-to-zero cost reduction and single-replica database safety.
 2. **Database Mode:** SQLite must operate with `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=5000`.
 3. **Authentication:** All pilot users must authenticate via Entra ID OIDC SSO with PKCE S256. Local developer login is disabled by default.
 4. **Key Vault Access:** Container App Managed Identity must have minimal read-only secret/certificate permissions (`Key Vault Secrets User`) through Private Endpoints or restricted VNet service endpoints.

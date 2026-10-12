@@ -224,7 +224,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
       ]
       scale: {
-        minReplicas: 1 // Controlled Pilot: Strict single-replica mode
+        minReplicas: 0 // Serverless Scale-to-Zero: 0 replicas when idle to eliminate off-hours compute costs (18:00 - 10:00 & weekends)
         maxReplicas: 1 // Prohibits multi-replica race conditions on shared SQLite storage
         rules: [
           {

@@ -3,26 +3,26 @@
   "contentVersion": "1.0.0.0",
   "metadata": {
     "_generator": {
-      "name": "CloudShield MSSP Architecture Generator",
-      "version": "3.2.0"
-    },
-    "description": "CloudShield Security Reporting & Managed Services Visibility Platform (v3.2.0-LICENSE-INTELLIGENCE) Serverless Deployment for Azure Container Apps."
+      "name": "bicep",
+      "version": "0.47.16.16243",
+      "templateHash": "15069987263105007199"
+    }
   },
   "parameters": {
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Kaynakların konuşlandırılacağı Azure bölgesi (Örn: westeurope, northeurope, uksouth)"
+        "description": "Kaynakların konuşlandırılacağı Azure bölgesi"
       }
     },
     "prefix": {
       "type": "string",
-      "defaultValue": "cs-mssp",
+      "defaultValue": "cloudshield-mssp",
       "minLength": 3,
       "maxLength": 16,
       "metadata": {
-        "description": "Kaynak adı öneki (3-16 karakter, küçük harf ve tire)"
+        "description": "Kaynak adı öneki (Örn: cloudshield-mssp)"
       }
     },
     "environmentType": {
@@ -34,7 +34,7 @@
         "prod"
       ],
       "metadata": {
-        "description": "Konuşlandırma ortamı türü (poc: MCT bütçesine optimize; prod: tam ölçekli)"
+        "description": "Konuşlandırma ortamı"
       }
     },
     "containerImage": {
@@ -47,47 +47,44 @@
     "cpuCores": {
       "type": "string",
       "defaultValue": "0.5",
-      "allowedValues": [
-        "0.25",
-        "0.5",
-        "0.75",
-        "1.0"
-      ],
       "metadata": {
-        "description": "Konteyner vCPU miktarı"
+        "description": "Konteyner vCPU miktarı (0.25, 0.5, 0.75, 1.0)"
       }
     },
     "memorySize": {
       "type": "string",
       "defaultValue": "1.0Gi",
-      "allowedValues": [
-        "0.5Gi",
-        "1.0Gi",
-        "2.0Gi"
-      ],
       "metadata": {
-        "description": "Konteyner RAM miktarı"
+        "description": "Konteyner RAM miktarı (0.5Gi, 1.0Gi, 2.0Gi)"
       }
     },
-    "keyVaultName": {
+    "adminPrincipalId": {
       "type": "string",
-      "defaultValue": "[toLower(concat('cs-kv-', substring(uniqueString(resourceGroup().id), 0, 6)))]",
-      "maxLength": 24,
+      "defaultValue": "",
       "metadata": {
-        "description": "Azure Key Vault Adı (3-24 karakter, küçük harf, rakam ve tire)"
+        "description": "Opsiyonel: Key Vault üzerinde sır ve sertifika yönetimi yapacak yönetici/kullanıcı Object ID (GUID)"
+      }
+    },
+    "adminPrincipalType": {
+      "type": "string",
+      "defaultValue": "User",
+      "allowedValues": [
+        "User",
+        "ServicePrincipal",
+        "Group"
+      ],
+      "metadata": {
+        "description": "Yönetici kimlik türü (User, ServicePrincipal, Group)"
       }
     }
   },
   "variables": {
     "uniqueSuffix": "[substring(uniqueString(resourceGroup().id), 0, 6)]",
-    "storageAccountName": "[toLower(concat('csmssp', variables('uniqueSuffix'), 'sa'))]",
-    "keyVaultName": "[parameters('keyVaultName')]",
-    "logAnalyticsName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-law')]",
-    "acaEnvName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-env')]",
-    "containerAppName": "[concat(parameters('prefix'), '-', parameters('environmentType'), '-app')]",
-    "blobDataContributorRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
-    "keyVaultSecretsUserRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
-    "keyVaultCertificateUserRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')]"
+    "storageAccountName": "[toLower(format('{0}{1}sa', replace(parameters('prefix'), '-', ''), variables('uniqueSuffix')))]",
+    "keyVaultName": "[toLower(format('cs-kv-{0}', variables('uniqueSuffix')))]",
+    "logAnalyticsName": "[format('{0}-{1}-law', parameters('prefix'), parameters('environmentType'))]",
+    "acaEnvName": "[format('{0}-{1}-env', parameters('prefix'), parameters('environmentType'))]",
+    "containerAppName": "[format('{0}-{1}-app', parameters('prefix'), parameters('environmentType'))]"
   },
   "resources": [
     {
@@ -116,30 +113,55 @@
         "supportsHttpsTrafficOnly": true,
         "minimumTlsVersion": "TLS1_2",
         "allowBlobPublicAccess": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'reports-archive')]",
+      "properties": {
+        "publicAccess": "None"
       },
-      "resources": [
-        {
-          "type": "blobServices/containers",
-          "apiVersion": "2023-01-01",
-          "name": "default/reports-archive",
-          "dependsOn": [
-            "[variables('storageAccountName')]"
-          ],
-          "properties": {
-            "publicAccess": "None"
-          }
-        },
-        {
-          "type": "blobServices/containers",
-          "apiVersion": "2023-01-01",
-          "name": "default/portal-data",
-          "dependsOn": [
-            "[variables('storageAccountName')]"
-          ],
-          "properties": {
-            "publicAccess": "None"
-          }
-        }
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'portal-data')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'cloudshield-data')]",
+      "properties": {
+        "shareQuota": 10
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', variables('storageAccountName'), 'default')]"
       ]
     },
     {
@@ -160,7 +182,7 @@
         },
         "networkAcls": {
           "bypass": "AzureServices",
-          "defaultAction": "Allow"
+          "defaultAction": "Deny"
         }
       }
     },
@@ -169,9 +191,6 @@
       "apiVersion": "2023-05-01",
       "name": "[variables('acaEnvName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
-      ],
       "properties": {
         "appLogsConfiguration": {
           "destination": "log-analytics",
@@ -180,7 +199,28 @@
             "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2022-10-01').primarySharedKey]"
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments/storages",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', variables('acaEnvName'), 'cloudshielddata')]",
+      "properties": {
+        "azureFile": {
+          "accountName": "[variables('storageAccountName')]",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-01-01').keys[0].value]",
+          "shareName": "cloudshield-data",
+          "accessMode": "ReadWrite"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('acaEnvName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', variables('storageAccountName'), 'default', 'cloudshield-data')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
     },
     {
       "type": "Microsoft.App/containerApps",
@@ -190,11 +230,6 @@
       "identity": {
         "type": "SystemAssigned"
       },
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('acaEnvName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-      ],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('acaEnvName'))]",
         "configuration": {
@@ -206,6 +241,13 @@
           }
         },
         "template": {
+          "volumes": [
+            {
+              "name": "cloudshield-data-vol",
+              "storageType": "AzureFile",
+              "storageName": "cloudshielddata"
+            }
+          ],
           "containers": [
             {
               "name": "cloudshield-mssp-portal",
@@ -214,6 +256,12 @@
                 "cpu": "[json(parameters('cpuCores'))]",
                 "memory": "[parameters('memorySize')]"
               },
+              "volumeMounts": [
+                {
+                  "volumeName": "cloudshield-data-vol",
+                  "mountPath": "/app/Data"
+                }
+              ],
               "env": [
                 {
                   "name": "PORT",
@@ -231,18 +279,11 @@
                   "name": "ENVIRONMENT",
                   "value": "[parameters('environmentType')]"
                 }
-              ],
-              "command": [
-                "/bin/bash",
-                "-c"
-              ],
-              "args": [
-                "if [ -f /app/Docker/entrypoint.sh ]; then bash /app/Docker/entrypoint.sh; else apt-get update && apt-get install -y git python3 curl ca-certificates && git clone -b pilot/controlled-pilot-finalization https://github.com/canercetinkaya/cloudshield-mssp-portal.git /app && bash /app/Docker/entrypoint.sh; fi"
               ]
             }
           ],
           "scale": {
-            "minReplicas": 1,
+            "minReplicas": 0,
             "maxReplicas": 1,
             "rules": [
               {
@@ -256,49 +297,73 @@
             ]
           }
         }
-      }
-    },
-    {
-      "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "name": "[concat(variables('keyVaultName'), '/Microsoft.Authorization/', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), variables('keyVaultSecretsUserRoleId')))]",
+      },
       "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('acaEnvName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', variables('acaEnvName'), 'cloudshielddata')]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]"
-      ],
-      "properties": {
-        "roleDefinitionId": "[variables('keyVaultSecretsUserRoleId')]",
-        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'Full').identity.principalId]",
-        "principalType": "ServicePrincipal"
-      }
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
     },
     {
-      "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
+      "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "name": "[concat(variables('keyVaultName'), '/Microsoft.Authorization/', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), variables('keyVaultCertificateUserRoleId')))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]"
-      ],
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))]",
       "properties": {
-        "roleDefinitionId": "[variables('keyVaultCertificateUserRoleId')]",
-        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'Full').identity.principalId]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'full').identity.principalId]",
         "principalType": "ServicePrincipal"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/providers/roleAssignments",
+      "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "name": "[concat(variables('storageAccountName'), '/Microsoft.Authorization/', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), variables('blobDataContributorRoleId')))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]"
-      ],
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))]",
       "properties": {
-        "roleDefinitionId": "[variables('blobDataContributorRoleId')]",
-        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'Full').identity.principalId]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'full').identity.principalId]",
         "principalType": "ServicePrincipal"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.App/containerApps', variables('containerAppName')), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')]",
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('containerAppName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('adminPrincipalId')))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('adminPrincipalId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b391-77e1613c4fc0'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b391-77e1613c4fc0')]",
+        "principalId": "[parameters('adminPrincipalId')]",
+        "principalType": "[parameters('adminPrincipalType')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
     }
   ],
   "outputs": {
@@ -308,7 +373,7 @@
     },
     "portalUrl": {
       "type": "string",
-      "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01').configuration.ingress.fqdn)]"
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01').configuration.ingress.fqdn)]"
     },
     "storageAccountName": {
       "type": "string",
@@ -325,6 +390,14 @@
     "containerAppName": {
       "type": "string",
       "value": "[variables('containerAppName')]"
+    },
+    "containerAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppName')), '2023-05-01', 'full').identity.principalId]"
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2022-10-01').customerId]"
     }
   }
 }

@@ -164,13 +164,15 @@ def main():
     actual_container_name = cname_res.stdout.strip() if cname_res.returncode == 0 and cname_res.stdout.strip() else "cloudshield-mssp-portal"
     print(f"[DISCOVERY] Actual container name in ACA: '{actual_container_name}'")
 
-    # 3b. Update container image only (minimal diff - does NOT touch ingress/secrets/scale)
-    print(f"=== Updating container image to {image_tag} (container: {actual_container_name}) ===")
+    # 3b. Update container image and enforce serverless scale-to-zero (min: 0, max: 1)
+    print(f"=== Updating container image to {image_tag} with serverless scale-to-zero (min: 0, max: 1) ===")
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
-        "--image", image_tag
+        "--image", image_tag,
+        "--min-replicas", "0",
+        "--max-replicas", "1"
     ])
 
     # 4. Detect active revisions mode
