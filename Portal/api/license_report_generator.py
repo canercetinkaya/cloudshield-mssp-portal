@@ -168,6 +168,46 @@ def generate_license_health_report(license_data, tenant_meta=None, previous_snap
             <td><span class="badge {'badge-success' if 'Tam Değer' in pw.get('realization_status') else 'badge-warning'}">{pw.get('realization_status')}</span></td>
         </tr>
         """
+    # Pre-render conditional HTML blocks (for full Python 3.11+ compatibility without nested f-strings)
+    if duplicate_users:
+        duplicates_section_html = f"""<table>
+            <thead>
+                <tr>
+                    <th>Kullanıcı (UPN)</th>
+                    <th>Departman</th>
+                    <th>Atanmış Çakışan SKU'lar</th>
+                    <th>Risk Açıklaması</th>
+                    <th>Önerilen Aksiyon</th>
+                </tr>
+            </thead>
+            <tbody>
+                {dup_rows}
+            </tbody>
+        </table>"""
+    else:
+        duplicates_section_html = "<div class='action-box'>Mükerrer veya üst üste binen lisans ataması tespit edilmemiştir. Lisans atama hijyeni tamdır.</div>"
+
+    if missing_prereqs:
+        prereqs_section_html = f"<p style='color: #dc2626; font-weight: 600;'>{len(missing_prereqs)} kullanıcıda temel lisans ön koşulu sağlanmadan atanmış güvenlik eklentisi (E5 Security / Compliance / Copilot) tespit edilmiştir.</p>"
+    else:
+        prereqs_section_html = "<div class='action-box'>Tüm lisans eklentileri yetkili ve geçerli temel lisans paketleri (Base SKUs) üzerinde yapılandırılmıştır.</div>"
+
+    if inactive_licensed:
+        inactive_section_html = f"""<table>
+            <thead>
+                <tr>
+                    <th>Hesap Adı (UPN)</th>
+                    <th>Hesap Durumu</th>
+                    <th>Üzerinde Kalan Lisanslar</th>
+                    <th>Optimizasyon Aksiyonu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {inactive_rows}
+            </tbody>
+        </table>"""
+    else:
+        inactive_section_html = "<div class='action-box'>Devre dışı bırakılmış veya ayrılmış kullanıcılar üzerinde asılı kalmış lisans bulunmamaktadır.</div>"
 
     html_content = f"""<!DOCTYPE html>
 <html lang="tr">
@@ -420,26 +460,13 @@ def generate_license_health_report(license_data, tenant_meta=None, previous_snap
     <!-- 5. Mükerrer ve Çakışan Lisans Denetimi -->
     <div class="section">
         <div class="section-title"><span class="section-num">5</span> Mükerrer ve Çakışan Lisans Denetimi</div>
-        {f"""<table>
-            <thead>
-                <tr>
-                    <th>Kullanıcı (UPN)</th>
-                    <th>Departman</th>
-                    <th>Atanmış Çakışan SKU'lar</th>
-                    <th>Risk Açıklaması</th>
-                    <th>Önerilen Aksiyon</th>
-                </tr>
-            </thead>
-            <tbody>
-                {dup_rows}
-            </tbody>
-        </table>""" if duplicate_users else "<div class='action-box'>Mükerrer veya üst üste binen lisans ataması tespit edilmemiştir. Lisans atama hijyeni tamdır.</div>"}
+        {duplicates_section_html}
     </div>
 
     <!-- 6. Eklenti (Add-on) Ön Koşul Doğrulaması -->
     <div class="section">
         <div class="section-title"><span class="section-num">6</span> Eklenti (Add-on) Ön Koşul Doğrulaması</div>
-        {f"""<p style='color: #dc2626; font-weight: 600;'>{len(missing_prereqs)} kullanıcıda temel lisans ön koşulu sağlanmadan atanmış güvenlik eklentisi (E5 Security / Compliance / Copilot) tespit edilmiştir.</p>""" if missing_prereqs else "<div class='action-box'>Tüm lisans eklentileri yetkili ve geçerli temel lisans paketleri (Base SKUs) üzerinde yapılandırılmıştır.</div>"}
+        {prereqs_section_html}
     </div>
 
     <!-- 7. Atıl ve Boşta Kalan Lisans Optimizasyonu -->
@@ -454,19 +481,7 @@ def generate_license_health_report(license_data, tenant_meta=None, previous_snap
     <!-- 8. Pasif / Ayrılmış Kullanıcı Lisans Riski -->
     <div class="section">
         <div class="section-title"><span class="section-num">8</span> Pasif / Ayrılmış Kullanıcı Lisans Riski</div>
-        {f"""<table>
-            <thead>
-                <tr>
-                    <th>Hesap Adı (UPN)</th>
-                    <th>Hesap Durumu</th>
-                    <th>Üzerinde Kalan Lisanslar</th>
-                    <th>Optimizasyon Aksiyonu</th>
-                </tr>
-            </thead>
-            <tbody>
-                {inactive_rows}
-            </tbody>
-        </table>""" if inactive_licensed else "<div class='action-box'>Devre dışı bırakılmış veya ayrılmış kullanıcılar üzerinde asılı kalmış lisans bulunmamaktadır.</div>"}
+        {inactive_section_html}
     </div>
 
     <!-- 9. Servis Planı Devre Dışı Bırakılmış Yetenekler -->
