@@ -1,60 +1,68 @@
-# Güvenlik Politikası ve Zero Trust Mimarisi (SECURITY.md)
+# Güvenlik Politikası (SECURITY.md)
 ## CloudShield Security Reporting & Managed Services Visibility Platform
 
-Bu belge, CloudShield platformunun güvenlik standartlarını, veri gizliliği yaklaşımını ve güvenlik açığı bildirim prosedürlerini açıklar.
+Bu belge, CloudShield platformunun güvenlik ilkelerini, desteklenen sürümlerini, kimlik doğrulama ve yetkilendirme standartlarını ve güvenlik açığı bildirim sürecini açıklar.
 
 ---
 
 ### 1. Desteklenen Sürümler
 
-Güvenlik güncellemeleri ve yamaları aşağıdaki sürümler için aktif olarak sağlanır:
+Güvenlik güncellemeleri ve hata düzeltmeleri aşağıdaki sürümler için sağlanır:
 
-| Sürüm | Yayın Etiketi | Durum | Destek |
+| Sürüm Ailesi | Güncel Etiket | Durum | Güvenlik Desteği |
 | :--- | :--- | :--- | :---: |
-| **v3.1.x** | `v3.1.0-REPORTING-VISIBILITY` | **Aktif Sürüm (Controlled Pilot)** | ✅ Tam Destek |
-| **v3.0.x** | `v3.0.0-ENTERPRISE` | Önceki Sürüm | ⚠️ Yalnızca Güvenlik Yaması |
-| **< v3.0** | Legacy Sürümler | Kullanım Dışı | ❌ Desteklenmiyor |
+| **v3.2.x** | `v3.2.0-LICENSE-INTELLIGENCE` | **Aktif Sürüm (Controlled Pilot)** | ✅ Tam Destek |
+| **v3.1.x** | `v3.1.0-REPORTING-VISIBILITY` | Önceki Sürüm | ⚠️ Kritik Güvenlik Yamaları |
+| **< v3.1** | Legacy Sürümler | Kullanım Dışı | ❌ Desteklenmiyor |
 
 ---
 
-### 2. Zero Trust Güvenlik İlkeleri
+### 2. Temel Güvenlik İlkeleri
 
-1. **Git Deposunda Sıfır Açık Metin Secret:**
-   - Müşteri tenant gizli anahtarları, sertifikalar, API token'ları veya yönetici parolaları depoya commit edilemez.
-   - Tüm kimlik bilgileri Azure Key Vault veya ortam değişkenleri (`ENVIRONMENT VARIABLES`) üzerinden temin edilir.
-   - `.gitignore` ve `.dockerignore` kuralları tüm yerel yapılandırma ve veritabanlarını (`*.db`, `.env`) kesin olarak dışlar.
+CloudShield, Microsoft güvenlik ve uyumluluk verilerini raporlarken aşağıdaki güvenlik standartlarını uygular:
 
-2. **Managed Identity ve En Az Yetki (Least Privilege):**
-   - Bulut ortamında (Azure Container Apps) Key Vault erişimi için Kullanıcı Tanımlı veya Sistem Tanımlı Managed Identity kullanılır; bağlantı dizesi veya statik credential kullanılmaz.
-   - Kimlik bilgisi için yalnızca `Key Vault Secrets User` (salt okunur) RBAC rolü verilir.
+#### 2.1. Kimlik Bilgisi ve Gizli Anahtar Yönetimi
+- **Sıfır Açık Metin Secret:** Kod deposunda müşteri anahtarları, sertifikalar, API token'ları veya yönetici parolaları barındırılmaz.
+- **Azure Key Vault & Managed Identity:** Bulut dağıtımlarında (Azure Container Apps) kimlik bilgileri Key Vault üzerinden çekilir. Uygulama, Key Vault'a statik şifrelerle değil, Azure Managed Identity ve en az yetkili `Key Vault Secrets User` (salt-okunur) RBAC rolü ile erişir.
+- **Ortam Değişkenleri:** Yerel ve CI/CD ortamlarında yapılandırmalar güvenli ortam değişkenleri üzerinden yönetilir; `.env` ve yerel veritabanı dosyaları git takibinden hariç tutulur.
 
-3. **Üretim Ortamında Zorunlu Entra ID OIDC SSO:**
-   - Üretim ortamında yerel parola ile giriş (`/api/auth/login`) varsayılan olarak kapalıdır (`403 Forbidden`).
-   - Tüm oturumlar Microsoft Entra ID OIDC Authorization Code Flow ve PKCE (RFC 7636) ile açılır.
-   - Oturum çerezleri `HttpOnly; Secure; SameSite=Strict; Path=/` bayrakları ile korunur.
+#### 2.2. En Az Yetki (Least Privilege) ve Salt-Okunur API Erişimi
+- Platform yalnızca raporlama, durum tespiti ve lisans optimizasyon görünürlüğü sunar.
+- Müşteri ortamlarında **kesinlikle hiçbir kaynak oluşturulmaz, değiştirilmez veya silinmez**.
+- Kullanılan Microsoft Graph ve Defender API izinleri tamamen salt-okunurdur:
+  - **Lisans Zekâsı:** `Organization.Read.All`, `Reports.Read.All`, `Directory.Read.All`
+  - **Uç Nokta ve Posta:** `Machine.Read.All`, `SecurityEvents.Read.All`
+  - **Intune ve Purview:** `DeviceManagementManagedDevices.Read.All`, `InformationProtectionPolicy.Read.All`
+- Asla `Directory.ReadWrite.All` veya kiracı konfigürasyonunu değiştirebilecek yazma yetkileri talep edilmez. Eksik izin durumlarında sistem işlemi durdurmaz; ilgili bölümü şeffafça `İzin Yok` / `N/A` olarak raporlar.
 
-4. **Çok Boyutlu Yetkilendirme ve Kiracı İzolasyonu:**
-   - Her API isteği, müşteri kimliği ve abone olunan servis kimliği (`customer_id`, `service_code`) kontrolünden geçer.
-   - Yetkisiz çapraz kiracı (cross-tenant) erişimleri fail-closed mantığıyla `403 Forbidden` ile engellenir.
-   - Rapor indirmeleri rastgele dosya yoluyla değil, merkezi `report_id` kaydı (`/api/reports/{id}/download`) üzerinden doğrulanarak teslim edilir.
+#### 2.3. Kimlik Doğrulama ve Oturum Yönetimi
+- **Canlı Ortamda Entra ID OIDC SSO:** Üretim ortamında yerel kullanıcı adı/şifre girişi devre dışıdır (`403 Forbidden`). Oturumlar Microsoft Entra ID üzerinden Authorization Code Flow ve PKCE (RFC 7636) ile açılır.
+- **Güvenli Çerezler:** Oturum kimlikleri `HttpOnly`, `Secure`, `SameSite=Strict` bayraklarına sahip çerezler içinde saklanır. İstemci tarafında (localStorage / sessionStorage) hassas token tutulmaz.
 
-5. **Veri Gizliliği, KVKK ve Maskeleme:**
-   - Ham e-posta içerikleri, dosya gövdeleri veya kişisel veriler diske kaydedilmez.
-   - Kullanıcı kimlikleri ve dosya adları dinamik olarak maskelenir (`k-anon***@domain.com`, `Mali_Rapor_***.xlsx`).
+#### 2.4. Müşteri ve Kiracı İzolasyonu
+- Çok kiracılı (multi-tenant) mimaride her API çağrısı oturum açan kullanıcının müşteri kimliği ve yetkili olduğu servis kodları ile doğrulanır.
+- Çapraz kiracı (cross-tenant) erişim girişimleri doğrudan reddedilir.
+- Rapor dosyaları rasgele dosya yolları üzerinden değil, sistemde kayıtlı tekil `report_id` değerleri doğrulanarak (`/api/reports/{id}/download`) güvenli şekilde sunulur.
 
-6. **SQLite Tek Replika Güvenlik Kilidi:**
-   - SQLite veritabanı bozulmasını önlemek için sistem tek replika (`MAX_REPLICAS=1`) ile kilitlidir. Çoklu replika tespit edildiğinde açılış fail-closed ile durdurulur.
+#### 2.5. Veri Mahremiyeti, Maskeleme ve KVKK / GDPR Uyumu
+- E-posta gövdeleri, dosya içerikleri veya kişisel mesajlar çekilmez ve diske kaydedilmez; yalnızca sayısal telemetri ve metaveriler işlenir.
+- Kullanıcı kimlikleri ve dosya isimleri dinamik olarak maskelenir (`k-anon***@domain.com`, `Finans_Raporu_***.xlsx`).
+- Test veya simülasyon (DryRun) verilerinin canlı raporlara karışması engellenir.
+
+#### 2.6. Veri Bütünlüğü ve Tek Replika Mimarisi
+- SQLite veritabanının eşzamanlı yazma problemlerinden korunması amacıyla sistem tek replika (`MAX_REPLICAS=1`) kuralı ile çalışacak şekilde kilitlenmiştir.
 
 ---
 
 ### 3. Güvenlik Açığı Bildirimi (Vulnerability Disclosure)
 
-Platformda bir güvenlik açığı veya hassas veri sızıntısı riski tespit ettiğinizde:
+Platformda bir güvenlik açığı veya veri güvenliği riski tespit ettiğinizde, sorumlu bildirim ilkelerine uygun şekilde hareket etmenizi rica ederiz.
 
 > [!CAUTION]
 > Güvenlik açıklarını lütfen **herkese açık GitHub Issue** olarak bildirmeyiniz.
 
-Açıkları güvenli şekilde bildirmek için:
-- **GitHub Private Vulnerability Reporting:** Projenin GitHub arayüzünde bulunan **Security > Advisories > Report a vulnerability** seçeneğini kullanınız:
-  `https://github.com/canercetinkaya/cloudshield-mssp-portal/security/advisories`
-- Bildiriminize etkilenen endpoint, teknik detaylar ve yeniden üretme (PoC) adımlarını ekleyiniz. Bildirimler 48 saat içinde incelenerek yanıtlanır.
+Bildirim adımları:
+1. GitHub deposundaki **Security > Advisories > Report a vulnerability** ekranını kullanınız:  
+   https://github.com/canercetinkaya/cloudshield-mssp-portal/security/advisories
+2. Bildiriminize etkilenen uç nokta, bulgunun teknik detayı ve yeniden üretme (PoC) adımlarını ekleyiniz.
+3. Güvenlik bildirimleri 48 saat içinde değerlendirilir ve doğrulanan bulgular için öncelikli yama süreci başlatılır.

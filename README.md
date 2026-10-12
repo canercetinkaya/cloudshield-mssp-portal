@@ -38,7 +38,7 @@ Platform, doğrulanmış kod yetenekleriyle şu işlevleri icra eder:
 5. **Gözlemlenen Değişiklikleri Raporlama:** Bilet veya form doldurma yükü olmadan, tenant konfigürasyonundaki somut iyileştirmeleri denetim izlerinden otomatik gösterir.
 6. **Çift Format Çıktı:** Vektörel HTML5 ve baskıya hazır A4 PDF çıktısı üretir; SHA-256 kriptografik mühür ile rapor bütünlüğü sağlar.
 7. **Zero Trust Kiracı İzolasyonu:** Müşterilerin yalnızca kendi raporlarına erişebileceği katı izolasyon duvarı uygular.
-8. **Lisans Zekâsı ve Güvenlik Değer Gerçekleştirme:** Satın alınan lisansların gerçek güvenlik değeri üretip üretmediğini 5 katmanda (Hak Sahipliği -> Atama -> Servis Planı -> İlke Kapsamı -> Telemetri Kanıtı) doğrular; 14 kanonik statü ve 20 bölümlü aylık sağlık raporu üretir.
+8. **Lisans Zekâsı ve Güvenlik Değeri:** Satın alınan kurumsal lisansların (M365 E5, Defender, Purview vb.) müşteri ortamında fiilen kullanılıp kullanılmadığını analiz eder; lisans hakları, kullanıcı atamaları, aktif servis planları ve gerçek güvenlik telemetrisi arasındaki boşlukları tespit ederek lisans optimizasyon fırsatlarını raporlar.
 
 ---
 
@@ -198,24 +198,24 @@ docker run -d -p 8080:8080 --name cloudshield-app -e ENVIRONMENT=production -e M
 
 ---
 
-## 11. Test ve Kalite Kapıları
+## 11. Test ve Kalite Güvencesi
 
-Platformda 5 kademeli otomatik test güvencesi bulunmaktadır:
-- **Birim ve Güvenlik Testleri (`tests/`):** 119 otomatik test (`python -m unittest discover tests`).
-- **Lisans Zekâsı Test Paketi (`tests/test_license_intelligence.py`):** 27 kapsamlı 5-katmanlı mutabakat ve denetim testi.
-- **Kapsamlı QA Test Paketi (`tests/test_comprehensive_qa.py`):** 61 platform kalite kapısı.
+Platformda otomatik test güvencesi bulunmaktadır:
+- **Birim ve Güvenlik Testleri (`tests/`):** 123 otomatik test (`python -m unittest discover tests`).
+- **Lisans Zekâsı Test Paketi (`tests/test_license_intelligence.py`):** 27 mutabakat ve denetim testi.
+- **Kapsamlı QA Test Paketi (`tests/test_comprehensive_qa.py`):** 61 platform kalite kontrolü.
 - **Kolektör-Rapor Mutabakat Testi (`tests/test_collector_to_report_reconciliation.py`):** 9 iş yükü mutabakat testi.
-- **Veri Doğruluk Kapıları (`tests/test_data_accuracy_gates.py`):** Sentetik çarpan ve bilet referansı yasağı kontrolleri.
+- **Veri Doğruluk Kontrolleri (`tests/test_data_accuracy_gates.py`):** Sentetik çarpan yasağı ve veri tutarlılık denetimleri.
 
 ---
 
-## 12. Güvenlik Modeli
+## 12. Güvenlik ve İzolasyon Modeli
 
-- **Entra ID OIDC SSO & PKCE:** Üretim ortamında yerel parola kapalıdır (`403 Forbidden`).
-- **8 Kademeli RBAC:** Her API isteği kimlik, izin, kiracı ve servis kontrolünden geçer.
-- **Kayıt Defteri Tabanlı Rapor İndirme:** Yetkisiz dizin gezinmesini (path traversal) engelleyen `report_id` doğrulaması.
-- **k-Anonymity Dinamik Maskeleme:** Kişisel veriler ve dosya adları maskelenerek sunulur (`k-anon***@domain.com`).
-- **Tek Replika SQLite Kilidi:** `verify_replica_safety()` çoklu replikada açılışı durdurur.
+- **Microsoft Entra ID OIDC SSO (PKCE):** Üretim ortamında yerel şifre ile giriş kapalıdır; oturumlar Entra ID üzerinden açılır.
+- **Rol Tabanlı Yetkilendirme (RBAC):** Her API çağrısı oturum açan kullanıcının müşteri yetkisi ve servis izinleri kontrol edilerek karşılanır.
+- **Güvenli Rapor İndirme:** Dosyalar doğrudan dosya sistemi yoluyla değil, merkezi `report_id` doğrulamasıyla (`/api/reports/{id}/download`) teslim edilir.
+- **Kişisel Veri Maskeleme:** KVKK ve GDPR uyumu için kullanıcı e-postaları ve dosya isimleri maskelenir (`k-anon***@domain.com`).
+- **Tek Replika Mimarisi:** SQLite veritabanının eşzamanlı yazma bütünlüğü için uygulama tek replika (`MAX_REPLICAS=1`) kuralı ile çalışır.
 
 ---
 

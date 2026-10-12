@@ -5,9 +5,9 @@ CloudShield platformunda hiçbir metrik veya servis, gerçek tenant ortamında d
 
 ---
 
-### 1. Beş Kanonik Doğrulama Statüsü
+### 1. Veri Doğrulama Durumları ve Seviyeleri
 
-Platform, tüm iş yüklerini ve metrikleri şu 5 kesin statüden biriyle sınıflandırır:
+Platformda her iş yükü ve metrik aşağıdaki 5 durumdan biriyle etiketlenir:
 
 1. **Canlı Tenant Üzerinde Doğrulandı (Verified on Live Tenant):**
    - Üretim API'sine bağlanılmış, HTTP 200 yanıtı alınmış, gerçek telemetri kayıtları çekilmiş ve rapor alanlarıyla 1-e-1 mutabakat testi (`test_collector_to_report_reconciliation.py`) başarıyla tamamlanmıştır.

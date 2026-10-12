@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CloudShield Enterprise MSSP Platform - Comprehensive RBAC & Authorization Validation Test Suite
-Authoritative Specification: docs/agents/tasks/cloudshield-rbac-and-authorization-architecture.md
+Authoritative Specification: docs/security/rbac-data-model.md
 Tests all security assertions required by Phase 11 & Phase 10:
 1. Customer A cannot access Customer B (Cross-Customer Isolation)
 2. MDE operator cannot access Purview (Cross-Service Isolation)

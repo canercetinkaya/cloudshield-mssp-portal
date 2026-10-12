@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CloudShield MSSP Platform - Automated Report Quality Gate Harness
-Authoritative Specification: docs/agents/tasks/cloudshield-agent-knowledge-base-report-quality-task.md
+Authoritative Specification: docs/reporting/executive-reporting-model.md
 
 Evaluates generated report artifacts against the 8-dimension quality scoring rubric:
 1. Data Integrity (15%)
