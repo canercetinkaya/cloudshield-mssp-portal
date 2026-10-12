@@ -102,7 +102,7 @@ jobs:
           docker stop test-app
 
       - name: 🛡️ Container Güvenlik Açığı Taraması (Trivy Scan)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'image'
           image-ref: "cloudshield-reporting-platform:ci-test"
@@ -113,7 +113,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: 📦 SBOM Üretimi (SPDX JSON Formatı)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'image'
           image-ref: "cloudshield-reporting-platform:ci-test"
