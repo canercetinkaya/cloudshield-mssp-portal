@@ -68,25 +68,34 @@ def get_db(db_path=None):
     if dir_name:
         os.makedirs(dir_name, exist_ok=True)
 
-    # Remove unsafe nolock=1 assumptions (Finding 6 / Phase 2.E).
-    # Standard SQLite connection with WAL mode and busy_timeout provides safe concurrency.
-    # nolock is strictly an opt-in fallback via USE_SQLITE_NOLOCK=1 for specialized read-only network shares.
-    use_nolock = os.environ.get("USE_SQLITE_NOLOCK", "false").lower() == "true"
+    # Detect network file shares (Azure Files CIFS /app/Data) or explicit opt-in
+    norm_path = os.path.abspath(path).replace("\\", "/")
+    is_network_share = (
+        os.environ.get("USE_SQLITE_NOLOCK", "false").lower() in ("true", "1")
+        or "/app/Data" in norm_path
+        or os.environ.get("ENVIRONMENT") == "production"
+    )
+
     conn = None
-    if use_nolock:
+    if is_network_share:
         try:
             uri = pathlib.Path(os.path.abspath(path)).as_uri() + "?nolock=1"
-            conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+            conn = sqlite3.connect(uri, uri=True, timeout=5.0)
         except Exception as ex:
             print(f"[WARN] Failed to open SQLite URI at {path} ({ex}). Trying standard path...")
-            conn = sqlite3.connect(path, timeout=30.0)
+            conn = sqlite3.connect(path, timeout=5.0)
     else:
-        conn = sqlite3.connect(path, timeout=30.0)
+        conn = sqlite3.connect(path, timeout=5.0)
 
     conn.row_factory = sqlite3.Row
     try:
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute("PRAGMA busy_timeout = 30000;")
+        if is_network_share:
+            conn.execute("PRAGMA journal_mode = DELETE;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+        else:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
         conn.execute("PRAGMA foreign_keys = ON;")
     except Exception:
         pass

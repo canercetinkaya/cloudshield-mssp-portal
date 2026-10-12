@@ -278,6 +278,10 @@
                 {
                   "name": "ENVIRONMENT",
                   "value": "[parameters('environmentType')]"
+                },
+                {
+                  "name": "USE_SQLITE_NOLOCK",
+                  "value": "true"
                 }
               ]
             }

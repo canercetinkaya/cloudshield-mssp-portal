@@ -10,6 +10,7 @@ import uuid
 import secrets
 import hashlib
 import hmac
+import threading
 from datetime import datetime, timezone
 
 from database.db import get_db, hash_password, verify_password
@@ -17,13 +18,14 @@ from database.db import get_db, hash_password, verify_password
 def record_audit_event(event_type, user_id=None, user_upn=None, customer_id=None, service_id=None,
                        resource="", decision="ALLOW", reason="", ip_address="127.0.0.1", details=None):
     """Persist an immutable audit record to the SQLite database."""
-    conn = get_db()
-    cur = conn.cursor()
+    conn = None
     event_id = f"aud-{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc).isoformat()
     details_str = json.dumps(details, ensure_ascii=False) if details else ""
 
     try:
+        conn = get_db()
+        cur = conn.cursor()
         cur.execute(
             """INSERT INTO audit_events (id, timestamp, event_type, user_id, user_upn, customer_id,
                                         service_id, resource, decision, reason, ip_address, details_json)
@@ -34,7 +36,11 @@ def record_audit_event(event_type, user_id=None, user_upn=None, customer_id=None
     except Exception as e:
         print(f"[AUDIT ERROR] Failed to record audit event: {e}")
     finally:
-        conn.close()
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
     return event_id
 
 def authenticate_user(username, password, ip_address="127.0.0.1"):

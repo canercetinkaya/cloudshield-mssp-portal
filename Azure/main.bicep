@@ -220,6 +220,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'ENVIRONMENT'
               value: environmentType
             }
+            {
+              name: 'USE_SQLITE_NOLOCK'
+              value: 'true'
+            }
           ]
         }
       ]

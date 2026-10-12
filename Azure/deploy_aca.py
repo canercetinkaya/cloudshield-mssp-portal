@@ -186,8 +186,10 @@ def main():
         "--min-replicas", "0",
         "--max-replicas", "1"
     ]
+    env_vars = ["USE_SQLITE_NOLOCK=true"]
     if entra_secret:
-        update_cmd.extend(["--set-env-vars", "ENTRA_CLIENT_SECRET=secretref:entra-client-secret"])
+        env_vars.append("ENTRA_CLIENT_SECRET=secretref:entra-client-secret")
+    update_cmd.extend(["--set-env-vars", *env_vars])
     run_cmd(update_cmd)
 
     # 4. Detect active revisions mode

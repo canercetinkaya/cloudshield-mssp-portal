@@ -954,19 +954,21 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "redirect_uri": cfg["redirect_uri"]
         }
         AUTH_FLOWS[state] = flow_entry
-        try:
-            conn = get_db()
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS auth_flows (state TEXT PRIMARY KEY, nonce TEXT, code_verifier TEXT, redirect_uri TEXT, created_at REAL)"
-            )
-            conn.execute(
-                "INSERT OR REPLACE INTO auth_flows (state, nonce, code_verifier, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?)",
-                (state, nonce, code_verifier, cfg["redirect_uri"], now_ts)
-            )
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
+        def _persist_flow_bg(s, n, cv, ru, ts):
+            try:
+                conn = get_db()
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS auth_flows (state TEXT PRIMARY KEY, nonce TEXT, code_verifier TEXT, redirect_uri TEXT, created_at REAL)"
+                )
+                conn.execute(
+                    "INSERT OR REPLACE INTO auth_flows (state, nonce, code_verifier, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (s, n, cv, ru, ts)
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
+        threading.Thread(target=_persist_flow_bg, args=(state, nonce, code_verifier, cfg["redirect_uri"], now_ts), daemon=True).start()
 
         # Purge stale flows (> 15 mins)
         stale = [s for s, f in AUTH_FLOWS.items() if now_ts - f.get("created_at", 0) > 900]
