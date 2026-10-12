@@ -117,7 +117,7 @@ def main():
     github_token = os.environ.get("GITHUB_TOKEN", "")
 
     resource_group, app_name = discover_container_app()
-    image_tag = f"ghcr.io/canercetinkaya/cloudshield-mssp-portal:{github_sha}"
+    image_tag = os.environ.get("CONTAINER_IMAGE_TAG") or f"ghcr.io/canercetinkaya/cloudshield-mssp-portal:{github_sha}"
 
     print(f"=== Deploying {app_name} | RG: {resource_group} | Image: {image_tag} ===")
 
@@ -241,13 +241,13 @@ def main():
                 print(f"Deactivating stale revision: {old_rev}")
                 run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
-    print("=== Ensuring scale: min=1 max=3 ===")
+    print("=== Ensuring scale: strictly single-replica (min=1 max=1) ===")
     run_cmd([
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--min-replicas", "1",
-        "--max-replicas", "3"
+        "--max-replicas", "1"
     ], check=False)
 
     # 5. Resolve FQDN dynamically

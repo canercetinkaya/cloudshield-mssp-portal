@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   validate-and-test:
@@ -78,10 +79,16 @@ jobs:
         run: |
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           IMAGE_NAME="ghcr.io/${REPO_OWNER}/cloudshield-reporting-platform"
+          IMAGE_LEGACY="ghcr.io/${REPO_OWNER}/cloudshield-mssp-portal"
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_LEGACY=$IMAGE_LEGACY" >> $GITHUB_ENV
           docker build \
             -t "$IMAGE_NAME:3.2.0-pilot" \
             -t "$IMAGE_NAME:sha-${{ github.sha }}" \
+            -t "$IMAGE_LEGACY:3.2.0-pilot" \
+            -t "$IMAGE_LEGACY:sha-${{ github.sha }}" \
+            -t "$IMAGE_LEGACY:${{ github.sha }}" \
+            -t "$IMAGE_LEGACY:latest" \
             -t "cloudshield-reporting-platform:ci-test" \
             -f Docker/Dockerfile .
 
@@ -137,6 +144,10 @@ jobs:
         run: |
           docker push "$IMAGE_NAME:3.2.0-pilot"
           docker push "$IMAGE_NAME:sha-${{ github.sha }}"
+          docker push "$IMAGE_LEGACY:3.2.0-pilot"
+          docker push "$IMAGE_LEGACY:sha-${{ github.sha }}"
+          docker push "$IMAGE_LEGACY:${{ github.sha }}"
+          docker push "$IMAGE_LEGACY:latest"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:3.2.0-pilot" || echo "digest-pending")
           echo "IMAGE_DIGEST=$DIGEST" >> $GITHUB_ENV
           echo "Pushed Image Digest: $DIGEST"
@@ -154,3 +165,31 @@ jobs:
         shell: bash
         run: |
           python -c "import json; data = json.load(open('Azure/azuredeploy.json', encoding='utf-8')); assert any('schema' in k for k in data); assert len(data['resources']) >= 4; print('ARM Şablonu Geçerli!')"
+
+  azure-deploy:
+    name: 🚀 Deploy to Azure Container Apps
+    needs: [container-build-smoke, azure-arm-validate]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: 📥 Depoyu Klonla (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.CSMSSPPOCAPP_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.CSMSSPPOCAPP_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.CSMSSPPOCAPP_AZURE_SUBSCRIPTION_ID }}
+
+      - name: 🚀 Deploy & Verify Revision in Azure Container Apps
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          CONTAINER_IMAGE_TAG: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:3.2.0-pilot"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 Azure/deploy_aca.py
