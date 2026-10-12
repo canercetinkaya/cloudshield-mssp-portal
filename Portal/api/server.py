@@ -209,16 +209,93 @@ def _ensure_session_tables():
             CREATE TABLE IF NOT EXISTS auth_flows (
                 state TEXT PRIMARY KEY,
                 nonce TEXT NOT NULL,
+                code_verifier TEXT,
                 redirect_uri TEXT NOT NULL,
                 created_at REAL NOT NULL
             )
         """)
+        # Schema migration check: ensure code_verifier column exists in existing DBs
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(auth_flows)")
+        columns = [row[1] for row in cur.fetchall()]
+        if "code_verifier" not in columns:
+            conn.execute("ALTER TABLE auth_flows ADD COLUMN code_verifier TEXT")
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"[WARN] Failed to ensure session tables: {e}")
 
 _ensure_session_tables()
+
+def get_session_secret():
+    """Retrieve session signing secret from env, or persist a machine-local secret in DATA_DIR."""
+    secret = os.environ.get("CLOUDSHIELD_SESSION_SECRET") or os.environ.get("SESSION_SECRET")
+    if secret:
+        return secret
+    secret_file = os.path.join(DATA_DIR, ".session_secret")
+    if os.path.exists(secret_file):
+        try:
+            with open(secret_file, "r", encoding="utf-8") as f:
+                s = f.read().strip()
+                if s:
+                    return s
+        except Exception:
+            pass
+    s = secrets.token_hex(32)
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(secret_file, "w", encoding="utf-8") as f:
+            f.write(s)
+    except Exception:
+        pass
+    return s
+
+def create_stateless_oauth_state(nonce, code_verifier, redirect_uri, secret=None):
+    """
+    Generate an HMAC-SHA256 signed, tamper-proof, self-contained OAuth state.
+    Carries nonce, code_verifier (PKCE), redirect_uri, and timestamp.
+    Eliminates cross-replica, scale-to-zero, and cold-start state loss completely.
+    """
+    secret = secret or get_session_secret()
+    payload = {
+        "n": nonce,
+        "cv": code_verifier,
+        "ru": redirect_uri,
+        "ts": int(time.time())
+    }
+    raw_json = json.dumps(payload, separators=(',', ':')).encode("utf-8")
+    b64_payload = base64.urlsafe_b64encode(raw_json).decode("ascii").rstrip("=")
+    sig = hmac.new(secret.encode("utf-8"), b64_payload.encode("ascii"), hashlib.sha256).digest()
+    b64_sig = base64.urlsafe_b64encode(sig).decode("ascii").rstrip("=")
+    return f"{b64_payload}.{b64_sig}"
+
+def verify_stateless_oauth_state(state_str, max_age_seconds=900, secret=None):
+    """
+    Verify and unpack a stateless HMAC-signed OAuth state.
+    Returns (payload_dict, error_message).
+    """
+    if not state_str or not isinstance(state_str, str) or "." not in state_str:
+        return None, "Geçersiz veya eski biçimli state parametresi"
+    parts = state_str.split(".", 1)
+    if len(parts) != 2:
+        return None, "Geçersiz state belirteç formatı"
+    b64_payload, b64_sig = parts
+    secret = secret or get_session_secret()
+    expected_sig = hmac.new(secret.encode("utf-8"), b64_payload.encode("ascii"), hashlib.sha256).digest()
+    expected_b64_sig = base64.urlsafe_b64encode(expected_sig).decode("ascii").rstrip("=")
+    if not hmac.compare_digest(b64_sig, expected_b64_sig):
+        return None, "İmza doğrulaması başarısız: State verisi tahrif edilmiş veya anahtar uyuşmuyor"
+    try:
+        padding = "=" * (-len(b64_payload) % 4)
+        raw_json = base64.urlsafe_b64decode(b64_payload + padding)
+        payload = json.loads(raw_json.decode("utf-8"))
+    except Exception as e:
+        return None, f"State verisi çözümlenemedi: {e}"
+    ts = payload.get("ts", 0)
+    if time.time() - ts > max_age_seconds:
+        return None, "OAuth state süresi dolmuş (> 15 dakika)"
+    return payload, None
+
 
 def save_session(tok, user_dict, expires_in=86400):
     now_ts = time.time()
@@ -974,11 +1051,13 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.send_json_response({"error": "Entra ID OIDC configuration missing."}, status=500)
             return
 
-        state = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
         code_verifier, code_challenge = generate_pkce_pair()
-
         now_ts = time.time()
+
+        # Stateless HMAC-signed self-contained state (zero dependency on DB or memory)
+        state = create_stateless_oauth_state(nonce, code_verifier, cfg["redirect_uri"])
+
         flow_entry = {
             "nonce": nonce,
             "code_verifier": code_verifier,
@@ -989,9 +1068,6 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         def _persist_flow_bg(s, n, cv, ru, ts):
             try:
                 conn = get_db()
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS auth_flows (state TEXT PRIMARY KEY, nonce TEXT, code_verifier TEXT, redirect_uri TEXT, created_at REAL)"
-                )
                 conn.execute(
                     "INSERT OR REPLACE INTO auth_flows (state, nonce, code_verifier, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?)",
                     (s, n, cv, ru, ts)
@@ -1061,35 +1137,48 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self._render_auth_redirect_html(error="Geçersiz yetkilendirme yanıtı: code veya state parametresi eksik.")
             return
 
-        flow = AUTH_FLOWS.pop(state, None)
-        if not flow:
-            try:
-                conn = get_db()
-                cur = conn.cursor()
-                cur.execute("SELECT nonce, code_verifier, redirect_uri, created_at FROM auth_flows WHERE state = ?", (state,))
-                row = cur.fetchone()
-                if row:
-                    flow = {
-                        "nonce": row[0],
-                        "code_verifier": row[1],
-                        "redirect_uri": row[2],
-                        "created_at": row[3]
-                    }
-                    conn.execute("DELETE FROM auth_flows WHERE state = ?", (state,))
-                    conn.commit()
-                conn.close()
-            except Exception:
-                pass
+        # 1. Primary: Verify stateless HMAC-signed self-contained state
+        stateless_payload, stateless_err = verify_stateless_oauth_state(state)
+        if stateless_payload:
+            flow = {
+                "nonce": stateless_payload.get("n"),
+                "code_verifier": stateless_payload.get("cv"),
+                "redirect_uri": stateless_payload.get("ru"),
+                "created_at": stateless_payload.get("ts")
+            }
+        else:
+            # 2. Resilient fallback: In-memory store and SQLite table (supports tests and legacy states)
+            flow = AUTH_FLOWS.pop(state, None)
+            if not flow:
+                try:
+                    conn = get_db()
+                    cur = conn.cursor()
+                    cur.execute("SELECT nonce, code_verifier, redirect_uri, created_at FROM auth_flows WHERE state = ?", (state,))
+                    row = cur.fetchone()
+                    if row:
+                        flow = {
+                            "nonce": row[0],
+                            "code_verifier": row[1],
+                            "redirect_uri": row[2],
+                            "created_at": row[3]
+                        }
+                        conn.execute("DELETE FROM auth_flows WHERE state = ?", (state,))
+                        conn.commit()
+                    conn.close()
+                except Exception:
+                    pass
 
         if not flow or (time.time() - flow.get("created_at", 0) > 900):
+            err_detail = stateless_err if (not flow and stateless_err) else "Oturum doğrulama anahtarı (state) geçersiz veya zaman aşımına uğramış."
             record_audit_event(
                 event_type="AUTH_DENY",
                 resource="/api/auth/entra/callback",
                 decision="DENY",
                 reason="InvalidOrExpiredAuthState",
-                ip_address=client_ip
+                ip_address=client_ip,
+                details={"stateless_error": stateless_err}
             )
-            self._render_auth_redirect_html(error="Oturum doğrulama anahtarı (state) geçersiz veya zaman aşımına uğramış.")
+            self._render_auth_redirect_html(error=f"Oturum doğrulama anahtarı (state) geçersiz veya zaman aşımına uğramış: {err_detail}")
             return
 
         expected_nonce = flow.get("nonce")
@@ -1202,7 +1291,11 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         if token:
-            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400")
+            host = self.headers.get("Host", "") if hasattr(self, "headers") else ""
+            proto = self.headers.get("X-Forwarded-Proto", "") if hasattr(self, "headers") else ""
+            is_secure = proto == "https" or not ("localhost" in host or "127.0.0.1" in host)
+            sec_flag = "; Secure" if is_secure else ""
+            self.send_header("Set-Cookie", f"CS_SESSION={token}; Path=/; HttpOnly{sec_flag}; SameSite=Lax; Max-Age=86400")
 
         if error:
             safe_err = html.escape(str(error))

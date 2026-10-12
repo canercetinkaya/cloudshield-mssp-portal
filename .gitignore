@@ -18,6 +18,8 @@ secrets.json
 local.settings.json
 appsettings.Development.json
 *.secret
+.session_secret
+Data/.session_secret
 *.credentials
 *.token
 *.key

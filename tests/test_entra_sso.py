@@ -29,7 +29,8 @@ if ROOT_DIR not in sys.path:
 from Portal.api.server import (
     MSSPPortalHandler, SESSIONS, AUTH_FLOWS,
     get_entra_config, decode_jwt_payload, resolve_entra_user,
-    save_session, get_session, delete_session
+    save_session, get_session, delete_session,
+    create_stateless_oauth_state, verify_stateless_oauth_state
 )
 from database.db import get_db, init_db
 
@@ -265,5 +266,45 @@ class TestEntraIdOidcSSO(unittest.TestCase):
         self.assertIn("localStorage.setItem('cloudshield_user'", html_output)
         self.assertIn("Caner Çetinkaya", html_output)
 
+    def test_12_stateless_oauth_state_hmac(self):
+        """Verify HMAC-signed stateless OAuth state encodes and decodes PKCE verifier with tamper protection."""
+        nonce = "test-nonce-12345"
+        cv = "test-pkce-verifier-string-with-sufficient-entropy-987654321"
+        ru = "https://example.com/api/auth/entra/callback"
+
+        # 1. State creation & valid decoding
+        state = create_stateless_oauth_state(nonce, cv, ru)
+        self.assertIn(".", state)
+        payload, err = verify_stateless_oauth_state(state)
+        self.assertIsNone(err)
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["n"], nonce)
+        self.assertEqual(payload["cv"], cv)
+        self.assertEqual(payload["ru"], ru)
+
+        # 2. Tampered state must fail verification
+        tampered_state = state[:-3] + ("A" if state[-1] != "A" else "B")
+        payload, err = verify_stateless_oauth_state(tampered_state)
+        self.assertIsNone(payload)
+        self.assertIn("İmza doğrulaması başarısız", err)
+
+        # 3. Expired state (> 900s) must fail verification
+        payload, err = verify_stateless_oauth_state(state, max_age_seconds=-1)
+        self.assertIsNone(payload)
+        self.assertIn("OAuth state süresi dolmuş", err)
+
+    def test_13_auth_flows_table_has_code_verifier(self):
+        """Verify SQLite auth_flows table contains the code_verifier column to prevent silent drop."""
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(auth_flows)")
+        columns = [row[1] for row in cur.fetchall()]
+        conn.close()
+        self.assertIn("code_verifier", columns)
+        self.assertIn("nonce", columns)
+        self.assertIn("redirect_uri", columns)
+        self.assertIn("created_at", columns)
+
 if __name__ == "__main__":
     unittest.main()
+

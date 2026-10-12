@@ -174,17 +174,19 @@ def main():
     actual_container_name = cname_res.stdout.strip() if cname_res.returncode == 0 and cname_res.stdout.strip() else "cloudshield-mssp-portal"
     print(f"[DISCOVERY] Actual container name in ACA: '{actual_container_name}'")
 
-    # 3b. Update container image and enforce serverless scale-to-zero (min: 0, max: 1)
+    # 3b. Update container image and ensure warm instance availability (default min: 1, max: 1)
+    min_replicas = os.environ.get("ACA_MIN_REPLICAS", "1").strip()
+    max_replicas = os.environ.get("ACA_MAX_REPLICAS", "1").strip()
     rev_suffix = f"r{github_sha[:7]}" if github_sha and github_sha != "latest" else f"r{int(time.time()) % 1000000}"
-    print(f"=== Updating container image to {image_tag} with revision suffix '{rev_suffix}' and serverless scale-to-zero (min: 0, max: 1) ===")
+    print(f"=== Updating container image to {image_tag} with revision suffix '{rev_suffix}' and replicas (min: {min_replicas}, max: {max_replicas}) ===")
     update_cmd = [
         "az", "containerapp", "update",
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--image", image_tag,
         "--revision-suffix", rev_suffix,
-        "--min-replicas", "0",
-        "--max-replicas", "1"
+        "--min-replicas", min_replicas,
+        "--max-replicas", max_replicas
     ]
     env_vars = ["USE_SQLITE_NOLOCK=true"]
     if entra_secret:

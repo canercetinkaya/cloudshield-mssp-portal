@@ -3142,7 +3142,10 @@
             // 2. Token varsa doğruluğunu /api/auth/me ile teyit et
             if (token) {
                 try {
-                    const res = await fetch('/api/auth/me', { credentials: 'include' });
+                    const res = await fetch('/api/auth/me', {
+                        credentials: 'include',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
                     if (res.ok) {
                         const data = await res.json();
                         if (data.success && data.user) {
