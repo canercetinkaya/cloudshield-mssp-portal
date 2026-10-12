@@ -296,6 +296,7 @@ def get_entra_config():
 
     base_cfg = load_json_file(AUTH_CONFIG_FILE, {}).get("EntraConfig", {})
     tenant_id = tenant_id or base_cfg.get("TenantId", "2fb2bcee-61be-48af-972c-0b11a606578f")
+    client_id = client_id or base_cfg.get("ClientId", "15b69eff-dc1e-4bf3-9d72-ebda8d7fff40")
     client_secret = client_secret or base_cfg.get("ClientSecret")
     redirect_uri = redirect_uri or base_cfg.get("RedirectUri", "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/auth/entra/callback")
 
