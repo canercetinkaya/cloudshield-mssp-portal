@@ -3456,27 +3456,35 @@
                 targetBtn.classList.add('tab-active');
                 targetBtn.classList.remove('text-slate-600');
             }
-            if (tabId === 'dispatch') {
-                loadDispatchView();
-                const topSel = document.getElementById('topTenantSelector');
-                const dispSel = document.getElementById('dispTenantSelect');
-                if (topSel && dispSel && topSel.value && topSel.value !== 'ALL') {
-                    dispSel.value = topSel.value;
-                    onDispatchTenantChange();
+
+            try {
+                if (tabId === 'dispatch') {
+                    if (typeof loadDispatchView === 'function') loadDispatchView();
+                    const topSel = document.getElementById('topTenantSelector');
+                    const dispSel = document.getElementById('dispTenantSelect');
+                    if (topSel && dispSel && topSel.value && topSel.value !== 'ALL') {
+                        dispSel.value = topSel.value;
+                        if (typeof onDispatchTenantChange === 'function') onDispatchTenantChange();
+                    }
+                } else if (tabId === 'licenses') {
+                    if (typeof initLicenseIntelligenceView === 'function') initLicenseIntelligenceView();
+                } else if (tabId === 'tenants') {
+                    if (typeof filterTenants === 'function') filterTenants();
+                } else if (tabId === 'teams') {
+                    if (typeof loadServiceCatalog === 'function') loadServiceCatalog();
+                } else if (tabId === 'settings') {
+                    if (typeof renderUsersTable === 'function') renderUsersTable();
+                    if (typeof checkServerVersion === 'function') checkServerVersion();
+                } else if (tabId === 'kql') {
+                    if (typeof loadKqlCatalogUI === 'function') loadKqlCatalogUI();
+                } else if (tabId === 'rbac') {
+                    if (typeof initRbacPortal === 'function') initRbacPortal();
                 }
-            } else if (tabId === 'licenses') {
-                initLicenseIntelligenceView();
-            } else if (tabId === 'tenants') {
-                filterTenants();
-            } else if (tabId === 'settings') {
-                renderUsersTable();
-                checkServerVersion();
-            } else if (tabId === 'kql') {
-                loadKqlCatalogUI();
-            } else if (tabId === 'rbac') {
-                initRbacPortal();
+            } catch (err) {
+                console.error(`Tab [${tabId}] initialisation error:`, err);
             }
         }
+        window.switchTab = switchTab;
 
 
         function switchSettingsSubTab(subTabId) {
@@ -5501,9 +5509,7 @@ let allUsers = [];
             }
             alert(`[AV BAŞLATILDI] ${tenantId} müşterisi üzerinde "${currentSelectedKql.title}" sorgusu Graph Hunting API ile çalıştırıldı. Sonuçlar denetim kütüğüne kaydediliyor.`);
         }
-    <script src="rbac_portal.js"></script>
-    <script src="license_portal.js"></script>
-    <script>
+
         // ==========================================
         // PLANLANMIŞ RAPOR DAĞITIMI (SCHEDULED DISPATCH)
         // ==========================================
@@ -5584,6 +5590,18 @@ let allUsers = [];
             if (modal) modal.classList.add('hidden');
         }
 
+        // Global dışa aktarma (Navigation & Window Handlers)
+        window.switchTab = switchTab;
+        window.switchSettingsSubTab = switchSettingsSubTab;
+        window.loadDispatchView = loadDispatchView;
+        window.onDispatchTenantChange = onDispatchTenantChange;
+        window.saveDispatchSchedule = saveDispatchSchedule;
+        window.dispatchReportNow = dispatchReportNow;
+        window.openReportPreviewModal = openReportPreviewModal;
+        window.closeReportPreviewModal = closeReportPreviewModal;
     </script>
+    <!-- Harici Modül Scriptleri -->
+    <script src="rbac_portal.js"></script>
+    <script src="license_portal.js"></script>
 </body>
 </html>
