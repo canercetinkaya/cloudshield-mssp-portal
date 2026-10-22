@@ -1866,6 +1866,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if not summary:
                 res = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
                 summary = res.get("summary")
+            if isinstance(summary, list):
+                summary = summary[0] if summary else {}
+            if isinstance(summary, dict) and "is_live" not in summary:
+                summary["is_live"] = False
             self.send_json_response({"success": True, "tenantId": tenant_id, "summary": summary})
             return
 
