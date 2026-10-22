@@ -7,7 +7,7 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome 6 (SRI Integrity Protected) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46Zmdt5jmkxIdNxUsdKaHg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3092,7 +3092,8 @@
                         options.headers.push(['Authorization', `Bearer ${token}`]);
                     }
                 } else {
-                    if (!options.headers['Authorization'] && !options.headers['authorization']) {
+                    const cur = options.headers['Authorization'] || options.headers['authorization'];
+                    if (!cur || String(cur).trim() === 'Bearer') {
                         options.headers['Authorization'] = `Bearer ${token}`;
                     }
                 }
@@ -3136,15 +3137,18 @@
             }
 
             const isAuthed = await checkAuth();
-            await checkServerVersion();
+            checkServerVersion();
             if (isAuthed) {
-                await fetchGlobalStats();
-                await loadTenants();
-                await loadServiceCatalog();
-                await loadUsers();
-                await loadSsoConfig();
+                await loadAllPortalData();
             }
         });
+
+        // Paralel ve hata-toleranslı veri yükleme (biri başarısız olsa diğerleri yüklenir)
+        function loadAllPortalData() {
+            return Promise.allSettled([
+                fetchGlobalStats(), loadTenants(), loadServiceCatalog(), loadUsers(), loadSsoConfig()
+            ]);
+        }
 
         // ==========================================
         // KİMLİK DOĞRULAMA (AUTHENTICATION GATE)
@@ -3304,12 +3308,14 @@
                 if (res.ok && data.success) {
                     localStorage.setItem('cloudshield_auth_token', data.token);
                     localStorage.setItem('cloudshield_user', JSON.stringify(data.user));
-                    await checkAuth();
-                    await fetchGlobalStats();
-                    await loadTenants();
-                    await loadServiceCatalog();
-                    await loadUsers();
-                    await loadSsoConfig();
+                    sessionStorage.setItem('cloudshield_auth_token', data.token);
+                    sessionStorage.setItem('cloudshield_user', JSON.stringify(data.user));
+                    const ov = document.getElementById('loginOverlay');
+                    if (ov) ov.classList.add('hidden');
+                    const eh = document.getElementById('earlyAuthHide');
+                    if (eh) eh.remove();
+                    applyUserProfile(data.user);
+                    loadAllPortalData();
                 } else {
                     if (errBox) errBox.classList.remove('hidden');
                     if (errText) errText.textContent = data.error || 'Giriş başarısız.';

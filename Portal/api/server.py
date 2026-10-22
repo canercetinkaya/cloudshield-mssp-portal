@@ -1830,7 +1830,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
             return
 
-        allow, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+        allow, _ = evaluate_access(user, "licenses:view", customer_id=tenant_id, resource=path, ip_address=client_ip)
         if not allow:
             self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' lisans verilerini görüntüleme yetkiniz yoktur."}, status=403)
             return
@@ -1921,9 +1921,9 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif path == "/api/licenses/report/pdf":
-            allow_dl, _ = evaluate_access(user, "reports:download", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            allow_dl, _ = evaluate_access(user, "reports:download", customer_id=tenant_id, resource=path, ip_address=client_ip)
             if not allow_dl:
-                allow_dl, _ = evaluate_access(user, "licenses:view", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+                allow_dl, _ = evaluate_access(user, "licenses:view", customer_id=tenant_id, resource=path, ip_address=client_ip)
             if not allow_dl:
                 self.send_json_response({"success": False, "error": "Rapor indirme yetkiniz bulunmamaktadır."}, status=403)
                 return
@@ -1981,7 +1981,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json_response({"success": False, "error": "Eksik parametre: tenantId belirtilmelidir."}, status=400)
                 return
 
-            allow, _ = evaluate_access(user, "licenses:manage", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+            allow, _ = evaluate_access(user, "licenses:manage", customer_id=tenant_id, resource=path, ip_address=client_ip)
             if not allow:
                 self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): '{tenant_id}' için lisans analizi çalıştırma yetkiniz yoktur."}, status=403)
                 return
@@ -3009,7 +3009,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             allowed, reason = evaluate_access(u, "customers:manage", resource=path, ip_address=client_ip)
             if not allowed:
-                allowed, reason = evaluate_access(u, "TENANT_WRITE", tenant_id=tenant_id, resource=path, ip_address=client_ip)
+                allowed, reason = evaluate_access(u, "TENANT_WRITE", customer_id=tenant_id, resource=path, ip_address=client_ip)
             if not allowed:
                 self.send_json_response({"success": False, "error": "Yetkisiz Erişim (403 Forbidden): Logo güncelleme yetkiniz bulunmamaktadır."}, status=403)
                 return

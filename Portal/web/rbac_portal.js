@@ -24,7 +24,7 @@ function initRbacPortal() {
 }
 
 function loadRbacAuxData() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const headers = { 'Authorization': `Bearer ${tok}` };
 
     fetch('/api/rbac/users', { headers })
@@ -81,7 +81,7 @@ function switchRbacSubTab(subTabId) {
 
 // 1. Dashboard View
 function loadRbacDashboard() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/dashboard', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -98,7 +98,7 @@ function loadRbacDashboard() {
 
 // 2. Customers View
 function loadRbacCustomers() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/customers', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -130,7 +130,7 @@ function loadRbacCustomers() {
 
 // 3. Services View
 function loadRbacServices() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/services', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -160,7 +160,7 @@ function loadRbacServices() {
 
 // 4. Customer Service Matrix View
 function loadRbacMatrix() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/customer-services', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -195,7 +195,7 @@ function loadRbacMatrix() {
 }
 
 function setMatrixServiceStatus(customerId, serviceId, action) {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch(`/api/rbac/customer-services/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
@@ -213,7 +213,7 @@ function setMatrixServiceStatus(customerId, serviceId, action) {
 
 // 5. Teams View
 function loadRbacTeams() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/teams', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -247,7 +247,7 @@ function loadRbacTeams() {
 
 // 6. Role Catalog View
 function loadRbacRoles() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/roles', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -276,7 +276,7 @@ function loadRbacRoles() {
 
 // 7. Permission Catalog View
 function loadRbacPermissions() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/permissions', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -298,7 +298,7 @@ function loadRbacPermissions() {
 
 // 8. Access Assignments View
 function loadRbacAssignments() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/assignments', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -344,7 +344,7 @@ function loadRbacAssignments() {
 
 function revokeRbacAssignment(asgnId) {
     if (!confirm('Bu erişim atamasını iptal etmek (revoke) istediğinize emin misiniz?')) return;
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch(`/api/rbac/assignments/${asgnId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${tok}` }
@@ -361,7 +361,7 @@ function revokeRbacAssignment(asgnId) {
 
 // 9. Access Reviews & PIM Approvals View
 function loadRbacApprovals() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/approvals', { headers: { 'Authorization': `Bearer ${tok}` } })
         .then(r => r.json())
         .then(res => {
@@ -397,7 +397,7 @@ function loadRbacApprovals() {
 function decideRbacApproval(approvalId, decision) {
     const reason = prompt(`Onay gerekçesi giriniz (${decision}):`, decision === 'Approved' ? 'Yönetici onayladı' : 'Uygun görülmedi');
     if (reason === null) return;
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch(`/api/rbac/approvals/${approvalId}/decide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
@@ -415,7 +415,7 @@ function decideRbacApproval(approvalId, decision) {
 
 // 10. Authorization Audit Log View
 function loadRbacAudit() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const decision = document.getElementById('rbacAuditDecisionFilter')?.value || '';
     const type = document.getElementById('rbacAuditTypeFilter')?.value || '';
     const search = document.getElementById('rbacAuditSearchInput')?.value?.toLowerCase() || '';
@@ -499,7 +499,7 @@ function runAccessSimulation() {
     const checkboxes = document.querySelectorAll('input[name="simServiceCheckbox"]:checked');
     const serviceIds = Array.from(checkboxes).map(cb => cb.value);
 
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     fetch('/api/rbac/simulator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },

@@ -74,7 +74,7 @@ function switchLicenseSubTab(subTab) {
 
 function loadLicenseIntelligenceData() {
     if (!currentLicenseTenant) return;
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const headers = { 'Authorization': `Bearer ${tok}` };
 
     const loader = document.getElementById('licLoadingIndicator');
@@ -302,7 +302,7 @@ function renderFeedMonitor(feed) {
 
 function loadLicenseSnapshots() {
     if (!currentLicenseTenant) return;
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const headers = { 'Authorization': `Bearer ${tok}` };
 
     fetch(`/api/licenses/snapshots?tenantId=${encodeURIComponent(currentLicenseTenant)}`, { headers })
@@ -331,7 +331,7 @@ function loadLicenseSnapshots() {
 
 function triggerLicenseCollection(dryRun) {
     if (!currentLicenseTenant) return;
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const headers = { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' };
 
     const btn = document.getElementById('licRunCollectBtn');
@@ -368,7 +368,7 @@ function triggerLicenseCollection(dryRun) {
 }
 
 function checkUpstreamPdfUpdates() {
-    const tok = localStorage.getItem('token') || '';
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
     const headers = { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' };
 
     fetch('/api/licenses/catalog/check-updates', {
