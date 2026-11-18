@@ -2888,7 +2888,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             vinfo = get_version_info()
             channel = str(vinfo.get("channel", "production")).lower()
             env_mode = str(vinfo.get("environment", "production")).lower()
-            allow_local = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH", "true").lower() in ("true", "1")
+            allow_local = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH", "false").lower() in ("true", "1")
 
             username = str(body.get("username", "")).strip()
             password = str(body.get("password", ""))

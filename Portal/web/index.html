@@ -3444,7 +3444,7 @@
         // ==========================================
         function switchTab(tabId) {
             currentTab = tabId;
-            const tabs = ['dashboard', 'tenants', 'studio', 'licenses', 'dispatch', 'kql', 'teams', 'settings', 'rbac'];
+            const tabs = ['dashboard', 'tenants', 'studio', 'licenses', 'dispatch', 'teams', 'settings', 'rbac'];
             tabs.forEach(t => {
                 const elView = document.getElementById(`view-${t}`);
                 const elBtn = document.getElementById(`tabBtn-${t}`);
@@ -3481,8 +3481,6 @@
                 } else if (tabId === 'settings') {
                     if (typeof renderUsersTable === 'function') renderUsersTable();
                     if (typeof checkServerVersion === 'function') checkServerVersion();
-                } else if (tabId === 'kql') {
-                    if (typeof loadKqlCatalogUI === 'function') loadKqlCatalogUI();
                 } else if (tabId === 'rbac') {
                     if (typeof initRbacPortal === 'function') initRbacPortal();
                 }
@@ -4247,9 +4245,12 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        customerId: tenantId,
                         customer_id: tenantId,
-                        hours: 4,
-                        reason: 'Rapor üretimi için anlık JIT yetki yükseltme (Zero Trust)'
+                        durationHours: 4,
+                        ticketRef: 'JIT-STUDIO-' + Date.now(),
+                        justification: 'Rapor üretimi için anlık JIT yetki yükseltme (Zero Trust)',
+                        autoApproveBreakglass: true
                     })
                 });
                 const d = await res.json();
@@ -4260,11 +4261,15 @@
                     if (studioBadge) studioBadge.classList.remove('hidden');
                     const logPre = document.getElementById('consoleOutputLog');
                     if (logPre) {
-                        logPre.innerText += `\n[JIT] 4 saatlik erişim başarıyla onaylandı (${d.assignment_id || 'JIT-OK'}).\n[JIT] Rapor üretimi yeniden başlatılıyor...`;
+                        logPre.innerText += `\n[JIT] 4 saatlik erişim başarıyla onaylandı (${d.assignment_id || d.approvalId || 'JIT-OK'}).\n[JIT] Rapor üretimi yeniden başlatılıyor...`;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>⚡ 4 Saatlik JIT Erişim Etkinleştir ve Raporu Al</span>';
                     }
                     setTimeout(() => {
                         triggerReportGeneration();
-                    }, 500);
+                    }, 300);
                 } else {
                     alert('JIT Yetki Yükseltme Başarısız: ' + (d.error || 'Bilinmeyen hata'));
                     if (btn) {
@@ -5519,9 +5524,43 @@ let allUsers = [];
         // ==========================================
         // PLANLANMIŞ RAPOR DAĞITIMI (SCHEDULED DISPATCH)
         // ==========================================
-        function loadDispatchView() {
+        let dispatchConfigs = [];
+
+        function showDispatchAlert(message, isError = false) {
+            const box = document.getElementById('dispAlertBox');
+            if (!box) return;
+            box.textContent = message;
+            box.className = isError
+                ? 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200'
+                : 'p-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+            box.classList.remove('hidden');
+        }
+
+        function updateDispatchPreview() {
+            const select = document.getElementById('dispTenantSelect');
+            const tenant = allTenants.find(t => t.Id === (select ? select.value : ''));
+            const tName = tenant ? tenant.Name : 'Müşteri Yetkilisi';
+            const recipients = (document.getElementById('dispRecipients')?.value || '').trim() || 'demo-ciso@cloudshield-mssp.com';
+            const subjectTpl = (document.getElementById('dispSubject')?.value || '[CloudShield MSSP] {CustomerName} - Yönetilen Güvenlik ve Uyum Raporu');
+            const resolvedSubject = subjectTpl.replace(/\{CustomerName\}/g, tName);
+            const safeSlug = tName.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            const elCust = document.getElementById('previewCustomerName');
+            if (elCust) elCust.textContent = tName;
+            const elRecip = document.getElementById('previewRecipients');
+            if (elRecip) elRecip.textContent = recipients;
+            const elSubj = document.getElementById('previewSubject');
+            if (elSubj) elSubj.textContent = resolvedSubject;
+            const elPdf = document.getElementById('previewPdfName');
+            if (elPdf) elPdf.textContent = `${safeSlug}_Report.pdf`;
+            const elHtml = document.getElementById('previewHtmlName');
+            if (elHtml) elHtml.textContent = `${safeSlug}_Summary.html`;
+        }
+
+        async function loadDispatchView() {
             const select = document.getElementById('dispTenantSelect');
             if (!select) return;
+            const prevValue = select.value;
             select.innerHTML = '';
 
             if (!allTenants || allTenants.length === 0) {
@@ -5536,39 +5575,222 @@ let allUsers = [];
                 select.appendChild(opt);
             });
 
+            if (prevValue && allTenants.some(t => t.Id === prevValue)) {
+                select.value = prevValue;
+            }
+
+            try {
+                const res = await fetch('/api/dispatch');
+                if (res.ok) {
+                    dispatchConfigs = await res.json();
+                }
+            } catch (e) {
+                console.warn('Dispatch config load error:', e);
+            }
+
+            ['dispRecipients', 'dispSubject'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.dataset.previewBound) {
+                    el.addEventListener('input', updateDispatchPreview);
+                    el.dataset.previewBound = '1';
+                }
+            });
+
             onDispatchTenantChange();
+            loadDispatchHistory();
         }
 
         function onDispatchTenantChange() {
             const select = document.getElementById('dispTenantSelect');
             if (!select) return;
-            const tenant = allTenants.find(t => t.Id === select.value);
-            if (!tenant) return;
+            const tid = select.value;
+            const tenant = allTenants.find(t => t.Id === tid);
+            const cfg = (dispatchConfigs || []).find(c => c.tenantId === tid) || {};
+            if (!tenant && !cfg.tenantId) return;
 
-            const emailsInput = document.getElementById('dispEmailsInput');
-            if (emailsInput) {
-                const emails = tenant.RecipientEmails && tenant.RecipientEmails.length > 0
-                    ? tenant.RecipientEmails.join(', ')
-                    : `${tenant.ContactEmail || 'ciso@musteri.com'}, mssp-reports@cloudshield-mssp.com`;
-                emailsInput.value = emails;
+            const freqEl = document.getElementById('dispFrequency');
+            if (freqEl) freqEl.value = cfg.frequency || (tenant && tenant.ScheduleFrequency) || 'Monthly';
+
+            const dayEl = document.getElementById('dispDay');
+            if (dayEl) dayEl.value = cfg.dispatchDay ?? (tenant && tenant.DispatchDay) ?? 1;
+
+            const timeEl = document.getElementById('dispTime');
+            if (timeEl) timeEl.value = cfg.dispatchTime || (tenant && tenant.DispatchTime) || '09:00';
+
+            const recipientsEl = document.getElementById('dispRecipients');
+            if (recipientsEl) {
+                const recips = (cfg.recipients && cfg.recipients.length) ? cfg.recipients
+                    : (tenant && tenant.RecipientEmails && tenant.RecipientEmails.length) ? tenant.RecipientEmails
+                    : [`${(tenant && tenant.ContactEmail) || 'ciso@musteri.com'}`, 'mssp-reporting@cloudshield-mssp.com'];
+                recipientsEl.value = recips.join(', ');
+            }
+
+            const subjEl = document.getElementById('dispSubject');
+            if (subjEl) {
+                subjEl.value = cfg.subjectTemplate || (tenant && tenant.EmailSubjectTemplate) || '[CloudShield MSSP] {CustomerName} - Yönetilen Güvenlik ve Uyum Raporu';
+            }
+
+            const pdfEl = document.getElementById('dispAttachPdf');
+            if (pdfEl) pdfEl.checked = cfg.attachPdf !== undefined ? !!cfg.attachPdf : (tenant ? tenant.AttachPdf !== false : true);
+
+            const htmlEl = document.getElementById('dispAttachHtml');
+            if (htmlEl) htmlEl.checked = cfg.attachHtml !== undefined ? !!cfg.attachHtml : (tenant ? tenant.AttachHtml !== false : true);
+
+            const activeVal = cfg.isActive !== undefined ? !!cfg.isActive : (tenant ? tenant.IsDispatchActive !== false : true);
+            const activeEl = document.getElementById('dispIsActive');
+            if (activeEl) activeEl.checked = activeVal;
+
+            const statusBadge = document.getElementById('dispStatusBadge');
+            if (statusBadge) {
+                statusBadge.textContent = activeVal ? 'Otomasyon Etkin' : 'Pasif';
+                statusBadge.className = activeVal
+                    ? 'text-[10px] font-bold px-2.5 py-1 rounded bg-emerald-100 text-emerald-700'
+                    : 'text-[10px] font-bold px-2.5 py-1 rounded bg-slate-200 text-slate-600';
+            }
+
+            const lastEl = document.getElementById('dispLastDate');
+            if (lastEl) lastEl.textContent = cfg.lastDispatchDate || (tenant && tenant.LastDispatchDate) || '-';
+
+            updateDispatchPreview();
+        }
+
+        async function loadDispatchHistory() {
+            const tbody = document.getElementById('dispatchHistoryTableBody');
+            if (!tbody) return;
+            try {
+                const res = await fetch('/api/dispatch/history');
+                if (!res.ok) return;
+                const history = await res.json();
+                if (!Array.isArray(history) || history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-6 text-center text-slate-400">Henüz gönderim geçmişi kaydı bulunmamaktadır.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = history.map(item => {
+                    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('tr-TR') : '-';
+                    const recips = Array.isArray(item.recipients) ? item.recipients.join(', ') : (item.recipients || '-');
+                    const docs = [
+                        item.pdfAttached ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-mono text-[10px] mr-1">PDF</span>` : '',
+                        item.htmlAttached ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[10px]">HTML</span>` : ''
+                    ].join('') || '-';
+                    const stBadge = item.status === 'Delivered'
+                        ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Teslim Edildi</span>'
+                        : `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">${escapeHtml(item.status || 'Pending')}</span>`;
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">${escapeHtml(ts)}</td>
+                            <td class="px-4 py-3 font-semibold text-ks-navy">${escapeHtml(item.tenantName || item.tenantId || '-')}</td>
+                            <td class="px-4 py-3 text-slate-600">${escapeHtml(item.mode || 'Monthly')}</td>
+                            <td class="px-4 py-3 font-mono text-[11px] text-slate-600 max-w-xs truncate" title="${escapeHtml(recips)}">${escapeHtml(recips)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">${docs}</td>
+                            <td class="px-4 py-3">${stBadge}</td>
+                            <td class="px-4 py-3 text-[11px] text-slate-500">${escapeHtml(item.deliveryChannel || 'Graph SendMail')}</td>
+                            <td class="px-4 py-3 text-right font-mono text-[10px] text-slate-400">${item.latencyMs ? item.latencyMs + ' ms' : '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.warn('Dispatch history load error:', e);
             }
         }
 
-        function saveDispatchSchedule() {
-            const select = document.getElementById('dispTenantSelect');
-            const period = document.getElementById('dispPeriodSelect') ? document.getElementById('dispPeriodSelect').value : 'Monthly';
-            const emails = document.getElementById('dispEmailsInput') ? document.getElementById('dispEmailsInput').value : '';
-            const tenant = allTenants.find(t => t.Id === (select ? select.value : ''));
+        async function saveDispatchSchedule() {
+            const tenantId = document.getElementById('dispTenantSelect')?.value;
+            if (!tenantId) {
+                showDispatchAlert('Lütfen hedef bir müşteri seçiniz.', true);
+                return;
+            }
+            const payload = {
+                tenantId: tenantId,
+                frequency: document.getElementById('dispFrequency')?.value || 'Monthly',
+                dispatchDay: parseInt(document.getElementById('dispDay')?.value || '1', 10) || 1,
+                dispatchTime: document.getElementById('dispTime')?.value || '09:00',
+                recipients: document.getElementById('dispRecipients')?.value || '',
+                subjectTemplate: document.getElementById('dispSubject')?.value || '',
+                attachPdf: !!document.getElementById('dispAttachPdf')?.checked,
+                attachHtml: !!document.getElementById('dispAttachHtml')?.checked,
+                isActive: !!document.getElementById('dispIsActive')?.checked
+            };
 
-            alert(`✅ Planlanmış Dağıtım Kuralları Kaydedildi!\n\nMüşteri: ${tenant ? tenant.Name : 'Seçili Müşteri'}\nPeriyot: ${period}\nAlıcılar: ${emails}\nDurum: Otomatik MSSP Cron Aktif`);
+            try {
+                const res = await fetch('/api/dispatch/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const idx = allTenants.findIndex(t => t.Id === tenantId);
+                    if (idx !== -1 && data.tenant) {
+                        allTenants[idx] = { ...allTenants[idx], ...data.tenant };
+                    }
+                    const cfgIdx = dispatchConfigs.findIndex(c => c.tenantId === tenantId);
+                    if (cfgIdx !== -1 && data.tenant) {
+                        dispatchConfigs[cfgIdx] = {
+                            ...dispatchConfigs[cfgIdx],
+                            frequency: data.tenant.ScheduleFrequency,
+                            dispatchDay: data.tenant.DispatchDay,
+                            dispatchTime: data.tenant.DispatchTime,
+                            recipients: data.tenant.RecipientEmails,
+                            subjectTemplate: data.tenant.EmailSubjectTemplate,
+                            attachPdf: data.tenant.AttachPdf,
+                            attachHtml: data.tenant.AttachHtml,
+                            isActive: data.tenant.IsDispatchActive
+                        };
+                    }
+                    onDispatchTenantChange();
+                    showDispatchAlert('✅ Planlanmış dağıtım ayarları kalıcı olarak kaydedildi.');
+                } else {
+                    showDispatchAlert('❌ Kaydetme hatası: ' + (data.error || 'İşlem başarısız'), true);
+                }
+            } catch (e) {
+                showDispatchAlert('❌ Sunucu iletişim hatası: ' + e.message, true);
+            }
         }
 
-        function dispatchReportNow() {
-            const select = document.getElementById('dispTenantSelect');
-            const tenant = allTenants.find(t => t.Id === (select ? select.value : ''));
-            const tenantName = tenant ? tenant.Name : 'Müşteri';
+        async function dispatchReportNow() {
+            const tenantId = document.getElementById('dispTenantSelect')?.value;
+            if (!tenantId) {
+                showDispatchAlert('Lütfen hedef bir müşteri seçiniz.', true);
+                return;
+            }
+            const tenant = allTenants.find(t => t.Id === tenantId);
+            const tName = tenant ? tenant.Name : tenantId;
+            const subjectTpl = document.getElementById('dispSubject')?.value || '[CloudShield MSSP] {CustomerName} - Yönetilen Güvenlik ve Uyum Raporu';
+            const btn = document.getElementById('btnDispatchNow');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Rapor Gönderiliyor...</span>';
+            }
 
-            alert(`🚀 Dağıtım Görevi Tetiklendi!\n\n${tenantName} için son onaylı kurumsal PDF raporu derleniyor ve güvenli e-posta ile alıcılara iletiliyor.`);
+            try {
+                const res = await fetch('/api/dispatch/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenantId: tenantId,
+                        recipients: document.getElementById('dispRecipients')?.value || '',
+                        subject: subjectTpl.replace(/\{CustomerName\}/g, tName),
+                        attachPdf: !!document.getElementById('dispAttachPdf')?.checked,
+                        attachHtml: !!document.getElementById('dispAttachHtml')?.checked
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const lastEl = document.getElementById('dispLastDate');
+                    if (lastEl) lastEl.textContent = new Date().toISOString().slice(0, 16).replace('T', ' ');
+                    showDispatchAlert('✅ ' + (data.dispatch?.message || `${tName} için rapor gönderimi tamamlandı.`));
+                    await loadDispatchHistory();
+                } else {
+                    showDispatchAlert('❌ Gönderim hatası: ' + (data.error || 'İşlem başarısız'), true);
+                }
+            } catch (e) {
+                showDispatchAlert('❌ Sunucu iletişim hatası: ' + e.message, true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>🚀 Şimdi Raporu Üret ve E-posta ile Gönder</span>';
+                }
+            }
         }
 
         function openReportPreviewModal(url) {

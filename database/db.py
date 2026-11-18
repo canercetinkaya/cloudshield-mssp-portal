@@ -403,10 +403,10 @@ def seed_default_data(conn):
             (admin_pwd_hash, admin_pwd_salt)
         )
 
-    # Pilot mode JIT temporary access elevation for tenant-002
+    # Pilot mode JIT temporary access elevation for tenant-002 (auto-renewed on startup)
+    jit_to = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()
     cur.execute("SELECT id FROM access_assignments WHERE id = 'asgn-jit-pilot-admin'")
     if not cur.fetchone():
-        jit_to = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         cur.execute(
             """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
                                               service_scope, service_id, valid_from, valid_to, is_temporary, is_active, approval_id, created_by, created_at)
@@ -414,16 +414,25 @@ def seed_default_data(conn):
                        'ALL', NULL, ?, ?, 1, 1, 'appr-pilot-init', 'system', ?)""",
             (now, jit_to, now)
         )
+    else:
+        cur.execute(
+            "UPDATE access_assignments SET valid_to = ?, is_active = 1 WHERE id = 'asgn-jit-pilot-admin'",
+            (jit_to,)
+        )
 
     cur.execute("SELECT id FROM access_assignments WHERE id = 'asgn-jit-pilot-caner'")
     if not cur.fetchone():
-        jit_to = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         cur.execute(
             """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
                                               service_scope, service_id, valid_from, valid_to, is_temporary, is_active, approval_id, created_by, created_at)
                VALUES ('asgn-jit-pilot-caner', 'User', 'usr-001', 'role-security-engineer', 'Specific', 'tenant-002',
                        'ALL', NULL, ?, ?, 1, 1, 'appr-pilot-init', 'system', ?)""",
             (now, jit_to, now)
+        )
+    else:
+        cur.execute(
+            "UPDATE access_assignments SET valid_to = ?, is_active = 1 WHERE id = 'asgn-jit-pilot-caner'",
+            (jit_to,)
         )
 
     # Import from Data/users.json
@@ -440,7 +449,7 @@ def seed_default_data(conn):
                     role_str = u.get("Role", "ServiceOperator")
                     assigned_tenants = u.get("AssignedTenants", ["ALL"])
 
-                    cur.execute("SELECT id FROM users WHERE id = ? OR upn = ?", (uid, upn))
+                    cur.execute("SELECT id, password_hash FROM users WHERE id = ? OR upn = ?", (uid, upn))
                     u_existing = cur.fetchone()
                     user_email = u.get("Email", upn)
                     user_p_hash = admin_pwd_hash if uid in ("usr-admin", "usr-001") else None

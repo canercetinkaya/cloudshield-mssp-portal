@@ -285,7 +285,7 @@ def run_api_tests():
     passed = status == 200 and body.get("version") == expected_ver and body.get("release") == expected_rel
     log_test("api_tests", "GET /api/version - Platform Surum ve Surum Basligi Dogrulamasi", passed, f"Status={status}, Release={body.get('release')}, ExpectedRelease={expected_rel}, Build={body.get('build')}", dur)
 
-    # 2.3 POST /api/auth/login - Enterprise Uretim Modunda Yerel Parola Engeli
+    # 2.3 POST /api/auth/login - Enterprise Uretim Modunda Break-Glass Olmayan Yerel Parola Engeli
     auth_local_file = os.path.join(ROOT_DIR, "Data", "auth.local.json")
     local_cfg = {}
     if os.path.exists(auth_local_file):
@@ -294,27 +294,36 @@ def run_api_tests():
                 local_cfg = json.load(f)
         except Exception:
             pass
+    non_breakglass_user = "edr.analyst@cloudshield-mssp.com"
     admin_user = os.environ.get("PORTAL_ADMIN_USER", local_cfg.get("admin_user", "admin"))
     admin_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", local_cfg.get("admin_password", ""))
 
-    status_login, body_login, dur_login = http_post("/api/auth/login", {"username": admin_user, "password": admin_pass})
-    passed_pilot_lock = status_login == 403 and body_login.get("ssoRequired") is True
-    log_test("api_tests", "POST /api/auth/login - Pilot Modunda Yerel Parola Engeli (403 & SSO Zorunlu)", passed_pilot_lock, f"Status={status_login}, SsoRequired={body_login.get('ssoRequired')}", dur_login)
+    prev_allow_local = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH")
+    os.environ["CLOUDSHIELD_ALLOW_LOCAL_AUTH"] = "false"
+    try:
+        status_login, body_login, dur_login = http_post("/api/auth/login", {"username": non_breakglass_user, "password": admin_pass})
+        passed_pilot_lock = status_login == 403 and body_login.get("ssoRequired") is True
+        log_test("api_tests", "POST /api/auth/login - Pilot Modunda Yerel Parola Engeli (403 & SSO Zorunlu)", passed_pilot_lock, f"Status={status_login}, SsoRequired={body_login.get('ssoRequired')}", dur_login)
 
-    # 2.3.1 POST /api/auth/login - Hatali Parolada da Guvenli 403 Reddi
-    status_bad, body_bad, dur_bad = http_post("/api/auth/login", {"username": admin_user, "password": "InvalidPassword_StrictTest#1"})
-    bad_passed = status_bad == 403 and body_bad.get("ssoRequired") is True and "CloudShield" not in str(body_bad.get("error"))
-    log_test("api_tests", "POST /api/auth/login - 403 Guvenli Red & Bilgi Sizdirmama Guvencesi", bad_passed, f"Status={status_bad}, SsoRequired={body_bad.get('ssoRequired')}", dur_bad)
+        # 2.3.1 POST /api/auth/login - Hatali Parolada da Guvenli 403 Reddi (Break-Glass Harici)
+        status_bad, body_bad, dur_bad = http_post("/api/auth/login", {"username": non_breakglass_user, "password": "InvalidPassword_StrictTest#1"})
+        bad_passed = status_bad == 403 and body_bad.get("ssoRequired") is True and "CloudShield" not in str(body_bad.get("error"))
+        log_test("api_tests", "POST /api/auth/login - 403 Guvenli Red & Bilgi Sizdirmama Guvencesi", bad_passed, f"Status={status_bad}, SsoRequired={body_bad.get('ssoRequired')}", dur_bad)
 
-    # 2.3.2 POST /api/auth/login - Kaldirilmis literal parolalar Enterprise modda da reddedilir
-    legacy_login_ok = True
-    seen = []
-    for literal in _LEGACY_LITERAL_PASSWORDS:
-        st, bd, _ = http_post("/api/auth/login", {"username": admin_user, "password": literal})
-        seen.append(f"{literal}->{st}")
-        if st != 403:
-            legacy_login_ok = False
-    log_test("api_tests", "POST /api/auth/login - Kaldirilmis Literal Parolalarin Kesin Reddi (W7/W8)", legacy_login_ok, f"Results: {seen}", 0)
+        # 2.3.2 POST /api/auth/login - Kaldirilmis literal parolalar her kosulda reddedilir (W7/W8)
+        legacy_login_ok = True
+        seen = []
+        for literal in _LEGACY_LITERAL_PASSWORDS:
+            st, bd, _ = http_post("/api/auth/login", {"username": admin_user, "password": literal})
+            seen.append(f"{literal}->{st}")
+            if st not in (401, 403):
+                legacy_login_ok = False
+        log_test("api_tests", "POST /api/auth/login - Kaldirilmis Literal Parolalarin Kesin Reddi (W7/W8)", legacy_login_ok, f"Results: {seen}", 0)
+    finally:
+        if prev_allow_local is None:
+            os.environ.pop("CLOUDSHIELD_ALLOW_LOCAL_AUTH", None)
+        else:
+            os.environ["CLOUDSHIELD_ALLOW_LOCAL_AUTH"] = prev_allow_local
 
     # 2.3.3 POST /api/auth/sso - Emekli Edilen SSO Stub (410 Gone, Token YOK) - W5
     status_sso, body_sso, dur_sso = http_post("/api/auth/sso", {"provider": "EntraID_OIDC", "upn": "admin@cloudshield-mssp.com"})
