@@ -500,7 +500,7 @@ def handle_rbac_post(handler, path, body):
                     INSERT OR REPLACE INTO access_approvals
                         (id, requester_id, approver_id, requested_role_id, customer_id,
                          service_id, duration_hours, reason, status, decision_reason, created_at, decided_at)
-                    VALUES (?, ?, 'system-breakglass', 'role-security-engineer', ?, 'ALL', ?, ?, 'Approved', 'BreakglassPlatformAdminAutoApproved', ?, ?)
+                    VALUES (?, ?, NULL, 'role-security-engineer', ?, 'ALL', ?, ?, 'Approved', 'BreakglassPlatformAdminAutoApproved', ?, ?)
                 """, (approval_id, user["id"], cust_id, duration_hours, full_reason, now, now))
                 cur.execute("""
                     INSERT OR REPLACE INTO access_assignments
