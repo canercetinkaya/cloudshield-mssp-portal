@@ -96,5 +96,22 @@
       "CanManageSettings": false
     },
     "LastLogin": "2026-09-09 08:30"
+  },
+  {
+    "Id": "usr-007",
+    "Upn": "cloudshiled@canercetinkaya.com",
+    "Email": "cloudshiled@canercetinkaya.com",
+    "DisplayName": "CloudShield Mail & Test Admin",
+    "Department": "MSSP Otomasyon & Raporlama",
+    "Role": "PlatformAdmin",
+    "AssignedTenants": ["ALL"],
+    "Permissions": {
+      "CanViewDashboard": true,
+      "CanGenerateReports": true,
+      "CanAccessGdap": true,
+      "CanManageTenants": true,
+      "CanManageSettings": true
+    },
+    "LastLogin": "Henüz giriş yapmadı"
   }
 ]

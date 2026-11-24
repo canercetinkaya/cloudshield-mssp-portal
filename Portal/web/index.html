@@ -5851,9 +5851,10 @@ let allUsers = [];
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    const isFailed = data.dispatch?.status === 'Failed';
                     const lastEl = document.getElementById('dispLastDate');
-                    if (lastEl) lastEl.textContent = new Date().toISOString().slice(0, 16).replace('T', ' ');
-                    showDispatchAlert('✅ ' + (data.dispatch?.message || `${tName} için rapor gönderimi tamamlandı.`));
+                    if (lastEl && !isFailed) lastEl.textContent = new Date().toISOString().slice(0, 16).replace('T', ' ');
+                    showDispatchAlert((isFailed ? '❌ ' : '✅ ') + (data.dispatch?.message || `${tName} için rapor gönderimi tamamlandı.`), isFailed);
                     await loadDispatchHistory();
                 } else {
                     showDispatchAlert('❌ Gönderim hatası: ' + (data.error || 'İşlem başarısız'), true);

@@ -765,7 +765,7 @@ def execute_report_dispatch(tenant_obj, recipients=None, subject=None, attach_pd
     tid = tenant_obj.get("Id") or tenant_obj.get("TenantId") or "tenant"
     customer_name = tenant_obj.get("Name", "Customer")
     services = tenant_obj.get("ActiveServices") or ["SVC-MDE", "SVC-MDO", "SVC-PURVIEW"]
-    is_sim = bool(tenant_obj.get("IsSimulation")) or bool(dry_run)
+    is_sim = bool(dry_run)
     freq = mode or tenant_obj.get("ScheduleFrequency", "Monthly")
 
     recip_list = recipients if recipients else tenant_obj.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])

@@ -211,6 +211,9 @@ def main():
         "USE_SQLITE_NOLOCK=true",
         f"CLOUDSHIELD_ALLOW_LOCAL_AUTH={allow_local_auth}",
     ]
+    graph_mail_sender = os.environ.get("GRAPH_MAIL_SENDER", "").strip()
+    if graph_mail_sender:
+        env_vars.append(f"GRAPH_MAIL_SENDER={graph_mail_sender}")
     if kv_url:
         env_vars.append(f"AZURE_KEYVAULT_URL={kv_url}")
     if "entra-client-secret" in existing_secrets:

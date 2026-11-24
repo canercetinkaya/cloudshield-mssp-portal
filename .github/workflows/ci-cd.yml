@@ -195,5 +195,6 @@ jobs:
           ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
           CLOUDSHIELD_SESSION_SECRET: ${{ secrets.CLOUDSHIELD_SESSION_SECRET }}
           PORTAL_ADMIN_PASSWORD: ${{ secrets.PORTAL_ADMIN_PASSWORD }}
+          GRAPH_MAIL_SENDER: ${{ secrets.GRAPH_MAIL_SENDER }}
         run: |
           python3 Azure/deploy_aca.py
