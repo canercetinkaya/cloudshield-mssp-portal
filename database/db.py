@@ -3,15 +3,55 @@
 
 import os
 import pathlib
+import shutil
 import sqlite3
 import hashlib
 import secrets
 import json
+import threading
+import time
 from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DB_PATH = os.path.join(ROOT_DIR, "Data", "cloudshield_rbac.db")
 MIGRATIONS_DIR = os.path.join(ROOT_DIR, "database", "migrations")
+
+_LOCAL_RUNTIME_DB_PATH = "/tmp/cloudshield_rbac_runtime.db"
+_RUNTIME_SHADOW_ACTIVE = False
+_DB_SYNC_STARTED = False
+_DB_SYNC_LOCK = threading.Lock()
+
+
+def _use_local_runtime_shadow(requested_path=None):
+    """Use local ext4 runtime SQLite shadow when default DB sits on an Azure Files CIFS mount (/app/Data)."""
+    if requested_path or os.environ.get("CS_TEST_DB_PATH") or os.environ.get("DB_PATH"):
+        return False
+    norm = os.path.abspath(DB_PATH).replace("\\", "/")
+    return os.name != "nt" and norm.startswith("/app/Data/")
+
+
+def _sync_runtime_db_to_share():
+    """Atomically snapshot local runtime SQLite DB back to persistent /app/Data share."""
+    if not _RUNTIME_SHADOW_ACTIVE or not os.path.exists(_LOCAL_RUNTIME_DB_PATH):
+        return
+    with _DB_SYNC_LOCK:
+        tmp_share_path = DB_PATH + ".sync_tmp"
+        try:
+            src = sqlite3.connect(_LOCAL_RUNTIME_DB_PATH, timeout=10.0)
+            dst = sqlite3.connect(tmp_share_path, timeout=10.0)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+                src.close()
+            shutil.move(tmp_share_path, DB_PATH)
+        except Exception as ex:
+            try:
+                if os.path.exists(tmp_share_path):
+                    os.remove(tmp_share_path)
+            except Exception:
+                pass
+            print(f"[WARN] Periodic DB snapshot warning: {ex}")
 
 def verify_replica_safety():
     """
@@ -63,18 +103,20 @@ def backup_database(destination_path, source_db_path=None):
 
 def get_db(db_path=None):
     verify_replica_safety()
-    path = db_path or os.environ.get("DB_PATH") or DB_PATH
+    if db_path is None and _RUNTIME_SHADOW_ACTIVE:
+        path = _LOCAL_RUNTIME_DB_PATH
+        is_network_share = False
+    else:
+        path = db_path or os.environ.get("DB_PATH") or DB_PATH
+        norm_path = os.path.abspath(path).replace("\\", "/")
+        is_network_share = (
+            os.environ.get("USE_SQLITE_NOLOCK", "false").lower() in ("true", "1")
+            or "/app/Data" in norm_path
+            or os.environ.get("ENVIRONMENT") == "production"
+        )
     dir_name = os.path.dirname(path)
     if dir_name:
         os.makedirs(dir_name, exist_ok=True)
-
-    # Detect network file shares (Azure Files CIFS /app/Data) or explicit opt-in
-    norm_path = os.path.abspath(path).replace("\\", "/")
-    is_network_share = (
-        os.environ.get("USE_SQLITE_NOLOCK", "false").lower() in ("true", "1")
-        or "/app/Data" in norm_path
-        or os.environ.get("ENVIRONMENT") == "production"
-    )
 
     conn = None
     if is_network_share:
@@ -115,6 +157,43 @@ def verify_password(password, expected_hash, salt):
     return hmac.compare_digest(key.hex(), expected_hash)
 
 def init_db(db_path=None):
+    global _RUNTIME_SHADOW_ACTIVE, _DB_SYNC_STARTED
+    salvaged_sessions = []
+    salvaged_customers = []
+    if _use_local_runtime_shadow(db_path):
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        share_healthy = False
+        if os.path.exists(DB_PATH) and os.path.getsize(DB_PATH) > 0:
+            try:
+                uri = pathlib.Path(os.path.abspath(DB_PATH)).as_uri() + "?nolock=1"
+                chk_conn = sqlite3.connect(uri, uri=True, timeout=5.0)
+                chk_conn.row_factory = sqlite3.Row
+                ic = chk_conn.execute("PRAGMA integrity_check;").fetchall()
+                share_healthy = len(ic) == 1 and ic[0][0] == "ok"
+                if not share_healthy:
+                    print(f"[RECOVERY] Malformed shared SQLite detected ({ic[:2]}). Salvaging live sessions & rebuilding clean local DB...")
+                    try:
+                        salvaged_sessions = [tuple(r) for r in chk_conn.execute("SELECT token, user_id, created_at, expires_at, user_data_json FROM user_sessions").fetchall()]
+                    except Exception:
+                        pass
+                    try:
+                        salvaged_customers = [dict(r) for r in chk_conn.execute("SELECT * FROM customers").fetchall()]
+                    except Exception:
+                        pass
+                chk_conn.close()
+            except Exception as cex:
+                print(f"[RECOVERY] Shared SQLite check failed ({cex}); initializing fresh runtime DB.")
+                share_healthy = False
+
+        if share_healthy:
+            shutil.copy2(DB_PATH, _LOCAL_RUNTIME_DB_PATH)
+        elif os.path.exists(_LOCAL_RUNTIME_DB_PATH):
+            try:
+                os.remove(_LOCAL_RUNTIME_DB_PATH)
+            except Exception:
+                pass
+        _RUNTIME_SHADOW_ACTIVE = True
+
     conn = get_db(db_path)
     cur = conn.cursor()
     cur.execute("""
@@ -147,8 +226,36 @@ def init_db(db_path=None):
                 except Exception as mex:
                     print(f"[MIGRATION ERROR] Failed to apply {mfile}: {mex}")
 
+    if salvaged_sessions:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                user_data_json TEXT NOT NULL
+            )
+        """)
+        for s_row in salvaged_sessions:
+            try:
+                cur.execute("INSERT OR REPLACE INTO user_sessions (token, user_id, created_at, expires_at, user_data_json) VALUES (?, ?, ?, ?, ?)", s_row)
+            except Exception:
+                pass
+        conn.commit()
+
     seed_default_data(conn)
     conn.close()
+
+    if _RUNTIME_SHADOW_ACTIVE:
+        _sync_runtime_db_to_share()
+        if not _DB_SYNC_STARTED:
+            _DB_SYNC_STARTED = True
+            def _bg_sync_loop():
+                while True:
+                    time.sleep(10)
+                    _sync_runtime_db_to_share()
+            threading.Thread(target=_bg_sync_loop, daemon=True, name="CloudShieldDbSnapshotter").start()
+
     print("[DB] Database initialization and seed complete.")
 
 def seed_default_data(conn):
@@ -526,6 +633,31 @@ def seed_default_data(conn):
                                         (f"tm-{uid}-ciso", "team-ciso-board", uid, "Executive", now))
         except Exception as e:
             print(f"[WARN] User import error: {e}")
+
+    # Purge stale automated test-runner user artifacts if any lingered on persistent storage
+    try:
+        cur.execute("DELETE FROM access_assignments WHERE subject_type = 'User' AND subject_id IN (SELECT id FROM users WHERE upn LIKE '%@test.local' OR upn LIKE 'sec.analyst.%')")
+        cur.execute("DELETE FROM team_memberships WHERE user_id IN (SELECT id FROM users WHERE upn LIKE '%@test.local' OR upn LIKE 'sec.analyst.%')")
+        cur.execute("DELETE FROM users WHERE upn LIKE '%@test.local' OR upn LIKE 'sec.analyst.%'")
+    except Exception:
+        pass
+
+    # Ensure usr-007 (cloudshiled@canercetinkaya.com) is enrolled even when /app/Data/users.json predates it
+    cur.execute("SELECT id FROM users WHERE LOWER(upn) = 'cloudshiled@canercetinkaya.com'")
+    if not cur.fetchone():
+        cur.execute(
+            """INSERT OR IGNORE INTO users (id, organization_id, upn, display_name, email, department,
+                                            password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
+               VALUES ('usr-007', 'org-cloudshield', 'cloudshiled@canercetinkaya.com', 'CloudShield Mail & Test Admin',
+                       'cloudshiled@canercetinkaya.com', 'MSSP Otomasyon & Raporlama', NULL, NULL, 1, 1, 'EntraID_OIDC', ?)""",
+            (now,)
+        )
+        cur.execute(
+            """INSERT OR IGNORE INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                                         service_scope, service_id, valid_from, is_temporary, is_active, created_by, created_at)
+               VALUES ('asgn-usr-007-all', 'User', 'usr-007', 'role-platform-admin', 'ALL', NULL, 'ALL', NULL, ?, 0, 1, 'system', ?)""",
+            (now, now)
+        )
 
     # 7. Seed Historical Monthly Metrics for tenant-002 (12-month trajectory)
     seed_historical_metrics_data(cur, now)

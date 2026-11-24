@@ -203,6 +203,8 @@ def main():
         "-n", app_name, "-g", resource_group,
         "--container-name", actual_container_name,
         "--image", image_tag,
+        "--cpu", "1.0",
+        "--memory", "2.0Gi",
         "--revision-suffix", rev_suffix,
         "--min-replicas", min_replicas,
         "--max-replicas", max_replicas

@@ -15,7 +15,7 @@
     <style>
         body { background-color: #F1F5F9; font-family: 'Inter', sans-serif; }
         .tab-active { border-bottom: 3px solid #D71920; color: #002B49; font-weight: 700; }
-        .subtab-active { background-color: #002B49; color: #FFFFFF; font-weight: 600; }
+        .subtab-active { background-color: #002B49 !important; color: #FFFFFF !important; font-weight: 600; }
         /* User Requested Custom KQL Catalog & Table Styles */
         .kql-table a { text-decoration: none; color: #464feb; }
         .kql-table tr th, .kql-table tr td { border: 1px solid #e6e6e6; }
@@ -142,22 +142,22 @@
                     <span class="text-ks-red font-extrabold text-base tracking-tight">Shield</span>
                 </div>
                 <div class="h-6 w-px bg-slate-600"></div>
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">Security Reporting Platform</span>
-                    <span class="text-[10px] text-slate-400">Microsoft Defender & Purview Managed Services Visibility</span>
+                <div class="flex flex-col whitespace-nowrap">
+                    <span lang="en" class="text-xs font-bold tracking-wider text-slate-200 uppercase">Security Reporting Platform</span>
+                    <span lang="en" class="text-[10px] text-slate-400">Microsoft Defender &amp; Purview Managed Services Visibility</span>
                 </div>
                 <!-- CANLI VERSİYON KONTROL ROZETİ (LIVE CONTAINER APP VERSION INDICATOR) -->
-                <div class="hidden sm:flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
+                <div class="hidden xl:flex items-center space-x-1.5 whitespace-nowrap bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-mono font-bold px-2.5 py-1 rounded-full shadow-inner cursor-pointer" onclick="switchTab('settings'); switchSettingsSubTab('version');" title="Versiyon ve Değişiklik Günlüğünü İncele">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
-                    <span id="headerVersionBadge">v3.1.0-REPORTING-VISIBILITY</span>
+                    <span id="headerVersionBadge">v3.2.0-LICENSE-INTELLIGENCE</span>
                     <span id="headerVersionBuild" class="text-slate-400 text-[9px]">| 2026.10.09</span>
                 </div>
             </div>
 
             <!-- Global Tenant Seçici & Günlük Eşitleme Rozeti -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3 whitespace-nowrap">
                 <!-- Günlük Senkronizasyon Rozeti -->
-                <div class="hidden md:flex items-center bg-ks-navydark/70 border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs space-x-2">
+                <div class="hidden lg:flex items-center whitespace-nowrap bg-ks-navydark/70 border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs space-x-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 badge-pulse"></span>
                     <span class="text-slate-300">Günlük Senkron: <strong id="topLastSync" class="text-emerald-300">Senkronize Ediliyor...</strong></span>
                     <button onclick="syncDashboardStats()" title="Günlük telemetri verilerini şimdi güncelle" class="text-slate-400 hover:text-white transition ml-1">
@@ -2231,7 +2231,7 @@
             <div id="rbacView-audit" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 bg-slate-50">
                     <div class="flex items-center space-x-2">
-                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Yetkilendirme Denetim Kütüğü (Audit Trail)</h3>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Yetkilendirme Denetim Kütüğü <span lang="en">(Audit Trail)</span></h3>
                         <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
                             <i class="fa-solid fa-lock text-[9px] mr-1"></i>KVKK / GDPR Kriptografik İz
                         </span>
@@ -2835,6 +2835,9 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- MODAL: MÜŞTERİ KURUMSAL LOGO YÜKLEME MODALI -->
     <!-- ========================================================================= -->
@@ -4157,7 +4160,13 @@
                     body: JSON.stringify(payload)
                 });
 
-                let data = await res.json();
+                const rawBody = await res.text();
+                let data = {};
+                try {
+                    data = rawBody ? JSON.parse(rawBody) : {};
+                } catch (_pe) {
+                    data = { success: false, error: `Sunucu yanıtı işlenemedi (HTTP ${res.status}): ${rawBody.slice(0, 120)}` };
+                }
                 let finalStatus = res.status;
 
                 if (res.status === 202 && data.jobId) {
@@ -4169,7 +4178,14 @@
                         const elapsedSec = Math.round((Date.now() - startedMs) / 1000);
                         desc.innerText = `${selectedServices.length} servis işleniyor ve vektörel PDF derleniyor (${elapsedSec} sn)...`;
                         const pollRes = await fetch(`/api/reports/jobs/${encodeURIComponent(jobId)}`);
-                        const pollJson = await pollRes.json();
+                        const pollTxt = await pollRes.text();
+                        let pollJson = {};
+                        try {
+                            pollJson = pollTxt ? JSON.parse(pollTxt) : {};
+                        } catch (_ppe) {
+                            if (pollRes.status >= 500) continue;
+                            pollJson = { success: false, error: `Durum sorgusu yanıtı geçersiz (HTTP ${pollRes.status})` };
+                        }
                         if (!pollRes.ok || !pollJson.success) {
                             data = pollJson;
                             finalStatus = pollRes.status;
@@ -5305,6 +5321,23 @@ let allUsers = [];
             }
 
             const score = Number(metrics.secureScore || t.SecureScore || 0);
+            const valAttrMsftEl = document.getElementById('valAttrMsft');
+            if (valAttrMsftEl) {
+                valAttrMsftEl.innerText = metrics.blockedThreats !== null && metrics.blockedThreats !== undefined
+                    ? Number(metrics.blockedThreats).toLocaleString('tr-TR')
+                    : '0';
+            }
+            const valAttrEffortEl = document.getElementById('valAttrEffort');
+            if (valAttrEffortEl) {
+                valAttrEffortEl.innerText = metrics.hoursSaved !== null && metrics.hoursSaved !== undefined
+                    ? `${Number(metrics.hoursSaved).toFixed(1)} sa`
+                    : '0.0 sa';
+            }
+            const valAttrActiveEl = document.getElementById('valAttrActiveServices');
+            if (valAttrActiveEl) {
+                valAttrActiveEl.innerText = `${(t.ActiveServices || []).length} Servis`;
+            }
+
             const elAutoBlock = document.getElementById('cockpitAutoBlockCount');
             if (elAutoBlock) {
                 elAutoBlock.innerText = metrics.blockedThreats !== null && metrics.blockedThreats !== undefined

@@ -319,7 +319,7 @@ def handle_rbac_post(handler, path, body):
                 {"step": 2, "name": "Platform Yönetici Kontrolü", "passed": any(a.get("is_platform_role") for a in assignments), "detail": "Global bypass yetkisi" if any(a.get("is_platform_role") for a in assignments) else "Standart RBAC kapsamı"},
                 {"step": 3, "name": "İzin Kapsamı", "passed": any(permission in a.get("permissions", []) for a in assignments), "detail": f"Talep edilen: {permission}"},
                 {"step": 4, "name": "Müşteri Kapsamı", "passed": not customer_id or any(a.get("customer_scope") == "ALL" or a.get("customer_id") == customer_id for a in assignments), "detail": f"Müşteri: {customer_id or 'Global'}"},
-                {"step": 5, "name": "Servis Kapsamı", "passed": not service_ids or all(any(a.get("service_scope") == "ALL" or (a.get("service_code") or "").upper() == s.upper() for a in assignments) for s in service_ids), "detail": f"Servisler: {service_ids or 'Tümü'}"},
+                {"step": 5, "name": "Servis Kapsamı", "passed": not service_ids or all(any(a.get("service_scope") == "ALL" or (a.get("service_code") or "").upper() == s.upper() for a in assignments) for s in service_ids), "detail": f"Servisler: {', '.join(service_ids) if service_ids else 'Tümü'}"},
                 {"step": 6, "name": "Nihai Karar", "passed": allowed, "detail": reason}
             ]
 

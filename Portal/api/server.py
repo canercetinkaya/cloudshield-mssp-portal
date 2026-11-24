@@ -1065,8 +1065,16 @@ def _list_unified_users():
             asgns = get_effective_assignments(uid, conn)
             roles = [a["role_name"] for a in asgns if a.get("role_name")]
             is_pa = any(a.get("is_platform_role") for a in asgns)
+            eff_perms = {p for a in asgns for p in (a.get("permissions") or [])}
             tenants_sc = ["ALL"] if (is_pa or any(a.get("customer_scope") == "ALL" for a in asgns)) else [a["customer_id"] for a in asgns if a.get("customer_id")]
             j_meta = json_users.get(uid, {})
+            ui_perms = j_meta.get("Permissions") or {
+                "CanViewDashboard": True,
+                "CanGenerateReports": bool(is_pa or "reports:generate" in eff_perms),
+                "CanAccessGdap": bool(is_pa or "customers:view" in eff_perms),
+                "CanManageTenants": bool(is_pa or "customers:manage" in eff_perms),
+                "CanManageSettings": bool(is_pa or "roles:manage" in eff_perms),
+            }
             out.append({
                 "Id": uid,
                 "DisplayName": r.get("display_name") or j_meta.get("DisplayName") or r.get("upn"),
@@ -1075,6 +1083,7 @@ def _list_unified_users():
                 "Department": r.get("department") or j_meta.get("Department") or "MSSP",
                 "Role": "PlatformAdmin" if is_pa else (j_meta.get("Role") or (roles[0] if roles else "ServiceOperator")),
                 "AssignedTenants": tenants_sc or ["ALL"],
+                "Permissions": ui_perms,
                 "LastLogin": r.get("last_login_at") or j_meta.get("LastLogin") or "Henüz giriş yapmadı",
                 "AuthProvider": r.get("auth_provider") or "EntraID_OIDC",
             })
@@ -2253,8 +2262,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         tenant_name = target.get("Name", "Kiracı")
         tenant_guid = target.get("TenantId", "")
-        client_id = target.get("ClientId") or target.get("Auth", {}).get("ClientId", "")
-        is_sim = target.get("IsSimulation", False) or "test" in tenant_name.lower() or "sandbox" in tenant_name.lower()
+        auth_cfg_t = target.get("Auth") or {}
+        auth_method_t = target.get("AuthMethod") or auth_cfg_t.get("Method") or "ClientSecret"
+        client_id = target.get("ClientId") or auth_cfg_t.get("ClientId", "")
+        is_sim = bool(target.get("IsSimulation", False))
 
         # Load service catalog
         catalog = load_json_file(CATALOG_FILE, {}).get("services", {})
@@ -2291,6 +2302,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     pass
 
         results = []
+        flat_permissions = []
+        granted_perm_cnt = 0
+        missing_perm_cnt = 0
+
         for s_code, perms in perm_specs.items():
             s_meta = catalog.get(s_code, {})
             display_name = s_meta.get("displayNameTr") or s_code
@@ -2332,6 +2347,35 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "statusDescription": status_desc
             })
 
+            if is_active:
+                for p_name in perms:
+                    if is_sim:
+                        p_stat = "Granted"
+                        p_rec = "Simülasyon kapsamı hazır"
+                    elif not client_id or not tenant_guid:
+                        p_stat = "MissingScope"
+                        p_rec = "App Registration ClientId tanımlayın"
+                    elif live_token_ok and (p_name in live_roles or (p_name == "RoleManagement.Read.Directory" and "Directory.Read.All" in live_roles)):
+                        p_stat = "Granted"
+                        p_rec = "Canlı JWT üzerinde doğrulandı"
+                    else:
+                        p_stat = "AdminConsentRequired"
+                        p_rec = f"Entra ID üzerinde '{p_name}' Application iznine Admin Consent verin"
+
+                    if p_stat == "Granted":
+                        granted_perm_cnt += 1
+                    else:
+                        missing_perm_cnt += 1
+
+                    flat_permissions.append({
+                        "serviceCode": s_code,
+                        "serviceName": display_name,
+                        "permission": p_name,
+                        "type": "Application",
+                        "status": p_stat,
+                        "recommendation": p_rec,
+                    })
+
         consent_url = f"https://login.microsoftonline.com/{tenant_guid or 'common'}/adminconsent?client_id={client_id or '00000000-0000-0000-0000-000000000000'}&redirect_uri={urllib.parse.quote(get_entra_config().get('redirect_uri', ''), safe=':/')}" if client_id and tenant_guid else ""
         cred_health = self.compute_credential_health(target)
 
@@ -2341,10 +2385,17 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "tenantName": tenant_name,
             "tenantGuid": tenant_guid,
             "clientId": client_id,
+            "authMethod": auth_method_t,
             "isSimulation": is_sim,
             "liveTokenVerified": live_token_ok,
             "grantedTokenRoles": sorted(live_roles),
             "adminConsentUrl": consent_url,
+            "summary": {
+                "totalRequired": granted_perm_cnt + missing_perm_cnt,
+                "grantedCount": granted_perm_cnt,
+                "missingCount": missing_perm_cnt,
+            },
+            "permissions": flat_permissions,
             "servicesCount": len(results),
             "services": results,
             "credentialHealth": cred_health,
@@ -5098,6 +5149,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                         self.send_json_response({
                             "success": True,
                             "isSimulation": False,
+                            "name": target.get("Name", tenant_id),
                             "status": "MetadataVerified",
                             "badge": "OIDC Metadata Doğrulandı (Sertifika Tanımsız)",
                             "authMethod": "Certificate",
@@ -5116,6 +5168,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     self.send_json_response({
                         "success": True,
                         "isSimulation": False,
+                        "name": target.get("Name", tenant_id),
                         "status": "CredentialValidated",
                         "badge": "CBA Sertifika Parametreleri Doğrulandı",
                         "authMethod": "Certificate",
@@ -5141,6 +5194,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     self.send_json_response({
                         "success": True,
                         "isSimulation": False,
+                        "name": target.get("Name", tenant_id),
                         "status": "MetadataVerified",
                         "badge": "GDAP Uç Noktası Doğrulandı",
                         "authMethod": "GDAP",
@@ -5187,6 +5241,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                         self.send_json_response({
                             "success": True,
                             "isSimulation": False,
+                            "name": target.get("Name", tenant_id),
                             "status": "LiveConnected",
                             "badge": "Client Secret Doğrulandı (PoC Modu)",
                             "authMethod": "ClientSecret",
@@ -5207,6 +5262,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                         self.send_json_response({
                             "success": True,
                             "isSimulation": False,
+                            "name": target.get("Name", tenant_id),
                             "status": "LiveConnected",
                             "badge": "Kiracı Doğrulandı",
                             "message": f"Microsoft Entra ID Kiracı uç noktası ({tenant_guid[:8]}...) doğrulandı. (Kimlik bilgisi Azure Key Vault üzerinden okunacaktır).",

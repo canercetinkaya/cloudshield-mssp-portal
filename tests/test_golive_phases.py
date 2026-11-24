@@ -194,6 +194,30 @@ class TestGoLivePhases(unittest.TestCase):
         self.assertEqual(final_job["status"], "Completed")
         self.assertTrue(final_job.get("htmlUrl") or final_job.get("pdfUrl"))
 
+    def test_06_license_pdf_and_permissions_modal_contracts(self):
+        # 1. License PDF endpoint must return HTTP 200 and non-empty PDF bytes (no tuple unpack crash)
+        req = urllib.request.Request(
+            f"{self.base_url}/api/licenses/report/pdf?tenantId=tenant-002",
+            headers={"Authorization": f"Bearer {self.admin_token}"},
+        )
+        with urllib.request.urlopen(req, timeout=35) as resp:
+            pdf_bytes = resp.read()
+            self.assertEqual(resp.status, 200)
+            self.assertTrue(pdf_bytes.startswith(b"%PDF"), "Expected valid PDF header")
+
+        # 2. Tenant permissions modal payload contract
+        st_perm, perm_body, _ = self._req("GET", "/api/tenants/tenant-002/permissions", token=self.admin_token)
+        self.assertEqual(st_perm, 200)
+        self.assertFalse(perm_body.get("isSimulation"), "Emre-TestTenant must not be misclassified as simulation")
+        self.assertIn("summary", perm_body)
+        self.assertGreater(len(perm_body.get("permissions", [])), 0)
+
+        # 3. Unified users endpoint includes Permissions badges and usr-007
+        st_u, u_list, _ = self._req("GET", "/api/users", token=self.admin_token)
+        self.assertEqual(st_u, 200)
+        self.assertTrue(any(u.get("Upn") == "cloudshiled@canercetinkaya.com" for u in u_list))
+        self.assertTrue(all("Permissions" in u for u in u_list))
+
 
 if __name__ == "__main__":
     unittest.main()
