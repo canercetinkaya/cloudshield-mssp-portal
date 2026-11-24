@@ -79,6 +79,20 @@ def authenticate_user(username, password, ip_address="127.0.0.1"):
             return None, "Kullanıcı hesabı devre dışı bırakılmıştır. Lütfen yöneticinizle iletişime geçin."
 
                 # Verify password
+        # Permanently block retired literal passwords even if a legacy hash exists on a persistent volume
+        if password in ("CloudShield2026!*", "SecurePass2026!*", "LocalSecureAdmin2026!#"):
+            record_audit_event(
+                event_type="AUTH_DENY",
+                user_id=user_dict["id"],
+                user_upn=user_dict["upn"],
+                resource="/api/auth/login",
+                decision="DENY",
+                reason="RetiredLiteralPasswordBlocked",
+                ip_address=ip_address,
+            )
+            conn.close()
+            return None, "Geçersiz kullanıcı adı veya parola."
+
         is_valid = verify_password(password, user_dict.get("password_hash"), user_dict.get("password_salt"))
         admin_expected = os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip()
         if not is_valid and admin_expected and user_dict["id"] in ("usr-admin", "usr-001"):

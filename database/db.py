@@ -397,11 +397,17 @@ def seed_default_data(conn):
             ("asgn-admin", "usr-admin", now, now)
         )
     else:
-        # Self-healing: Ensure valid password hash is populated for usr-admin
-        cur.execute(
-            "UPDATE users SET password_hash = ?, password_salt = ?, is_active = 1 WHERE id = 'usr-admin' AND (password_hash IS NULL OR password_hash = '')",
-            (admin_pwd_hash, admin_pwd_salt)
-        )
+        # Rotate hash whenever PORTAL_ADMIN_PASSWORD is set or if a retired literal hash lingered on persistent storage
+        cur.execute("SELECT password_hash, password_salt FROM users WHERE id = 'usr-admin'")
+        adm_row = cur.fetchone()
+        must_rotate = bool(os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip())
+        if adm_row and adm_row["password_hash"] and verify_password("LocalSecureAdmin2026!#", adm_row["password_hash"], adm_row["password_salt"]):
+            must_rotate = True
+        if must_rotate or not adm_row or not adm_row["password_hash"]:
+            cur.execute(
+                "UPDATE users SET password_hash = ?, password_salt = ?, is_active = 1 WHERE id = 'usr-admin'",
+                (admin_pwd_hash, admin_pwd_salt)
+            )
 
     # Pilot mode JIT temporary access elevation for tenant-002 (auto-renewed on startup)
     jit_to = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()
@@ -449,7 +455,7 @@ def seed_default_data(conn):
                     role_str = u.get("Role", "ServiceOperator")
                     assigned_tenants = u.get("AssignedTenants", ["ALL"])
 
-                    cur.execute("SELECT id, password_hash FROM users WHERE id = ? OR upn = ?", (uid, upn))
+                    cur.execute("SELECT id, password_hash, password_salt FROM users WHERE id = ? OR upn = ?", (uid, upn))
                     u_existing = cur.fetchone()
                     user_email = u.get("Email", upn)
                     user_p_hash = admin_pwd_hash if uid in ("usr-admin", "usr-001") else None
@@ -457,8 +463,10 @@ def seed_default_data(conn):
                     if u_existing:
                         if u.get("Email"):
                             cur.execute("UPDATE users SET email = ? WHERE id = ?", (user_email, uid))
-                        if uid in ("usr-admin", "usr-001") and not u_existing["password_hash"]:
-                            cur.execute("UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?", (user_p_hash, user_p_salt, uid))
+                        if uid in ("usr-admin", "usr-001"):
+                            has_retired = bool(u_existing["password_hash"] and verify_password("LocalSecureAdmin2026!#", u_existing["password_hash"], u_existing["password_salt"]))
+                            if not u_existing["password_hash"] or has_retired or bool(os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip()):
+                                cur.execute("UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?", (user_p_hash, user_p_salt, uid))
                     else:
                         cur.execute(
                             """INSERT INTO users (id, organization_id, upn, display_name, email, department,
