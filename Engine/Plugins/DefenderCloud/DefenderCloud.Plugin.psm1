@@ -1,4 +1,4 @@
-# Plugins/DefenderCloud/DefenderCloud.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderCloud/DefenderCloud.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Cloud (CSPM & CWPP) Service Plugin.
 [CmdletBinding()]
 param()
@@ -91,6 +91,7 @@ function Get-ServiceRawData {
     $uri = "https://graph.microsoft.com/v1.0/security/alerts_v2?`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=50"
 
     $alerts = @()
+    $liveScore = $null
     $availabilityState = 'SupportedAppOnly'
     try {
         $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
@@ -106,10 +107,20 @@ function Get-ServiceRawData {
                              else { 'CollectionFailed' }
         Write-Warning "Defender for Cloud alarmları çekilemedi ($availabilityState): $errMsg"
     }
+    try {
+        $scResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/security/secureScores?`$top=1" -AccessToken $token
+        if ($scResp.value -and $scResp.value.Count -gt 0) {
+            $topSc = $scResp.value[0]
+            if ($topSc.maxScore -gt 0) {
+                $liveScore = [math]::Round(($topSc.currentScore / $topSc.maxScore) * 100.0, 1)
+            }
+        }
+    }
+    catch {}
 
     return [pscustomobject]@{
         Alerts            = $alerts
-        SecureScore       = $null
+        SecureScore       = $liveScore
         Assessments       = @()
         StartDate         = $StartDate
         EndDate           = $EndDate
@@ -145,14 +156,15 @@ function Get-ServiceKpis {
     # Canlı modda doğrudan doğrulanmış veriler
     $a = @($RawData.Alerts)
     $hasAlerts = $a.Count -gt 0
+    $hasScore  = $null -ne $RawData.SecureScore
 
     return [ordered]@{
-        BulutGuvenlikSkoru   = 'N/A - Azure Resource Graph / Security Reader izni gerekli'
-        KritikOneriler       = if ($hasAlerts) { $a.Count } else { 'N/A - Telemetri yapılandırılmamış' }
+        BulutGuvenlikSkoru   = if ($hasScore) { $RawData.SecureScore } else { 'N/A - SecurityEvents.Read.All / Security Reader izni gerekli' }
+        KritikOneriler       = if ($hasAlerts) { $a.Count } else { 0 }
         AcikKaynakSayisi     = 'N/A - Azure Subscriptions API gerekli'
         IyilestirilenOneri   = 0
         Oneriler             = @()
-        AvailabilityState    = if ($hasAlerts) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
+        AvailabilityState    = if ($hasAlerts -or $hasScore) { 'DirectAndVerified' } else { $RawData.AvailabilityState }
     }
 }
 

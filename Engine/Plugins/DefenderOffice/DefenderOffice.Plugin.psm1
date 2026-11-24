@@ -1,4 +1,4 @@
-# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderOffice/DefenderOffice.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Office 365 (MDO & EOP) Service Plugin.
 [CmdletBinding()]
 param()
@@ -289,6 +289,9 @@ function Get-ServiceHtmlSection {
     $zap = if ($k.ZapSistemGeriCekme -is [int]) { $k.ZapSistemGeriCekme } else { 0 }
     $kb = if ($k.KullaniciBildirimi -is [int]) { $k.KullaniciBildirimi } else { 0 }
     $kt = if ($k.KarantinaTalepSayisi -is [int]) { $k.KarantinaTalepSayisi } else { 0 }
+    $dogrulananNum = if ($k.DogrulananOltalama -is [int]) { $k.DogrulananOltalama } else { 0 }
+    $yanlisPozitif = if ($k.KullaniciBildirimi -is [int]) { [math]::Max(0, $kb - $dogrulananNum) } else { 'N/A' }
+    $gelenPostaMetin = if ($k.ToplamGelenPosta -is [int] -or $k.ToplamGelenPosta -is [long]) { '{0:N0}' -f $k.ToplamGelenPosta } elseif ($k.ToplamGelenPosta) { "$($k.ToplamGelenPosta)" } else { '-' }
 
     $html = @"
 <section class="service-section">
@@ -346,7 +349,7 @@ function Get-ServiceHtmlSection {
         <div class="kpi-card">
             <div class="kpi-title">Toplam Gelen Posta</div>
             <div class="kpi-value-row">
-                <div class="kpi-value">$(if ($k.ToplamGelenPosta) { '{0:N0}' -f $k.ToplamGelenPosta } else { '-' })</div>
+                <div class="kpi-value">$gelenPostaMetin</div>
             </div>
             <div class="kpi-description">Gateway'e ulaşan inbound e-posta hacmi</div>
         </div>
@@ -354,7 +357,7 @@ function Get-ServiceHtmlSection {
         <div class="kpi-card highlight">
             <div class="kpi-title">Engellenen Tehdit (Phish + Malware)</div>
             <div class="kpi-value-row">
-                <div class="kpi-value">$($k.EngellenenOltalama + $k.EngellenenZararliEk)</div>
+                <div class="kpi-value">$($eo + $ez)</div>
                 <span class="badge positive">Bloklandı</span>
             </div>
             <div class="kpi-description">Safe Links, Attachments ve EOP tespitleri</div>
@@ -395,7 +398,7 @@ function Get-ServiceHtmlSection {
                 <td><strong>Kullanıcı Oltalama Bildirimi</strong></td>
                 <td>$($k.KullaniciBildirimi)</td>
                 <td>$($k.DogrulananOltalama) Gerçek Tehdit Doğrulandı</td>
-                <td>Geri kalan $($k.KullaniciBildirimi - $k.DogrulananOltalama) posta yanlış pozitif olarak kapatıldı.</td>
+                <td>Geri kalan $yanlisPozitif posta yanlış pozitif olarak kapatıldı.</td>
             </tr>
             <tr>
                 <td><strong>Karantina Serbest Bırakma Talebi</strong></td>

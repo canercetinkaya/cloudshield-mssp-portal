@@ -193,5 +193,7 @@ jobs:
           CONTAINER_IMAGE_TAG: "ghcr.io/canercetinkaya/cloudshield-mssp-portal:sha-${{ github.sha }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
+          CLOUDSHIELD_SESSION_SECRET: ${{ secrets.CLOUDSHIELD_SESSION_SECRET }}
+          PORTAL_ADMIN_PASSWORD: ${{ secrets.PORTAL_ADMIN_PASSWORD }}
         run: |
           python3 Azure/deploy_aca.py

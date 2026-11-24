@@ -4,36 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudShield - Security Reporting & Managed Services Visibility Platform</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome 6 (SRI Integrity Protected) -->
+    <!-- Pre-compiled Production Tailwind CSS Bundle (Zero Runtime JIT CDN) -->
+    <link rel="stylesheet" href="/tailwind.min.css">
+    <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        ks: {
-                            navy: '#002B49',
-                            navylight: '#00406c',
-                            navydark: '#001a2c',
-                            red: '#D71920',
-                            redlight: '#f02830',
-                            gold: '#C5A059',
-                            bg: '#F8FAFC',
-                            card: '#FFFFFF'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         body { background-color: #F1F5F9; font-family: 'Inter', sans-serif; }
         .tab-active { border-bottom: 3px solid #D71920; color: #002B49; font-weight: 700; }
@@ -3529,11 +3507,11 @@
                     document.getElementById('statScore').innerText = `%${data.averageSecureScore || 0}`;
 
                     const subEp = document.getElementById('statEndpointsSub');
-                    if (subEp) subEp.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> %99.2 MDE Sa?l?kl?';
+                    if (subEp) subEp.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> ${data.totalTenants || 0} Kiracı Telemetrisi`;
                     const subAl = document.getElementById('statAlertsSub');
-                    if (subAl) subAl.innerHTML = '<i class="fa-solid fa-clock text-emerald-500"></i> MTTR: 22 Dakika';
+                    if (subAl) subAl.innerHTML = `<i class="fa-solid fa-satellite-dish text-emerald-500"></i> ${data.syncMode === 'LiveGraphSync' ? 'Canlı Graph Senkronize' : 'Önbellek Özeti'}`;
                     const subSc = document.getElementById('statScoreSub');
-                    if (subSc) subSc.textContent = 'Benchmark: %64.0';
+                    if (subSc) subSc.textContent = 'Doğrulanmış M365 Duruş Ortalaması';
 
                     const syncText = data.lastSyncTimestamp ? data.lastSyncTimestamp.substring(5, 16) : 'Günlük Otomatik';
                     document.getElementById('topLastSync').innerText = syncText;
@@ -3562,11 +3540,11 @@
                     document.getElementById('statScore').innerText = `%${data.averageSecureScore || 0}`;
 
                     const subEp = document.getElementById('statEndpointsSub');
-                    if (subEp) subEp.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> %99.2 MDE Sa?l?kl?';
+                    if (subEp) subEp.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> ${data.totalTenants || 0} Kiracı Telemetrisi`;
                     const subAl = document.getElementById('statAlertsSub');
-                    if (subAl) subAl.innerHTML = '<i class="fa-solid fa-clock text-emerald-500"></i> MTTR: 22 Dakika';
+                    if (subAl) subAl.innerHTML = `<i class="fa-solid fa-satellite-dish text-emerald-500"></i> ${data.syncMode === 'LiveGraphSync' ? 'Canlı Graph Senkronize' : 'Önbellek Özeti'}`;
                     const subSc = document.getElementById('statScoreSub');
-                    if (subSc) subSc.textContent = 'Benchmark: %64.0';
+                    if (subSc) subSc.textContent = 'Doğrulanmış M365 Duruş Ortalaması';
                     
                     const syncText = data.lastSyncTimestamp ? data.lastSyncTimestamp.substring(5, 16) : 'Güncellendi';
                     document.getElementById('topLastSync').innerText = syncText;
@@ -4169,7 +4147,8 @@
                     services: selectedServices,
                     mode: document.getElementById('studioPeriodSelect') ? document.getElementById('studioPeriodSelect').value : 'Monthly',
                     dryRun: isDryRun,
-                    language: reportLang
+                    language: reportLang,
+                    async: true
                 };
 
                 const res = await fetch('/api/reports/generate', {
@@ -4178,7 +4157,33 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await res.json();
+                let data = await res.json();
+                let finalStatus = res.status;
+
+                if (res.status === 202 && data.jobId) {
+                    const jobId = data.jobId;
+                    logPre.innerText += `\n[QUEUE] Asenkron iş kuyruğuna alındı (Job ID: ${jobId})...`;
+                    const startedMs = Date.now();
+                    for (let attempt = 0; attempt < 150; attempt++) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        const elapsedSec = Math.round((Date.now() - startedMs) / 1000);
+                        desc.innerText = `${selectedServices.length} servis işleniyor ve vektörel PDF derleniyor (${elapsedSec} sn)...`;
+                        const pollRes = await fetch(`/api/reports/jobs/${encodeURIComponent(jobId)}`);
+                        const pollJson = await pollRes.json();
+                        if (!pollRes.ok || !pollJson.success) {
+                            data = pollJson;
+                            finalStatus = pollRes.status;
+                            break;
+                        }
+                        const job = pollJson.job || {};
+                        if (job.status === 'Completed' || job.status === 'Failed') {
+                            data = job;
+                            finalStatus = job.status === 'Completed' ? 200 : 500;
+                            break;
+                        }
+                    }
+                }
+
                 if (data.success && (data.pdfUrl || data.htmlUrl)) {
                     title.innerText = '✅ Raporlama Başarıyla Tamamlandı!';
                     desc.innerText = `${data.customer} için ${data.isSimulation ? 'simülasyon' : 'canlı API'} rapor çıktıları hazırlandı.`;
@@ -4217,7 +4222,7 @@
                     if (data.outputLog) {
                         logPre.innerText += '\n[LOG]:\n' + data.outputLog;
                     }
-                    if (jitBox && (res.status === 403 || (data.error && (data.error.includes('JIT') || data.error.includes('Yetkisiz') || data.error.includes('403'))))) {
+                    if (jitBox && (finalStatus === 403 || res.status === 403 || (data.error && (data.error.includes('JIT') || data.error.includes('Yetkisiz') || data.error.includes('403'))))) {
                         jitBox.classList.remove('hidden');
                     }
                 }
@@ -4854,10 +4859,10 @@ let allUsers = [];
                 AttachHtml: attachHtml,
                 IsDispatchActive: true,
                 HealthStatus: 'Healthy',
-                TotalEndpoints: 150,
+                TotalEndpoints: 0,
                 GhostDevices: 0,
                 OpenHighAlerts: 0,
-                SecureScore: 82.0,
+                SecureScore: 0.0,
                 LogoData: logoData,
                 CreateCustomerUser: createCustomerUser,
                 CustomerUser: customerUserObj
@@ -5257,7 +5262,10 @@ let allUsers = [];
             }
         }
 
-        function renderSingleTenantCockpit(t) {
+        let currentCockpitTenantId = null;
+
+        async function renderSingleTenantCockpit(t) {
+            currentCockpitTenantId = t.Id || t.TenantId;
             const customerNameEl = document.getElementById('cockpitCustomerName');
             if (customerNameEl) customerNameEl.innerText = t.Name;
 
@@ -5272,55 +5280,122 @@ let allUsers = [];
                 }
             }
 
-            const endpoints = Number(t.TotalEndpoints || 150);
-            const score = t.SecureScore || 78;
-            const ghost = t.GhostDevices || 0;
+            let metrics = {
+                blockedThreats: null,
+                hoursSaved: null,
+                criticalIncidents: t.OpenHighAlerts || 0,
+                dlpViolations: null,
+                secureScore: t.SecureScore || 0
+            };
+            let decisions = [];
+            let pendingCount = 0;
 
-            const preventedCount = Math.max(12, Math.round(endpoints * 0.18));
-            const hoursSaved = Math.round(preventedCount * 1.5);
-            const mttrMin = t.IsSimulation ? 14 : 18;
+            try {
+                const res = await fetch(`/api/tenants/${encodeURIComponent(currentCockpitTenantId)}/cockpit`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.metrics) {
+                        metrics = data.metrics;
+                        decisions = data.decisions || [];
+                        pendingCount = data.pendingDecisionCount || 0;
+                    }
+                }
+            } catch (err) {
+                console.warn('Cockpit telemetry fetch warning:', err);
+            }
 
+            const score = Number(metrics.secureScore || t.SecureScore || 0);
             const elAutoBlock = document.getElementById('cockpitAutoBlockCount');
-            if (elAutoBlock) elAutoBlock.innerText = preventedCount.toLocaleString('tr-TR');
+            if (elAutoBlock) {
+                elAutoBlock.innerText = metrics.blockedThreats !== null && metrics.blockedThreats !== undefined
+                    ? Number(metrics.blockedThreats).toLocaleString('tr-TR')
+                    : 'Veri Bekleniyor';
+            }
 
             const elHoursSaved = document.getElementById('cockpitHoursSaved');
-            if (elHoursSaved) elHoursSaved.innerText = `${hoursSaved} Saat`;
+            if (elHoursSaved) {
+                elHoursSaved.innerText = metrics.hoursSaved !== null && metrics.hoursSaved !== undefined
+                    ? `${metrics.hoursSaved} Saat`
+                    : '—';
+            }
 
             const elMttr = document.getElementById('cockpitMttr');
-            if (elMttr) elMttr.innerText = `${mttrMin} dk`;
+            if (elMttr) elMttr.innerText = metrics.blockedThreats !== null ? 'Doğrulandı' : 'Ölçüm Yok';
 
             const elScoreProgress = document.getElementById('cockpitScoreProgress');
-            if (elScoreProgress) elScoreProgress.innerText = `+${Math.max(2, Math.round((score - 60) / 4))}%`;
+            if (elScoreProgress) elScoreProgress.innerText = score > 0 ? `%${score}` : '—';
 
-            // 6-Question Briefing
+            // Update persisted decision buttons dynamically
+            decisions.forEach(d => {
+                if (d.id === 'DEC-M365-PEND-01') {
+                    const btn = document.getElementById('btnApprovePending');
+                    if (btn) {
+                        if (d.status === 'Approved') {
+                            btn.className = 'bg-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed';
+                            btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i><span>Onaylandı (${d.approvedBy || 'CISO'})</span>`;
+                            btn.disabled = true;
+                        } else {
+                            btn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow flex items-center space-x-1';
+                            btn.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i><span>Yetkiyi Onayla</span>';
+                            btn.disabled = false;
+                        }
+                    }
+                }
+            });
+
+            // 6-Question Briefing (strictly observed data — zero synthetic multipliers)
             const b1 = document.getElementById('briefingAttackState');
-            if (b1) b1.innerText = `${t.OpenHighAlerts || 0} Kritik/Yüksek olay izleniyor. Otonom engelleme aktif.`;
+            if (b1) b1.innerText = `${metrics.criticalIncidents || 0} Kritik/Yüksek açık olay izleniyor.`;
 
             const b2 = document.getElementById('briefingLossState');
-            if (b2) b2.innerText = `0 Başarılı Veri Sızıntısı. DLP kuralları ve Defender izolasyonu korumada.`;
+            if (b2) {
+                b2.innerText = metrics.dlpViolations !== null && metrics.dlpViolations !== undefined
+                    ? `Son raporda ${metrics.dlpViolations} DLP politika olayı kaydedildi.`
+                    : `DLP telemetri özeti için ilk rapor üretimi bekleniyor.`;
+            }
 
             const b3 = document.getElementById('briefingPostureState');
-            if (b3) b3.innerText = `M365 Secure Score %${score}. Sektör benchmark'ının %${Math.max(3, Math.round(score - 65))} üzerinde.`;
+            if (b3) b3.innerText = score > 0 ? `Doğrulanmış M365 Secure Score: %${score}.` : `M365 Secure Score henüz senkronize edilmedi.`;
 
             const b4 = document.getElementById('briefingServiceState');
-            if (b4) b4.innerText = `${(t.ActiveServices || []).length} MSSP Paketi aktif: ${(t.ActiveServices || []).join(', ')}`;
+            if (b4) b4.innerText = `${(t.ActiveServices || []).length} MSSP Servisi aktif: ${(t.ActiveServices || []).join(', ')}`;
 
             const b5 = document.getElementById('briefingDowntimeState');
-            if (b5) b5.innerText = `0 İş Kesintisi. 7/24 Kesintisiz Telemetri ve MSSP Mühendisliği.`;
+            if (b5) b5.innerText = `Telemetri Durumu: ${t.HealthStatus || 'Healthy'} | Bağlantı: ${t.ConnectionStatus || 'LiveConnected'}`;
 
             const b6 = document.getElementById('briefingActionState');
-            if (b6) b6.innerText = `2 Önemli Karar Bekliyor: VIP Hesap FIDO2 Zorunluluğu ve USB DLP Kuralı.`;
+            if (b6) b6.innerText = pendingCount > 0 ? `${pendingCount} Önemli CISO Kararı Onay Bekliyor.` : `Bekleyen CISO kararı bulunmuyor.`;
         }
 
-        function approveDecision(decisionId) {
-            const row = document.getElementById(decisionId === 'DEC-M365-PEND-01' ? 'rowPendingDecision1' : 'rowPendingDecision2');
-            const btn = document.getElementById(decisionId === 'DEC-M365-PEND-01' ? 'btnApprovePending' : 'btnApprovePending2');
-            if (btn) {
-                btn.className = 'bg-slate-200 text-slate-500 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed';
-                btn.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i><span>Onaylandı (Uygulanıyor)</span>';
-                btn.disabled = true;
+        async function approveDecision(decisionId) {
+            const tid = currentCockpitTenantId || document.getElementById('topTenantSelector')?.value;
+            if (!tid || tid === 'ALL') {
+                alert('Lütfen önce üst menüden bir müşteri kiracısı seçiniz.');
+                return;
             }
-            alert(`✅ Karar Talebi (${decisionId}) CISO yetkisiyle onaylandı. MSSP Mühendisliği M365 ortamında kuralı devreye alıyor.`);
+            try {
+                const res = await fetch(`/api/tenants/${encodeURIComponent(tid)}/decisions/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ decisionId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    alert(`Hata: ${data.error || 'Karar onaylanamadı.'}`);
+                    return;
+                }
+                const btn = document.getElementById(decisionId === 'DEC-M365-PEND-01' ? 'btnApprovePending' : '');
+                if (btn) {
+                    btn.className = 'bg-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed';
+                    btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i><span>Onaylandı (${data.decision?.approvedBy || 'CISO'})</span>`;
+                    btn.disabled = true;
+                }
+                const b6 = document.getElementById('briefingActionState');
+                const rem = (data.decisions || []).filter(d => d.status === 'Pending').length;
+                if (b6) b6.innerText = rem > 0 ? `${rem} Önemli CISO Kararı Onay Bekliyor.` : `Bekleyen CISO kararı bulunmuyor.`;
+            } catch (err) {
+                alert(`Sunucu iletişim hatası: ${err.message}`);
+            }
         }
 
         // ==========================================

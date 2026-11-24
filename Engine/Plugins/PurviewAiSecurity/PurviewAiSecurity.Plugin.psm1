@@ -1,4 +1,4 @@
-# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewAiSecurity/PurviewAiSecurity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview DSPM for AI & Copilot Data Security Service Plugin.
 [CmdletBinding()]
 param()
@@ -68,16 +68,37 @@ function Get-ServiceRawData {
         }
     }
 
-    # Canlı modda Purview DSPM for AI & Copilot Audit
+    # Canlı modda Purview DSPM for AI & Copilot güvenlik alarmları sorgusu
     $token = Get-ServiceToken -PlatformConfig $PlatformConfig -TargetResource 'Graph' -AppProfile 'PurviewReporting'
-    $availabilityState = 'NotConfigured'
+    $startZ = $StartDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    $endZ   = $EndDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    $filter = "createdDateTime ge $startZ and createdDateTime lt $endZ"
+    $uri = "https://graph.microsoft.com/v1.0/security/alerts_v2?`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=50"
+
+    $aiAnomalyCount = 0
+    $availabilityState = 'SupportedAppOnly'
+    try {
+        $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
+        $vals = if ($resp.value) { @($resp.value) } else { @() }
+        $aiAlerts = @($vals | Where-Object { $_.title -match 'Copilot|AI|Prompt|Generative' -or $_.category -match 'AI' })
+        $aiAnomalyCount = $aiAlerts.Count
+        if ($vals.Count -eq 0) {
+            $availabilityState = 'NoData'
+        }
+    }
+    catch {
+        $errMsg = $_.Exception.Message
+        $availabilityState = if ($errMsg -match '403|Forbidden') { 'PermissionMissing' }
+                             elseif ($errMsg -match '401|Unauthorized') { 'AuthenticationFailed' }
+                             else { 'CollectionFailed' }
+    }
 
     return [pscustomobject]@{
         TotalCopilotPrompts    = 0
         SensitiveFilesAccessed = 0
         OverSharedFiles        = 0
         TopOverSharedTypes     = @()
-        AiPromptAnomalies      = 0
+        AiPromptAnomalies      = $aiAnomalyCount
         StartDate              = $StartDate
         EndDate                = $EndDate
         AvailabilityState      = $availabilityState
@@ -112,7 +133,7 @@ function Get-ServiceKpis {
         ErisilenHassasDosya     = 'N/A - Purview Audit (Premium) izni gerekli'
         AsiriPaylasilanDosya    = 'N/A - DSPM for AI yetkisi gerekli'
         AsiriPaylasimKategorisi = @()
-        SupheliPromptAnomalisi  = 'N/A - Güvenlik uyarısı bulunmuyor'
+        SupheliPromptAnomalisi  = if ($RawData.AiPromptAnomalies -is [int]) { $RawData.AiPromptAnomalies } else { 0 }
         AvailabilityState       = $RawData.AvailabilityState
     }
 }
@@ -126,13 +147,16 @@ function Get-ServiceManagedActions {
         $KpiData
     )
 
+    $asiriNum = if ($KpiData.AsiriPaylasilanDosya -is [int]) { $KpiData.AsiriPaylasilanDosya } else { 0 }
+    $anomNum  = if ($KpiData.SupheliPromptAnomalisi -is [int]) { $KpiData.SupheliPromptAnomalisi } else { 0 }
+
     return [ordered]@{
         ServiceCode        = $Script:ServiceCode
         ServiceName        = 'Yönetilen Yapay Zeka Güvenliği'
         OtonomMudahaleler  = 0
-        ManuelAnalistEforu = $KpiData.AsiriPaylasilanDosya + $KpiData.SupheliPromptAnomalisi
+        ManuelAnalistEforu = ($asiriNum + $anomNum)
         KazanilanZamanSaat = 0
-        Aciklama           = "Copilot sorgularında görünür hale gelen $($KpiData.AsiriPaylasilanDosya) adet aşırı yetkilendirilmiş (over-shared) hassas doküman tespit edilmiş, SharePoint yetkilerinin daraltılması için CloudShield danışmanları tarafından düzeltici önlemler alınmıştır."
+        Aciklama           = "Copilot sorgularında görünür hale gelen $($KpiData.AsiriPaylasilanDosya) adet aşırı yetkilendirilmiş (over-shared) hassas doküman değerlendirilmiş, SharePoint yetkilerinin sıkılaştırılması için düzeltici önlemler planlanmıştır."
     }
 }
 
@@ -148,6 +172,9 @@ function Get-ServiceHtmlSection {
     )
 
     $k = $KpiData
+    $asiriNum = if ($k.AsiriPaylasilanDosya -is [int]) { $k.AsiriPaylasilanDosya } else { 0 }
+    $promptMetin = if ($k.ToplamCopilotEtkilesimi -is [int] -or $k.ToplamCopilotEtkilesimi -is [long]) { '{0:N0}' -f $k.ToplamCopilotEtkilesimi } elseif ($k.ToplamCopilotEtkilesimi) { "$($k.ToplamCopilotEtkilesimi)" } else { '-' }
+    $hassasMetin = if ($k.ErisilenHassasDosya -is [int] -or $k.ErisilenHassasDosya -is [long]) { '{0:N0}' -f $k.ErisilenHassasDosya } elseif ($k.ErisilenHassasDosya) { "$($k.ErisilenHassasDosya)" } else { '-' }
 
     $html = @"
 <section class="service-section">
@@ -161,7 +188,7 @@ function Get-ServiceHtmlSection {
         <div class="kpi-card">
             <div class="kpi-title">Toplam Copilot İstemi (Prompt)</div>
             <div class="kpi-value-row">
-                <div class="kpi-value">$(if ($k.ToplamCopilotEtkilesimi) { '{0:N0}' -f $k.ToplamCopilotEtkilesimi } else { '-' })</div>
+                <div class="kpi-value">$promptMetin</div>
             </div>
             <div class="kpi-description">Kullanıcıların yapay zekaya sorduğu toplam sorgu</div>
         </div>
@@ -169,17 +196,17 @@ function Get-ServiceHtmlSection {
         <div class="kpi-card">
             <div class="kpi-title">Erişilen Hassas Belge</div>
             <div class="kpi-value-row">
-                <div class="kpi-value">$(if ($k.ErisilenHassasDosya) { '{0:N0}' -f $k.ErisilenHassasDosya } else { '-' })</div>
+                <div class="kpi-value">$hassasMetin</div>
                 <span class="badge positive">Etiketli</span>
             </div>
             <div class="kpi-description">Yanıt üretilirken kaynak gösterilen gizli dokümanlar</div>
         </div>
 
-        <div class="kpi-card $(if ($k.AsiriPaylasilanDosya -gt 0) { 'highlight' })">
+        <div class="kpi-card $(if ($asiriNum -gt 0) { 'highlight' })">
             <div class="kpi-title">Aşırı Paylaşılan (Over-shared) Veri</div>
             <div class="kpi-value-row">
                 <div class="kpi-value">$($k.AsiriPaylasilanDosya)</div>
-                <span class="badge $(if ($k.AsiriPaylasilanDosya -gt 0) { 'negative' } else { 'positive' })">Sıkılaştırma</span>
+                <span class="badge $(if ($asiriNum -gt 0) { 'negative' } else { 'positive' })">Sıkılaştırma</span>
             </div>
             <div class="kpi-description">Şirket geneline açık hassas doküman sayısı</div>
         </div>

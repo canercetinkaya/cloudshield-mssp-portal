@@ -389,12 +389,40 @@ function checkUpstreamPdfUpdates() {
 
 function previewLicenseReport() {
     if (!currentLicenseTenant) return;
-    const url = `/api/licenses/report/html?tenantId=${encodeURIComponent(currentLicenseTenant)}`;
-    window.open(url, '_blank');
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
+    fetch(`/api/licenses/report/html?tenantId=${encodeURIComponent(currentLicenseTenant)}`, {
+        headers: { 'Authorization': `Bearer ${tok}` }
+    })
+    .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+    })
+    .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+    })
+    .catch(err => alert(`Lisans HTML raporu açılamadı: ${err.message}`));
 }
 
 function downloadLicensePdf() {
     if (!currentLicenseTenant) return;
-    const url = `/api/licenses/report/pdf?tenantId=${encodeURIComponent(currentLicenseTenant)}`;
-    window.open(url, '_blank');
+    const tok = (localStorage.getItem('cloudshield_auth_token') || sessionStorage.getItem('cloudshield_auth_token') || '');
+    fetch(`/api/licenses/report/pdf?tenantId=${encodeURIComponent(currentLicenseTenant)}`, {
+        headers: { 'Authorization': `Bearer ${tok}` }
+    })
+    .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+    })
+    .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `CloudShield_License_Report_${currentLicenseTenant}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+    })
+    .catch(err => alert(`Lisans PDF raporu indirilemedi: ${err.message}`));
 }

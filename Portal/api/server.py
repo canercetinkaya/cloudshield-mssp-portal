@@ -47,7 +47,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from database.db import (
-    init_db, get_db, sync_customer_to_db, create_customer_portal_user,
+    init_db, get_db, hash_password, sync_customer_to_db, create_customer_portal_user,
     save_license_inventory, get_license_inventory, save_user_license_profiles,
     get_user_license_profiles, save_license_value_summary, get_license_value_summary,
     save_workload_reconciliation, get_workload_reconciliation, save_license_snapshot,
@@ -61,9 +61,9 @@ except ImportError:
     from Portal.api.rbac_handlers import handle_rbac_get, handle_rbac_post, handle_rbac_delete
 
 try:
-    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+    from report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf, load_live_data
 except ImportError:
-    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf
+    from Portal.api.report_generator import render_and_save_report, find_pdf_engine, create_executive_pdf, load_live_data
 
 try:
     from license_intelligence import (
@@ -90,7 +90,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 WEB_DIR = os.path.join(ROOT_DIR, "Portal", "web")
 
-DATA_DIR = os.path.join(ROOT_DIR, "Data")
+DATA_DIR = os.environ.get("CLOUDSHIELD_DATA_DIR") or os.path.join(ROOT_DIR, "Data")
 
 TENANTS_FILE = os.path.join(DATA_DIR, "tenants.json")
 
@@ -104,7 +104,8 @@ CACHE_FILE = os.path.join(DATA_DIR, "daily_cache.json")
 
 CATALOG_FILE = os.path.join(ROOT_DIR, "Engine", "Config", "service-catalog.json")
 
-OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
+OUTPUT_DIR = os.environ.get("CLOUDSHIELD_OUTPUT_DIR") or os.path.join(ROOT_DIR, "Engine", "Output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 REPORT_REGISTRY_FILE = os.path.join(DATA_DIR, "report_registry.json")
 LOGOS_DIR = os.path.join(DATA_DIR, "Logos")
@@ -188,6 +189,13 @@ DISPATCH_LOGS_FILE = os.path.join(DATA_DIR, "dispatch_logs.json")
 
 ACTIVITIES_FILE = os.path.join(DATA_DIR, "manual-service-activities.json")
 
+DECISIONS_FILE = os.path.join(DATA_DIR, "tenant_decisions.json")
+
+REPORT_JOBS_FILE = os.path.join(DATA_DIR, "report_jobs.json")
+
+REPORT_JOBS = {}
+_REPORT_JOBS_LOCK = threading.Lock()
+
 VERSION_FILE = os.path.join(DATA_DIR, "version.json")
 
 SESSIONS = {}  # in-memory token -> session data
@@ -265,25 +273,22 @@ def get_session_secret():
         except Exception:
             pass
 
-    # Deterministic resilient master secret derivation:
-    try:
-        cfg = get_entra_config()
-        t_id = cfg.get("tenant_id", "2fb2bcee-61be-48af-972c-0b11a606578f")
-        c_id = cfg.get("client_id", "15b69eff-dc1e-4bf3-9d72-ebda8d7fff40")
-    except Exception:
-        t_id = "2fb2bcee-61be-48af-972c-0b11a606578f"
-        c_id = "15b69eff-dc1e-4bf3-9d72-ebda8d7fff40"
-
-    derived_secret = hashlib.sha256(f"{t_id}:{c_id}:CloudShield2026MasterSecret".encode("utf-8")).hexdigest()
+    # Cryptographically random secret persisted on shared DATA_DIR volume (never deterministic from public IDs)
+    generated_secret = secrets.token_hex(32)
 
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
         with open(secret_file, "w", encoding="utf-8") as f:
-            f.write(derived_secret)
-    except Exception:
-        pass
+            f.write(generated_secret)
+        try:
+            os.chmod(secret_file, 0o600)
+        except Exception:
+            pass
+    except Exception as e:
+        if os.environ.get("ENVIRONMENT", "").lower() == "production":
+            print(f"[CRITICAL] Could not persist session secret and CLOUDSHIELD_SESSION_SECRET env is unset: {e}")
 
-    _SESSION_SECRET_CACHE = derived_secret
+    _SESSION_SECRET_CACHE = generated_secret
     return _SESSION_SECRET_CACHE
 
 def create_stateless_oauth_state(nonce, code_verifier, redirect_uri, secret=None):
@@ -511,7 +516,7 @@ def get_entra_config():
     client_secret = (
         client_secret
         or base_cfg.get("ClientSecret")
-        or base64.b64decode("NlFOOFF+bUlsejFhTWpUWkFlSU9qM3NZamVDT1R6OTJjQ01+bGJiNA==").decode("utf-8")
+        or ""
     )
     redirect_uri = redirect_uri or base_cfg.get("RedirectUri", "https://cs-mssp-poc-app.icygrass-237b4292.westeurope.azurecontainerapps.io/api/auth/entra/callback")
 
@@ -523,6 +528,637 @@ def get_entra_config():
         "authorize_endpoint": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
         "token_endpoint": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
     }
+
+
+_TENANT_GRAPH_TOKEN_CACHE = {}
+_TENANT_TOKEN_LOCK = threading.Lock()
+
+
+def _get_azure_managed_identity_token(resource="https://vault.azure.net"):
+    """Acquire Azure Managed Identity access token (ACA IDENTITY_ENDPOINT or VM IMDS)."""
+    id_endpoint = os.environ.get("IDENTITY_ENDPOINT", "").strip()
+    id_header = os.environ.get("IDENTITY_HEADER", "").strip()
+    try:
+        if id_endpoint and id_header:
+            sep = "&" if "?" in id_endpoint else "?"
+            url = f"{id_endpoint}{sep}api-version=2019-08-01&resource={urllib.parse.quote(resource, safe='')}"
+            req = urllib.request.Request(url, headers={"X-IDENTITY-HEADER": id_header, "Metadata": "true"})
+        else:
+            url = f"http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource={urllib.parse.quote(resource, safe='')}"
+            req = urllib.request.Request(url, headers={"Metadata": "true"})
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            return json.loads(resp.read().decode("utf-8")).get("access_token")
+    except Exception:
+        return None
+
+
+def _fetch_keyvault_secret(secret_name):
+    """Fetch secret or PEM/PKCS12 certificate bundle from Azure Key Vault via Managed Identity."""
+    kv_url = (os.environ.get("AZURE_KEYVAULT_URL") or "").strip().rstrip("/")
+    if not kv_url or not secret_name:
+        return None
+    mi_tok = _get_azure_managed_identity_token("https://vault.azure.net")
+    if not mi_tok:
+        return None
+    try:
+        url = f"{kv_url}/secrets/{urllib.parse.quote(secret_name, safe='')}?api-version=7.4"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {mi_tok}"})
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            return json.loads(resp.read().decode("utf-8")).get("value")
+    except Exception:
+        return None
+
+
+def _store_keyvault_secret(secret_name, secret_value, content_type="application/x-pem-file"):
+    """Store a tenant certificate or secret directly in Azure Key Vault via Managed Identity."""
+    kv_url = (os.environ.get("AZURE_KEYVAULT_URL") or "").strip().rstrip("/")
+    if not kv_url:
+        return False, "AZURE_KEYVAULT_URL yapılandırılmamış."
+    safe_secret = "".join(c for c in str(secret_name) if c.isalnum() or c == "-").strip("-")
+    if not safe_secret or not secret_value:
+        return False, "Geçersiz Key Vault secret adı veya boş değer."
+    mi_tok = _get_azure_managed_identity_token("https://vault.azure.net")
+    if not mi_tok:
+        return False, "Azure Managed Identity erişim anahtarı alınamadı."
+    url = f"{kv_url}/secrets/{urllib.parse.quote(safe_secret, safe='')}?api-version=7.4"
+    payload = json.dumps({"value": secret_value, "contentType": content_type}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="PUT",
+        headers={"Authorization": f"Bearer {mi_tok}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8.0) as resp:
+            if resp.status in (200, 201):
+                return True, safe_secret
+            return False, f"Key Vault HTTP {resp.status}"
+    except urllib.error.HTTPError as he:
+        return False, f"Key Vault HTTP {he.code}: {he.read().decode('utf-8', errors='ignore')[:160]}"
+    except Exception as ex:
+        return False, f"Key Vault hatası: {ex}"
+
+
+def _build_cert_client_assertion(tenant_guid, client_id, cert_bundle_str):
+    """Build RFC 7523 RS256 client_assertion JWT from Key Vault PEM or base64 PKCS#12 certificate."""
+    if jwt is None or not cert_bundle_str:
+        return None
+    try:
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.serialization import pkcs12
+
+        private_key = None
+        cert = None
+        if "-----BEGIN" in cert_bundle_str:
+            raw_bytes = cert_bundle_str.encode("utf-8")
+            private_key = serialization.load_pem_private_key(raw_bytes, password=None)
+            cert = x509.load_pem_x509_certificate(raw_bytes)
+        else:
+            pfx_bytes = base64.b64decode(cert_bundle_str)
+            private_key, cert, _ = pkcs12.load_key_and_certificates(pfx_bytes, password=None)
+
+        if not private_key or not cert:
+            return None
+        thumb_bytes = cert.fingerprint(hashes.SHA1())
+        x5t = base64.urlsafe_b64encode(thumb_bytes).decode("ascii").rstrip("=")
+        now_ts = int(time.time())
+        aud = f"https://login.microsoftonline.com/{tenant_guid}/oauth2/v2.0/token"
+        claims = {
+            "aud": aud,
+            "iss": client_id,
+            "sub": client_id,
+            "jti": str(uuid.uuid4()),
+            "nbf": now_ts - 30,
+            "exp": now_ts + 600,
+        }
+        return jwt.encode(claims, private_key, algorithm="RS256", headers={"x5t": x5t})
+    except Exception:
+        return None
+
+
+def acquire_tenant_graph_token(tenant_obj, scope="https://graph.microsoft.com/.default", timeout=6.0):
+    """
+    Acquire live OAuth2 client_credentials token for a customer tenant using:
+    1) Key Vault Certificate (CBA / GDAP) via Managed Identity
+    2) Key Vault Secret / local secret / platform Entra app (when same-tenant)
+    Returns (access_token, error_message).
+    """
+    if not isinstance(tenant_obj, dict):
+        return None, "Tenant yapılandırması bulunamadı."
+    if tenant_obj.get("IsSimulation"):
+        return None, "Simülasyon kiracısı (IsSimulation=True)."
+
+    tenant_guid = (tenant_obj.get("TenantId") or "").strip()
+    auth = tenant_obj.get("Auth") if isinstance(tenant_obj.get("Auth"), dict) else {}
+    auth_method = (tenant_obj.get("AuthMethod") or auth.get("Method") or "Certificate").strip()
+    client_id = (tenant_obj.get("ClientId") or auth.get("ClientId") or "").strip()
+    if auth_method == "GDAP" and auth.get("PartnerClientId"):
+        client_id = auth.get("PartnerClientId").strip()
+
+    plat_cfg = get_entra_config()
+    if not client_id and tenant_guid and tenant_guid == plat_cfg.get("tenant_id"):
+        client_id = plat_cfg.get("client_id", "")
+
+    if not tenant_guid or not client_id:
+        return None, "TenantId veya ClientId eksik."
+
+    cache_key = f"{tenant_guid}|{client_id}|{scope}"
+    now_ts = time.time()
+    with _TENANT_TOKEN_LOCK:
+        cached = _TENANT_GRAPH_TOKEN_CACHE.get(cache_key)
+        if cached and cached["exp"] > now_ts + 120:
+            return cached["token"], None
+
+    form_data = {
+        "client_id": client_id,
+        "grant_type": "client_credentials",
+        "scope": scope,
+    }
+
+    if auth_method in ("Certificate", "ClientCertificate", "CBA", "GDAP"):
+        kv_cert_name = (tenant_obj.get("KeyVaultCertificateName") or auth.get("KeyVaultCertificateName") or auth.get("KeyVaultSecretName") or "").strip()
+        cert_bundle = _fetch_keyvault_secret(kv_cert_name) if kv_cert_name else None
+        if not cert_bundle and auth.get("CertificateFilePath") and os.path.exists(auth["CertificateFilePath"]):
+            try:
+                with open(auth["CertificateFilePath"], "rb") as cf:
+                    raw_cf = cf.read()
+                cert_bundle = raw_cf.decode("utf-8") if b"-----BEGIN" in raw_cf else base64.b64encode(raw_cf).decode("ascii")
+            except Exception:
+                cert_bundle = None
+        assertion = _build_cert_client_assertion(tenant_guid, client_id, cert_bundle) if cert_bundle else None
+        if assertion:
+            form_data["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+            form_data["client_assertion"] = assertion
+
+    if "client_assertion" not in form_data:
+        kv_sec_name = (auth.get("KeyVaultSecretName") or tenant_obj.get("KeyVaultSecretName") or "").strip()
+        plain_secret = (
+            auth.get("ClientSecret")
+            or tenant_obj.get("ClientSecret")
+            or (_fetch_keyvault_secret(kv_sec_name) if kv_sec_name else None)
+            or os.environ.get("MSSP_CLIENT_SECRET")
+            or (plat_cfg.get("client_secret") if tenant_guid == plat_cfg.get("tenant_id") and client_id == plat_cfg.get("client_id") else None)
+        )
+        if not plain_secret:
+            return None, "Key Vault sertifikası veya istemci sırrı çözülemedi."
+        form_data["client_secret"] = plain_secret
+
+    token_url = f"https://login.microsoftonline.com/{tenant_guid}/oauth2/v2.0/token"
+    encoded = urllib.parse.urlencode(form_data).encode("utf-8")
+    req = urllib.request.Request(
+        token_url,
+        data=encoded,
+        method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "CloudShield-MSSP/3.2"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+            tok = payload.get("access_token")
+            exp_in = int(payload.get("expires_in", 3599))
+            if tok:
+                with _TENANT_TOKEN_LOCK:
+                    _TENANT_GRAPH_TOKEN_CACHE[cache_key] = {"token": tok, "exp": time.time() + exp_in}
+                return tok, None
+            return None, "Entra ID yanıtında access_token bulunamadı."
+    except urllib.error.HTTPError as he:
+        try:
+            err_body = json.loads(he.read().decode("utf-8", errors="ignore"))
+            desc = err_body.get("error_description", "").splitlines()[0]
+        except Exception:
+            desc = str(he)
+        return None, f"Entra OAuth HTTP {he.code}: {desc[:180]}"
+    except Exception as ex:
+        return None, f"Entra bağlantı hatası: {ex}"
+
+
+def graph_get_json(access_token, url, timeout=8.0):
+    """Execute authenticated GET against Microsoft Graph and return (json_dict, http_status, error_str)."""
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "ConsistencyLevel": "eventual",
+            "User-Agent": "CloudShield-MSSP/3.2",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8")), resp.status, None
+    except urllib.error.HTTPError as he:
+        return None, he.code, f"HTTP {he.code}"
+    except Exception as ex:
+        return None, 0, str(ex)
+
+
+def execute_report_dispatch(tenant_obj, recipients=None, subject=None, attach_pdf=True, attach_html=True, mode=None, dry_run=False, created_by="dispatch"):
+    """
+    Compile/locate physical report artifacts and deliver via Microsoft Graph sendMail or SMTP.
+    Never fabricates a 'Delivered' status when no real transport is configured.
+    """
+    import smtplib
+    from email.message import EmailMessage
+
+    t0 = time.time()
+    tid = tenant_obj.get("Id") or tenant_obj.get("TenantId") or "tenant"
+    customer_name = tenant_obj.get("Name", "Customer")
+    services = tenant_obj.get("ActiveServices") or ["SVC-MDE", "SVC-MDO", "SVC-PURVIEW"]
+    is_sim = bool(tenant_obj.get("IsSimulation")) or bool(dry_run)
+    freq = mode or tenant_obj.get("ScheduleFrequency", "Monthly")
+
+    recip_list = recipients if recipients else tenant_obj.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])
+    if isinstance(recip_list, str):
+        recip_list = [r.strip() for r in recip_list.split(",") if r.strip()]
+    if not recip_list:
+        recip_list = [tenant_obj.get("ContactEmail") or "mssp-reporting@cloudshield-mssp.com"]
+
+    safe_name = "".join(c for c in customer_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+
+    # 1. Ensure physical HTML/PDF report exists (compile via report_generator if needed)
+    latest_html_path = None
+    latest_pdf_path = None
+    cust_dir = os.path.join(OUTPUT_DIR, safe_name)
+    if os.path.exists(cust_dir):
+        for r_dir, _, files in os.walk(cust_dir):
+            for fn in files:
+                fp = os.path.join(r_dir, fn)
+                if fn.lower().endswith(".pdf") and (not latest_pdf_path or os.path.getmtime(fp) > os.path.getmtime(latest_pdf_path)):
+                    latest_pdf_path = fp
+                elif fn.lower().endswith(".html") and (not latest_html_path or os.path.getmtime(fp) > os.path.getmtime(latest_html_path)):
+                    latest_html_path = fp
+
+    if not latest_html_path or (attach_pdf and not latest_pdf_path):
+        try:
+            py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR, tenant_id=tid)
+            if py_html and os.path.exists(py_html):
+                latest_html_path = py_html
+                register_report_artifact(tid, customer_name, datetime.now().strftime("%Y-%m"), services, "html", py_html, created_by=created_by)
+            if py_pdf and os.path.exists(py_pdf):
+                latest_pdf_path = py_pdf
+                register_report_artifact(tid, customer_name, datetime.now().strftime("%Y-%m"), services, "pdf", py_pdf, created_by=created_by)
+        except Exception as rex:
+            print(f"[WARN] Dispatch report compile warning ({tid}): {rex}")
+
+    mail_subject = subject or f"[CloudShield MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu ({datetime.now().strftime('%Y-%m')})"
+    body_html = (
+        f"<div style='font-family:Segoe UI,Arial,sans-serif;color:#1e293b;'>"
+        f"<h2 style='color:#002B49;margin-bottom:8px;'>CloudShield Yönetilen Güvenlik ve Uyum Raporu</h2>"
+        f"<p>Sayın <strong>{customer_name}</strong> Yönetimi,</p>"
+        f"<p>{freq} dönemine ait yönetilen siber güvenlik ve veri uyumluluk raporunuz ekte sunulmuştur.</p>"
+        f"<p style='font-size:12px;color:#64748b;'>Üretim Zamanı (UTC): {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} | Kapsam: {', '.join(services)}</p>"
+        f"</div>"
+    )
+
+    auth_file_cfg = load_json_file(AUTH_CONFIG_FILE, {})
+    mail_cfg = auth_file_cfg.get("MailConfig") if isinstance(auth_file_cfg.get("MailConfig"), dict) else {}
+    graph_sender = (os.environ.get("GRAPH_MAIL_SENDER") or mail_cfg.get("SenderUpn") or "").strip()
+    smtp_host = (os.environ.get("SMTP_HOST") or mail_cfg.get("SmtpHost") or "").strip()
+
+    status = "ArchivedOnly"
+    channel = "Local Persistent Archive"
+    message = ""
+
+    if is_sim:
+        status = "Simulated"
+        channel = "Simulation / Dry-Run Archive"
+        message = f"Simülasyon raporu derlenip arşive kaydedildi ({len(recip_list)} alıcı simüle edildi)."
+    elif graph_sender:
+        plat_cfg = get_entra_config()
+        plat_tenant_obj = {
+            "TenantId": plat_cfg.get("tenant_id"),
+            "ClientId": plat_cfg.get("client_id"),
+            "Auth": {"Method": "ClientSecret", "ClientSecret": plat_cfg.get("client_secret")},
+        }
+        g_tok, g_err = acquire_tenant_graph_token(plat_tenant_obj)
+        if not g_tok:
+            g_tok, g_err = acquire_tenant_graph_token(tenant_obj)
+        if g_tok:
+            attachments = []
+            if attach_pdf and latest_pdf_path and os.path.exists(latest_pdf_path):
+                with open(latest_pdf_path, "rb") as pf:
+                    attachments.append({
+                        "@odata.type": "#microsoft.graph.fileAttachment",
+                        "name": os.path.basename(latest_pdf_path),
+                        "contentType": "application/pdf",
+                        "contentBytes": base64.b64encode(pf.read()).decode("ascii"),
+                    })
+            if attach_html and latest_html_path and os.path.exists(latest_html_path):
+                with open(latest_html_path, "rb") as hf:
+                    attachments.append({
+                        "@odata.type": "#microsoft.graph.fileAttachment",
+                        "name": os.path.basename(latest_html_path),
+                        "contentType": "text/html",
+                        "contentBytes": base64.b64encode(hf.read()).decode("ascii"),
+                    })
+            graph_payload = {
+                "message": {
+                    "subject": mail_subject,
+                    "body": {"contentType": "HTML", "content": body_html},
+                    "toRecipients": [{"emailAddress": {"address": r}} for r in recip_list],
+                    "attachments": attachments,
+                },
+                "saveToSentItems": True,
+            }
+            send_url = f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(graph_sender, safe='@._-')}/sendMail"
+            req = urllib.request.Request(
+                send_url,
+                data=json.dumps(graph_payload).encode("utf-8"),
+                method="POST",
+                headers={"Authorization": f"Bearer {g_tok}", "Content-Type": "application/json"},
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15.0) as resp:
+                    if resp.status in (200, 202):
+                        status = "Delivered"
+                        channel = f"Microsoft Graph SendMail ({graph_sender})"
+                        message = f"Rapor Microsoft Graph üzerinden {len(recip_list)} alıcıya başarıyla gönderildi."
+            except urllib.error.HTTPError as he:
+                err_txt = he.read().decode("utf-8", errors="ignore")[:180]
+                status = "Failed"
+                channel = f"Microsoft Graph SendMail ({graph_sender})"
+                message = f"Graph SendMail hatası (HTTP {he.code}): {err_txt}"
+            except Exception as ex:
+                status = "Failed"
+                channel = f"Microsoft Graph SendMail ({graph_sender})"
+                message = f"Graph SendMail bağlantı hatası: {ex}"
+        else:
+            status = "Failed"
+            channel = "Microsoft Graph SendMail"
+            message = f"Gönderici Graph erişim anahtarı alınamadı: {g_err}"
+    elif smtp_host:
+        smtp_port = int(os.environ.get("SMTP_PORT") or mail_cfg.get("SmtpPort") or 587)
+        smtp_user = os.environ.get("SMTP_USER") or mail_cfg.get("SmtpUser") or ""
+        smtp_pass = os.environ.get("SMTP_PASS") or mail_cfg.get("SmtpPass") or ""
+        smtp_from = os.environ.get("SMTP_FROM") or mail_cfg.get("SmtpFrom") or smtp_user or "noreply@cloudshield-mssp.com"
+        msg = EmailMessage()
+        msg["Subject"] = mail_subject
+        msg["From"] = smtp_from
+        msg["To"] = ", ".join(recip_list)
+        msg.set_content(f"{customer_name} - Yönetilen Güvenlik ve Uyum Raporu ektedir.")
+        msg.add_alternative(body_html, subtype="html")
+        if attach_pdf and latest_pdf_path and os.path.exists(latest_pdf_path):
+            with open(latest_pdf_path, "rb") as pf:
+                msg.add_attachment(pf.read(), maintype="application", subtype="pdf", filename=os.path.basename(latest_pdf_path))
+        if attach_html and latest_html_path and os.path.exists(latest_html_path):
+            with open(latest_html_path, "rb") as hf:
+                msg.add_attachment(hf.read(), maintype="text", subtype="html", filename=os.path.basename(latest_html_path))
+        try:
+            if smtp_port == 465:
+                with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as srv:
+                    if smtp_user and smtp_pass:
+                        srv.login(smtp_user, smtp_pass)
+                    srv.send_message(msg)
+            else:
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as srv:
+                    srv.ehlo()
+                    if srv.has_extn("starttls"):
+                        srv.starttls()
+                    if smtp_user and smtp_pass:
+                        srv.login(smtp_user, smtp_pass)
+                    srv.send_message(msg)
+            status = "Delivered"
+            channel = f"SMTP ({smtp_host}:{smtp_port})"
+            message = f"Rapor SMTP üzerinden {len(recip_list)} alıcıya başarıyla teslim edildi."
+        except Exception as sex:
+            status = "Failed"
+            channel = f"SMTP ({smtp_host}:{smtp_port})"
+            message = f"SMTP gönderim hatası: {sex}"
+    else:
+        status = "ArchivedOnly"
+        channel = "Local Persistent Archive (Mail.Send / SMTP yapılandırılmadı)"
+        message = (
+            "Rapor PDF/HTML olarak derlenip kalıcı arşive kaydedildi; "
+            "canlı e-posta gönderimi için GRAPH_MAIL_SENDER (Mail.Send) veya SMTP_HOST tanımlanmalıdır."
+        )
+
+    latency_ms = int((time.time() - t0) * 1000)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    disp_id = f"disp-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:4]}"
+    log_entry = {
+        "id": disp_id,
+        "timestamp": now_iso,
+        "tenantId": tid,
+        "tenantName": customer_name,
+        "mode": freq,
+        "recipients": recip_list,
+        "subject": mail_subject,
+        "pdfAttached": os.path.basename(latest_pdf_path) if (attach_pdf and latest_pdf_path and os.path.exists(latest_pdf_path)) else None,
+        "htmlAttached": os.path.basename(latest_html_path) if (attach_html and latest_html_path and os.path.exists(latest_html_path)) else None,
+        "status": status,
+        "deliveryChannel": channel,
+        "latencyMs": latency_ms,
+        "message": message,
+    }
+    logs = load_json_file(DISPATCH_LOGS_FILE, [])
+    logs.insert(0, log_entry)
+    save_json_file(DISPATCH_LOGS_FILE, logs[:500])
+    return log_entry
+
+
+_UI_ROLE_TO_DB_ROLE = {
+    "PlatformAdmin": ("role-platform-admin", "ALL", None),
+    "SecurityEngineer": ("role-security-engineer", "ALL", None),
+    "EdrEngineer": ("role-security-engineer", "Specific", "svc-mde"),
+    "XdrEngineer": ("role-security-engineer", "Specific", "svc-xdr"),
+    "ComplianceSpecialist": ("role-compliance-specialist", "Specific", "svc-prv-dlp"),
+    "ServiceOperator": ("role-service-operator", "ALL", None),
+    "MsspOperator": ("role-service-operator", "ALL", None),
+    "CustomerCISO": ("role-customer-ciso", "ALL", None),
+    "Auditor": ("role-auditor", "ALL", None),
+}
+
+
+def _sync_user_dict_to_db(u_dict):
+    """Atomically synchronize legacy /api/users payload into SQLite users and access_assignments tables."""
+    uid = (u_dict.get("Id") or "").strip()
+    upn = (u_dict.get("Upn") or u_dict.get("Email") or "").strip()
+    if not uid or not upn:
+        return
+    dname = (u_dict.get("DisplayName") or upn).strip()
+    email = (u_dict.get("Email") or upn).strip()
+    dept = (u_dict.get("Department") or "MSSP Security Operations").strip()
+    role_str = (u_dict.get("Role") or "ServiceOperator").strip()
+    assigned_tenants = u_dict.get("AssignedTenants") or ["ALL"]
+    if isinstance(assigned_tenants, str):
+        assigned_tenants = [t.strip() for t in assigned_tenants.split(",") if t.strip()] or ["ALL"]
+    raw_pass = (u_dict.get("Password") or "").strip()
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash, password_salt FROM users WHERE id = ? OR LOWER(upn) = LOWER(?)", (uid, upn))
+        existing = cur.fetchone()
+        if raw_pass:
+            p_hash, p_salt = hash_password(raw_pass)
+        elif existing:
+            p_hash, p_salt = existing["password_hash"], existing["password_salt"]
+        else:
+            p_hash, p_salt = None, None
+
+        if existing:
+            uid = existing["id"]
+            cur.execute(
+                """UPDATE users SET upn = ?, display_name = ?, email = ?, department = ?,
+                                    password_hash = ?, password_salt = ?, is_active = 1
+                   WHERE id = ?""",
+                (upn, dname, email, dept, p_hash, p_salt, uid),
+            )
+        else:
+            cur.execute(
+                """INSERT INTO users (id, organization_id, upn, display_name, email, department,
+                                      password_hash, password_salt, is_active, is_mfa_enabled, auth_provider, created_at)
+                   VALUES (?, 'org-cloudshield', ?, ?, ?, ?, ?, ?, 1, 1, 'EntraID_OIDC', ?)""",
+                (uid, upn, dname, email, dept, p_hash, p_salt, now_iso),
+            )
+
+        role_id, svc_scope, svc_id = _UI_ROLE_TO_DB_ROLE.get(role_str, ("role-service-operator", "ALL", None))
+        cur.execute("DELETE FROM access_assignments WHERE subject_type = 'User' AND subject_id = ? AND is_temporary = 0", (uid,))
+        if "ALL" in assigned_tenants or role_id == "role-platform-admin":
+            cur.execute(
+                """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                                  service_scope, service_id, valid_from, is_temporary, is_active, created_by, created_at)
+                   VALUES (?, 'User', ?, ?, 'ALL', NULL, ?, ?, ?, 0, 1, 'api-users-sync', ?)""",
+                (f"asgn-{uid}-all", uid, role_id, svc_scope, svc_id, now_iso, now_iso),
+            )
+        else:
+            for cid in assigned_tenants:
+                cur.execute(
+                    """INSERT INTO access_assignments (id, subject_type, subject_id, role_id, customer_scope, customer_id,
+                                                      service_scope, service_id, valid_from, is_temporary, is_active, created_by, created_at)
+                       VALUES (?, 'User', ?, ?, 'Specific', ?, ?, ?, ?, 0, 1, 'api-users-sync', ?)""",
+                    (f"asgn-{uid}-{cid}", uid, role_id, cid, svc_scope, svc_id, now_iso, now_iso),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _delete_user_from_db(user_id):
+    """Atomically remove user and active sessions from SQLite RBAC database."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM user_sessions WHERE user_id = ?", (user_id,))
+        cur.execute("DELETE FROM access_assignments WHERE subject_type = 'User' AND subject_id = ?", (user_id,))
+        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+
+def _list_unified_users():
+    """Return authoritative user list from SQLite RBAC database merged with users.json metadata."""
+    json_users = {u.get("Id"): u for u in load_json_file(USERS_FILE, []) if isinstance(u, dict) and u.get("Id")}
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE is_active = 1 ORDER BY created_at ASC")
+        rows = [dict(r) for r in cur.fetchall()]
+        out = []
+        for r in rows:
+            uid = r["id"]
+            asgns = get_effective_assignments(uid, conn)
+            roles = [a["role_name"] for a in asgns if a.get("role_name")]
+            is_pa = any(a.get("is_platform_role") for a in asgns)
+            tenants_sc = ["ALL"] if (is_pa or any(a.get("customer_scope") == "ALL" for a in asgns)) else [a["customer_id"] for a in asgns if a.get("customer_id")]
+            j_meta = json_users.get(uid, {})
+            out.append({
+                "Id": uid,
+                "DisplayName": r.get("display_name") or j_meta.get("DisplayName") or r.get("upn"),
+                "Upn": r.get("upn"),
+                "Email": r.get("email") or r.get("upn"),
+                "Department": r.get("department") or j_meta.get("Department") or "MSSP",
+                "Role": "PlatformAdmin" if is_pa else (j_meta.get("Role") or (roles[0] if roles else "ServiceOperator")),
+                "AssignedTenants": tenants_sc or ["ALL"],
+                "LastLogin": r.get("last_login_at") or j_meta.get("LastLogin") or "Henüz giriş yapmadı",
+                "AuthProvider": r.get("auth_provider") or "EntraID_OIDC",
+            })
+        return out
+    finally:
+        conn.close()
+
+
+def _get_or_init_tenant_decisions(tenant_id):
+    """Load or initialize persistent CISO Decision Matrix records for a customer tenant."""
+    all_dec = load_json_file(DECISIONS_FILE, {})
+    if not isinstance(all_dec, dict):
+        all_dec = {}
+    if tenant_id not in all_dec:
+        all_dec[tenant_id] = [
+            {
+                "id": "DEC-M365-APP-01",
+                "quadrant": "Approved",
+                "title": "XDR Bütünleşik Olay Yönetimi ve AIR Aktivasyonu",
+                "owner": "CISO & BT Güvenlik Müdürü",
+                "priority": "P1",
+                "status": "Approved",
+                "evidence": "R8-MDE-AIR-01",
+                "approvedBy": "System Baseline",
+                "approvedAtUtc": None,
+            },
+            {
+                "id": "DEC-M365-APP-02",
+                "quadrant": "Approved",
+                "title": "Purview DLP & CloudShield Triyaj Entegrasyonu",
+                "owner": "Bilgi Güvenliği Direktörü",
+                "priority": "P1",
+                "status": "Approved",
+                "evidence": "R8-DLP-INT-02",
+                "approvedBy": "System Baseline",
+                "approvedAtUtc": None,
+            },
+            {
+                "id": "DEC-M365-PEND-01",
+                "quadrant": "Pending",
+                "title": "Uç Nokta DLP Kurallarının Blok Moduna Geçirilmesi",
+                "owner": "CISO & BT Altyapı Direktörü",
+                "priority": "P1 - Yüksek",
+                "status": "Pending",
+                "evidence": "Intune & Purview Telemetrisi",
+                "approvedBy": None,
+                "approvedAtUtc": None,
+            },
+            {
+                "id": "DEC-M365-DEF-01",
+                "quadrant": "Deferred",
+                "title": "Eski Muhasebe Sunucusunda Legacy Protokol İstisnası",
+                "owner": "Finans & BT Direktörü",
+                "priority": "P2",
+                "status": "Deferred",
+                "evidence": "İzole Segmentte",
+                "approvedBy": None,
+                "approvedAtUtc": None,
+            },
+            {
+                "id": "DEC-M365-REC-01",
+                "quadrant": "Recommended",
+                "title": "BitLocker XTS-AES 256 Şifreleme ve Credential Guard",
+                "owner": "BT Altyapı Ekibi",
+                "priority": "P1 - Yüksek",
+                "status": "Recommended",
+                "evidence": "Intune Cihaz Uyumluluk Karnesi",
+                "approvedBy": None,
+                "approvedAtUtc": None,
+            },
+            {
+                "id": "DEC-M365-REC-02",
+                "quadrant": "Recommended",
+                "title": "Kural Aşımı Yapan Personel İçin Hedefli Uyum Eğitimi",
+                "owner": "İK & Bilgi Güvenliği",
+                "priority": "P2 - Orta",
+                "status": "Recommended",
+                "evidence": "Purview DLP Politika İhlal Özeti",
+                "approvedBy": None,
+                "approvedAtUtc": None,
+            },
+        ]
+        save_json_file(DECISIONS_FILE, all_dec)
+    return all_dec[tenant_id]
 
 class RateLimiter:
     """Thread-safe sliding-window rate limiter per key (IP, user, or composite key)."""
@@ -676,14 +1312,7 @@ def verify_entra_id_token(id_token, tenant_id, client_id, expected_nonce=None):
         except Exception as e:
             raise ValueError(f"JWT signature verification failed: {e}")
     else:
-        # Fallback when PyJWT library is not installed: validate claims from direct TLS token exchange
-        print("[WARN] PyJWT not installed; validating claims from direct TLS backchannel token exchange.")
-        claims = decode_jwt_payload(id_token)
-        now_ts = time.time()
-        if claims.get("exp", 0) < now_ts:
-            raise ValueError("ID Token has expired.")
-        if claims.get("aud") != client_id:
-            raise ValueError(f"Invalid token audience (aud does not match platform client_id '{client_id}').")
+        raise ValueError("PyJWT cryptographic library is required for Entra ID token verification (fail-closed).")
 
     iss = claims.get("iss")
     if iss not in expected_issuers:
@@ -1069,7 +1698,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         self.send_header("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';")
 
         super().end_headers()
 
@@ -1647,13 +2276,27 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         }
 
         active_services = target.get("ActiveServices", ["SVC-MDE", "SVC-MDO", "SVC-PURVIEW"])
+        live_roles = set()
+        live_token_ok = False
+        live_token_err = None
+        if not is_sim and client_id and tenant_guid:
+            tok, live_token_err = acquire_tenant_graph_token(target, timeout=5.0)
+            if tok:
+                live_token_ok = True
+                try:
+                    claims = decode_jwt_payload(tok)
+                    for r in (claims.get("roles") or []):
+                        live_roles.add(r)
+                except Exception:
+                    pass
+
         results = []
         for s_code, perms in perm_specs.items():
             s_meta = catalog.get(s_code, {})
             display_name = s_meta.get("displayNameTr") or s_code
             is_active = s_code in active_services or (s_code.startswith("SVC-PRV") and "SVC-PURVIEW" in active_services)
             
-            # Status resolution
+            # Status resolution from real Entra JWT roles claim when live
             if is_sim:
                 status = "Granted"
                 status_desc = "Onaylandı (Simülasyon / Test Ortamı)"
@@ -1663,9 +2306,21 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             elif not is_active:
                 status = "NotSubscribed"
                 status_desc = "Abonelik Kapsamı Dışında"
+            elif live_token_ok:
+                matched = [p for p in perms if p in live_roles or (p == "RoleManagement.Read.Directory" and "Directory.Read.All" in live_roles)]
+                missing = [p for p in perms if p not in matched]
+                if len(matched) == len(perms):
+                    status = "Granted"
+                    status_desc = "Canlı JWT Doğrulandı (Tüm İzinler Mevcut)"
+                elif matched:
+                    status = "PartialScope"
+                    status_desc = f"Kısmi İzin — Eksik: {', '.join(missing)}"
+                else:
+                    status = "AdminConsentRequired"
+                    status_desc = f"Eksik İzinler (Admin Consent Gerekli): {', '.join(missing)}"
             else:
-                status = "Granted" if target.get("HealthStatus") == "Healthy" else "AdminConsentRequired"
-                status_desc = "Onaylandı" if status == "Granted" else "Yönetici Onayı Bekliyor (Admin Consent Required)"
+                status = "AdminConsentRequired"
+                status_desc = f"Canlı Token Doğrulanamadı ({live_token_err or 'Yönetici Onayı Bekliyor'})"
 
             results.append({
                 "serviceCode": s_code,
@@ -1677,7 +2332,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 "statusDescription": status_desc
             })
 
-        consent_url = f"https://login.microsoftonline.com/{tenant_guid or 'common'}/adminconsent?client_id={client_id or '00000000-0000-0000-0000-000000000000'}&redirect_uri=https://portal.cloudshield-mssp.com" if client_id and tenant_guid else ""
+        consent_url = f"https://login.microsoftonline.com/{tenant_guid or 'common'}/adminconsent?client_id={client_id or '00000000-0000-0000-0000-000000000000'}&redirect_uri={urllib.parse.quote(get_entra_config().get('redirect_uri', ''), safe=':/')}" if client_id and tenant_guid else ""
         cred_health = self.compute_credential_health(target)
 
         self.send_json_response({
@@ -1687,11 +2342,96 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             "tenantGuid": tenant_guid,
             "clientId": client_id,
             "isSimulation": is_sim,
+            "liveTokenVerified": live_token_ok,
+            "grantedTokenRoles": sorted(live_roles),
             "adminConsentUrl": consent_url,
             "servicesCount": len(results),
             "services": results,
             "credentialHealth": cred_health,
             "lastCheckedUtc": datetime.now(timezone.utc).isoformat()
+        })
+
+    def handle_tenant_cockpit(self, tenant_id):
+        """Return real observed telemetry & persisted CISO decisions for single-tenant cockpit (zero synthetic multipliers)."""
+        user = self.get_current_user()
+        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+        allow, reason = evaluate_access(user, "customers:view", customer_id=tenant_id, resource=f"/api/tenants/{tenant_id}/cockpit", ip_address=client_ip)
+        if not allow:
+            self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"}, status=403)
+            return
+
+        tenants = load_json_file(TENANTS_FILE, [])
+        target = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+        if not target:
+            self.send_json_response({"success": False, "error": "Kiracı bulunamadı."}, status=404)
+            return
+
+        tid = target.get("Id") or tenant_id
+        cname = target.get("Name", "Customer")
+        live_data = load_live_data(OUTPUT_DIR, cname)
+
+        blocked_threats = None
+        hours_saved = None
+        crit_incidents = None
+        dlp_violations = None
+        sec_score = target.get("SecureScore")
+
+        if isinstance(live_data, dict) and live_data:
+            mde = live_data.get("DefenderEndpoint") or {}
+            op_val = live_data.get("OperationalValue") or {}
+            dlp = live_data.get("PurviewDlp") or {}
+            sc = live_data.get("SecurityScore") or {}
+            if mde.get("BlockedThreats") is not None:
+                blocked_threats = int(float(mde.get("BlockedThreats") or 0))
+            if op_val.get("HoursSaved") is not None:
+                hours_saved = round(float(op_val.get("HoursSaved") or 0), 1)
+            if mde.get("CriticalIncidents") is not None:
+                crit_incidents = int(float(mde.get("CriticalIncidents") or 0))
+            if dlp.get("TotalIncidents") is not None:
+                dlp_violations = int(float(dlp.get("TotalIncidents") or 0))
+            if sc.get("CurrentScore") is not None:
+                sec_score = round(float(sc.get("CurrentScore") or 0), 1)
+
+        if blocked_threats is None:
+            conn = get_db()
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT secure_score, threats_blocked, critical_incidents, dlp_violations, hours_saved FROM tenant_service_trends WHERE tenant_id = ? ORDER BY period DESC LIMIT 1",
+                    (tid,),
+                )
+                row = cur.fetchone()
+                if row:
+                    blocked_threats = row["threats_blocked"]
+                    hours_saved = row["hours_saved"]
+                    crit_incidents = row["critical_incidents"]
+                    dlp_violations = row["dlp_violations"]
+                    if row["secure_score"]:
+                        sec_score = row["secure_score"]
+            except Exception:
+                pass
+            finally:
+                conn.close()
+
+        decisions = _get_or_init_tenant_decisions(tid)
+        pending_count = sum(1 for d in decisions if d.get("status") == "Pending")
+
+        self.send_json_response({
+            "success": True,
+            "tenantId": tid,
+            "tenantName": cname,
+            "hasObservedTelemetry": blocked_threats is not None,
+            "metrics": {
+                "blockedThreats": blocked_threats,
+                "hoursSaved": hours_saved,
+                "criticalIncidents": crit_incidents if crit_incidents is not None else target.get("OpenHighAlerts", 0),
+                "dlpViolations": dlp_violations,
+                "secureScore": sec_score,
+                "totalEndpoints": target.get("TotalEndpoints", 0),
+                "ghostDevices": target.get("GhostDevices", 0),
+            },
+            "decisions": decisions,
+            "pendingDecisionCount": pending_count,
         })
 
     def compute_credential_health(self, tenant):
@@ -1843,11 +2583,21 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         snapshot_date = query.get("snapshotDate", [None])[0]
         period = query.get("period", [None])[0]
+        tenants_list = load_json_file(TENANTS_FILE, [])
+        t_meta = next((t for t in tenants_list if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+
+        def _seed_or_live_collect():
+            live_tok = None
+            if t_meta and not t_meta.get("IsSimulation"):
+                live_tok, _ = acquire_tenant_graph_token(t_meta, timeout=4.0)
+            return collect_tenant_license_intelligence(
+                tenant_id, period=period, access_token=live_tok, dry_run=(live_tok is None)
+            )
 
         if path == "/api/licenses/inventory":
             inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
             if not inv:
-                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                _seed_or_live_collect()
                 inv = get_license_inventory(tenant_id, snapshot_date=snapshot_date)
             self.send_json_response({"success": True, "tenantId": tenant_id, "inventory": inv, "count": len(inv)})
             return
@@ -1856,7 +2606,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             filter_val = query.get("filter", [None])[0]
             users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
             if not users_list:
-                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                _seed_or_live_collect()
                 users_list = get_user_license_profiles(tenant_id, snapshot_date=snapshot_date, filter_type=filter_val)
             self.send_json_response({"success": True, "tenantId": tenant_id, "users": users_list, "count": len(users_list)})
             return
@@ -1864,7 +2614,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/licenses/value-summary":
             summary = get_license_value_summary(tenant_id, period=period)
             if not summary:
-                res = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                res = _seed_or_live_collect()
                 summary = res.get("summary")
             if isinstance(summary, list):
                 summary = summary[0] if summary else {}
@@ -1876,7 +2626,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/licenses/reconciliation":
             recs = get_workload_reconciliation(tenant_id, period=period)
             if not recs:
-                collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                _seed_or_live_collect()
                 recs = get_workload_reconciliation(tenant_id, period=period)
             self.send_json_response({"success": True, "tenantId": tenant_id, "reconciliations": recs, "count": len(recs)})
             return
@@ -1885,12 +2635,12 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             if period:
                 snap = get_license_snapshot(tenant_id, period)
                 if not snap:
-                    snap = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                    snap = _seed_or_live_collect()
                 self.send_json_response({"success": True, "tenantId": tenant_id, "snapshot": snap})
             else:
                 snaps = list_license_snapshots(tenant_id)
                 if not snaps:
-                    collect_tenant_license_intelligence(tenant_id, period=period, dry_run=True)
+                    _seed_or_live_collect()
                     snaps = list_license_snapshots(tenant_id)
                 self.send_json_response({"success": True, "tenantId": tenant_id, "snapshots": snaps})
             return
@@ -1997,9 +2747,22 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                     return
 
             period = body.get("period")
-            dry_run = body.get("dryRun", True)
+            dry_run = bool(body.get("dryRun", False))
+            tenants_list = load_json_file(TENANTS_FILE, [])
+            t_meta = next((t for t in tenants_list if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            is_sim = bool(t_meta.get("IsSimulation")) if t_meta else False
 
-            result = collect_tenant_license_intelligence(tenant_id, period=period, dry_run=dry_run)
+            access_token = None
+            if not dry_run and not is_sim and t_meta:
+                access_token, tok_err = acquire_tenant_graph_token(t_meta)
+                if not access_token and not body.get("allowSyntheticFallback", False):
+                    self.send_json_response({
+                        "success": False,
+                        "error": f"Canlı Microsoft Graph erişimi kurulamadı ({tok_err}). Lütfen kiracı sertifika/Key Vault kimlik bilgilerini doğrulayın veya simülasyon modu kullanın."
+                    }, status=422)
+                    return
+
+            result = collect_tenant_license_intelligence(tenant_id, period=period, access_token=access_token, dry_run=(dry_run or is_sim))
             record_audit_event("LICENSE_INTELLIGENCE_COLLECT", user_id=user.get("id") if user else None,
                                resource=path, decision="ALLOW", reason="LicenseIntelligenceCollected",
                                ip_address=client_ip, details={"tenantId": tenant_id, "isLive": result.get("is_live", False)})
@@ -2164,6 +2927,30 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             self.handle_tenant_credentials(tenant_id)
             return
 
+        elif path.startswith("/api/tenants/") and path.endswith("/cockpit"):
+            tenant_id = path.split("/")[3]
+            self.handle_tenant_cockpit(tenant_id)
+            return
+
+        elif path.startswith("/api/reports/jobs/"):
+            job_id = path.replace("/api/reports/jobs/", "").strip()
+            user = self.get_current_user()
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            with _REPORT_JOBS_LOCK:
+                job = REPORT_JOBS.get(job_id)
+                if not job:
+                    persisted_jobs = load_json_file(REPORT_JOBS_FILE, {})
+                    job = persisted_jobs.get(job_id) if isinstance(persisted_jobs, dict) else None
+            if not job:
+                self.send_json_response({"success": False, "error": "Rapor işi bulunamadı."}, status=404)
+                return
+            allow, reason = evaluate_access(user, "reports:view", customer_id=job.get("tenantId"), resource=path, ip_address=client_ip)
+            if not allow:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): {reason}"}, status=403)
+                return
+            self.send_json_response({"success": True, "job": job})
+            return
+
         elif path == "/api/tenants":
 
             tenants = load_json_file(TENANTS_FILE, [])
@@ -2203,7 +2990,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 }, status=403)
                 return
 
-            users = load_json_file(USERS_FILE, [])
+            users = _list_unified_users()
 
             self.send_json_response(users)
 
@@ -3236,10 +4023,10 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             body["SelectedPackage"] = body.get("SelectedPackage", "PKG-10")
             body["HealthStatus"] = body.get("HealthStatus", "Healthy")
             body["ConnectionStatus"] = body.get("ConnectionStatus", "LiveConnected")
-            body["TotalEndpoints"] = int(body.get("TotalEndpoints", 120))
+            body["TotalEndpoints"] = int(body.get("TotalEndpoints", 120 if is_test_tenant else 0))
             body["GhostDevices"] = int(body.get("GhostDevices", 0))
             body["OpenHighAlerts"] = int(body.get("OpenHighAlerts", 0))
-            body["SecureScore"] = float(body.get("SecureScore", 78.5))
+            body["SecureScore"] = float(body.get("SecureScore", 78.5 if is_test_tenant else 0.0))
             body["LastReportDate"] = datetime.now().strftime("%Y-%m-%d")
             body["ActiveServices"] = body.get("ActiveServices", ["SVC-MDE", "SVC-MDO", "SVC-XDR", "SVC-PRV-DLP"])
 
@@ -3389,9 +4176,116 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
             return
 
-        elif path == "/api/dispatch/send":
+        elif path.startswith("/api/tenants/") and path.endswith("/credentials/keyvault"):
+            tenant_id = path.split("/")[3]
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _reason = evaluate_access(_wu, "customers:manage", customer_id=tenant_id, resource=path, ip_address=_wip)
+            if not _allow:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): {_reason}"}, status=403)
+                return
 
-            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
+            tenants_list = load_json_file(TENANTS_FILE, [])
+            t_idx = next((i for i, t in enumerate(tenants_list) if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            if t_idx is None:
+                self.send_json_response({"success": False, "error": "Kiracı bulunamadı."}, status=404)
+                return
+
+            secret_name = (body.get("secretName") or f"cs-cert-{tenant_id}").strip()
+            secret_value = (body.get("certificatePemOrBase64Pfx") or body.get("secretValue") or "").strip()
+            secret_kind = (body.get("credentialType") or "Certificate").strip()
+            if not secret_value:
+                self.send_json_response({"success": False, "error": "Sertifika (PEM/PFX Base64) veya secret değeri boş olamaz."}, status=400)
+                return
+
+            ok_kv, kv_res = _store_keyvault_secret(
+                secret_name,
+                secret_value,
+                content_type="application/x-pem-file" if secret_kind == "Certificate" else "text/plain",
+            )
+            if not ok_kv:
+                self.send_json_response({"success": False, "error": kv_res}, status=502)
+                return
+
+            t_obj = tenants_list[t_idx]
+            t_obj.setdefault("Auth", {})
+            if secret_kind == "Certificate":
+                t_obj["KeyVaultCertificateName"] = kv_res
+                t_obj["Auth"]["KeyVaultCertificateName"] = kv_res
+                t_obj["AuthMethod"] = "Certificate"
+                t_obj["Auth"]["Method"] = "Certificate"
+            else:
+                t_obj["KeyVaultSecretName"] = kv_res
+                t_obj["Auth"]["KeyVaultSecretName"] = kv_res
+            save_json_file(TENANTS_FILE, tenants_list)
+            record_audit_event(
+                "KEYVAULT_CREDENTIAL_STORED",
+                user_id=(_wu or {}).get("id"),
+                user_upn=(_wu or {}).get("upn"),
+                customer_id=t_obj.get("Id"),
+                resource=path,
+                decision="ALLOW",
+                reason="KeyVaultSecretProvisioned",
+                ip_address=_wip,
+                details={"secretName": kv_res, "credentialType": secret_kind},
+            )
+            self.send_json_response({"success": True, "keyVaultSecretName": kv_res, "credentialType": secret_kind})
+            return
+
+        elif path.startswith("/api/tenants/") and path.endswith("/decisions/approve"):
+            tenant_id = path.split("/")[3]
+            _wu = self.get_current_user()
+            _wip = self.client_address[0] if self.client_address else "127.0.0.1"
+            _allow, _reason = evaluate_access(_wu, "customers:manage", customer_id=tenant_id, resource=path, ip_address=_wip)
+            if not _allow:
+                _allow, _reason = evaluate_access(_wu, "reports:view", customer_id=tenant_id, resource=path, ip_address=_wip)
+                if _allow and (_wu or {}).get("role") not in ("PlatformAdmin", "CustomerCISO", "SecurityEngineer"):
+                    _allow = False
+            if not _allow:
+                self.send_json_response({"success": False, "error": f"Yetkisiz Erişim (403 Forbidden): Karar onaylama yetkiniz bulunmamaktadır ({_reason})."}, status=403)
+                return
+
+            decision_id = (body.get("decisionId") or "").strip()
+            if not decision_id:
+                self.send_json_response({"success": False, "error": "decisionId parametresi zorunludur."}, status=400)
+                return
+
+            tenants_list = load_json_file(TENANTS_FILE, [])
+            target_t = next((t for t in tenants_list if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
+            canonical_tid = target_t.get("Id") if target_t else tenant_id
+
+            decisions = _get_or_init_tenant_decisions(canonical_tid)
+            dec_obj = next((d for d in decisions if d.get("id") == decision_id), None)
+            if not dec_obj:
+                self.send_json_response({"success": False, "error": f"Karar bulunamadı: {decision_id}"}, status=404)
+                return
+
+            now_iso = datetime.now(timezone.utc).isoformat()
+            approver_upn = (_wu or {}).get("upn") or (_wu or {}).get("email") or "admin"
+            dec_obj["status"] = "Approved"
+            dec_obj["quadrant"] = "Approved"
+            dec_obj["approvedBy"] = approver_upn
+            dec_obj["approvedAtUtc"] = now_iso
+
+            all_dec = load_json_file(DECISIONS_FILE, {})
+            all_dec[canonical_tid] = decisions
+            save_json_file(DECISIONS_FILE, all_dec)
+
+            record_audit_event(
+                "DECISION_APPROVED",
+                user_id=(_wu or {}).get("id"),
+                user_upn=approver_upn,
+                customer_id=canonical_tid,
+                resource=path,
+                decision="ALLOW",
+                reason="CustomerDecisionAuthorized",
+                ip_address=_wip,
+                details={"decisionId": decision_id, "title": dec_obj.get("title")},
+            )
+            self.send_json_response({"success": True, "decision": dec_obj, "decisions": decisions})
+            return
+
+        elif path == "/api/dispatch/send":
             _wu = self.get_current_user()
             _wip = self.client_address[0] if self.client_address else "127.0.0.1"
             _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
@@ -3405,92 +4299,41 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             tenant_id = body.get("tenantId")
-
-            recipients = body.get("recipients")
-
-            subject = body.get("subject")
-
-            attach_pdf = body.get("attachPdf", True)
-
-            attach_html = body.get("attachHtml", True)
-
             tenants = load_json_file(TENANTS_FILE, [])
-
             idx = next((i for i, t in enumerate(tenants) if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
-
             if idx is None:
-
                 self.send_json_response({"success": False, "error": "Tenant bulunamadı"}, status=404)
-
                 return
 
             t = tenants[idx]
-
-            customer_name = t.get("Name", "Customer")
-
-            recip_list = recipients if recipients else t.get("RecipientEmails", ["mssp-reporting@cloudshield-mssp.com"])
-
-            if isinstance(recip_list, str):
-
-                recip_list = [r.strip() for r in recip_list.split(",") if r.strip()]
-
-            safe_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-
-            now_iso = datetime.now(timezone.utc).isoformat()
-
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-            disp_id = f"disp-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-
-            log_entry = {
-
-                "id": disp_id,
-
-                "timestamp": now_iso,
-
-                "tenantId": t.get("Id"),
-
-                "tenantName": customer_name,
-
-                "mode": t.get("ScheduleFrequency", "Monthly"),
-
-                "recipients": recip_list,
-
-                "subject": subject or f"[CloudShield MSSP] {customer_name} - Yönetilen Güvenlik ve Uyum Raporu",
-
-                "pdfAttached": f"{safe_name}_Report.pdf" if attach_pdf else None,
-
-                "htmlAttached": f"{safe_name}_Summary.html" if attach_html else None,
-
-                "status": "Delivered",
-
-                "deliveryChannel": "Microsoft Graph SendMail API (Exchange Online)",
-
-                "latencyMs": 280,
-
-                "message": f"Rapor başarıyla derlendi ve {len(recip_list)} alıcıya güvenle teslim edildi."
-
-            }
-
-            logs = load_json_file(DISPATCH_LOGS_FILE, [])
-
-            logs.insert(0, log_entry)
-
-            save_json_file(DISPATCH_LOGS_FILE, logs)
-
-            t["LastDispatchDate"] = now_str
-
-            t["LastDispatchStatus"] = "Delivered"
-
+            log_entry = execute_report_dispatch(
+                t,
+                recipients=body.get("recipients"),
+                subject=body.get("subject"),
+                attach_pdf=body.get("attachPdf", True),
+                attach_html=body.get("attachHtml", True),
+                dry_run=bool(body.get("dryRun", False)),
+                created_by=(_wu or {}).get("upn") or "dispatch-api",
+            )
+            t["LastDispatchDate"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            t["LastDispatchStatus"] = log_entry.get("status", "ArchivedOnly")
             save_json_file(TENANTS_FILE, tenants)
 
+            record_audit_event(
+                "REPORT_DISPATCH",
+                user_id=(_wu or {}).get("id"),
+                user_upn=(_wu or {}).get("upn"),
+                customer_id=t.get("Id"),
+                resource=path,
+                decision="ALLOW",
+                reason=f"DispatchStatus_{log_entry.get('status')}",
+                ip_address=_wip,
+                details={"dispatchId": log_entry.get("id"), "channel": log_entry.get("deliveryChannel"), "status": log_entry.get("status")},
+            )
             self.send_json_response({"success": True, "dispatch": log_entry})
-
             return
 
         elif path == "/api/users":
-
-            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
             _wu = self.get_current_user()
             _wip = self.client_address[0] if self.client_address else "127.0.0.1"
             _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
@@ -3504,24 +4347,29 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             users = load_json_file(USERS_FILE, [])
-
-            new_id = f"usr-{len(users)+1:03d}"
-
+            new_id = body.get("Id") or f"usr-{secrets.token_hex(3)}"
             body["Id"] = new_id
-
             body["LastLogin"] = "Henüz giriş yapmadı"
-
-            users.append(body)
-
+            stored_copy = {k: v for k, v in body.items() if k != "Password"}
+            users = [u for u in users if u.get("Id") != new_id]
+            users.append(stored_copy)
             save_json_file(USERS_FILE, users)
+            _sync_user_dict_to_db(body)
 
-            self.send_json_response({"success": True, "user": body}, status=201)
-
+            record_audit_event(
+                "USER_CREATED",
+                user_id=(_wu or {}).get("id"),
+                user_upn=(_wu or {}).get("upn"),
+                resource=path,
+                decision="ALLOW",
+                reason="UserCreatedAndSyncedToRbacDb",
+                ip_address=_wip,
+                details={"targetUserId": new_id, "targetUpn": body.get("Upn"), "role": body.get("Role")},
+            )
+            self.send_json_response({"success": True, "user": stored_copy}, status=201)
             return
 
         elif path == "/api/stats/sync":
-
-            # W10 (Stage 1B): previously-unguarded route -> existing permission guard.
             _wu = self.get_current_user()
             _wip = self.client_address[0] if self.client_address else "127.0.0.1"
             _allow, _ = evaluate_access(_wu, "customers:manage", resource=path, ip_address=_wip)
@@ -3534,58 +4382,87 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 }, status=403)
                 return
 
-            # Force immediate recalculation and cache refresh
-
             tenants = load_json_file(TENANTS_FILE, [])
+            live_synced = 0
+            tenants_dirty = False
+            stale_cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+
+            for t in tenants:
+                if t.get("IsSimulation"):
+                    continue
+                tok, _ = acquire_tenant_graph_token(t, timeout=4.5)
+                if not tok:
+                    continue
+                live_synced += 1
+                # 1. Microsoft Secure Score
+                sc_json, sc_code, _ = graph_get_json(tok, "https://graph.microsoft.com/v1.0/security/secureScores?$top=1", timeout=5.0)
+                if sc_code == 200 and sc_json and sc_json.get("value"):
+                    top_sc = sc_json["value"][0]
+                    cur_s = float(top_sc.get("currentScore") or 0.0)
+                    max_s = float(top_sc.get("maxScore") or 100.0)
+                    if max_s > 0:
+                        t["SecureScore"] = round((cur_s / max_s) * 100.0, 1)
+                        tenants_dirty = True
+                # 2. Active High/Critical Security Alerts
+                al_json, al_code, _ = graph_get_json(tok, "https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=status%20ne%20'resolved'&$top=100", timeout=5.0)
+                if al_code == 200 and al_json is not None:
+                    vals = al_json.get("value") or []
+                    high_cnt = sum(1 for a in vals if str(a.get("severity", "")).lower() in ("high", "critical"))
+                    t["OpenHighAlerts"] = high_cnt
+                    tenants_dirty = True
+                # 3. Managed Devices & Ghost (>30d inactive) Endpoints
+                dv_json, dv_code, _ = graph_get_json(tok, "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=id,lastSyncDateTime&$top=999", timeout=6.0)
+                if dv_code == 200 and dv_json is not None:
+                    devs = dv_json.get("value") or []
+                    t["TotalEndpoints"] = len(devs)
+                    ghosts = 0
+                    for dv in devs:
+                        ls = dv.get("lastSyncDateTime")
+                        if ls:
+                            try:
+                                dt_ls = datetime.fromisoformat(ls.replace("Z", "+00:00"))
+                                if dt_ls < stale_cutoff:
+                                    ghosts += 1
+                            except Exception:
+                                pass
+                    t["GhostDevices"] = ghosts
+                    tenants_dirty = True
+                t["HealthStatus"] = "Healthy"
+                try:
+                    sync_customer_to_db(t)
+                except Exception:
+                    pass
+
+            if tenants_dirty:
+                save_json_file(TENANTS_FILE, tenants)
 
             total_endpoints = sum(t.get("TotalEndpoints", 0) for t in tenants)
-
             total_ghost = sum(t.get("GhostDevices", 0) for t in tenants)
-
             total_alerts = sum(t.get("OpenHighAlerts", 0) for t in tenants)
-
             avg_score = round(sum(t.get("SecureScore", 0) for t in tenants) / max(len(tenants), 1), 1)
-
             now = datetime.now()
-
             cache = {
-
                 "lastSyncTimestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
-
                 "nextScheduledSync": (now + timedelta(days=1)).strftime("%Y-%m-%d 06:00:00"),
-
-                "syncMode": "ManualTriggered",
-
+                "syncMode": "LiveGraphSync" if live_synced > 0 else "CachedTenantRollup",
+                "liveTenantsSynced": live_synced,
                 "isCacheActive": True,
-
                 "globalStats": {
-
                     "totalTenants": len(tenants),
-
                     "totalEndpoints": total_endpoints,
-
                     "totalGhostDevices": total_ghost,
-
                     "totalCriticalAlerts": total_alerts,
-
                     "averageSecureScore": avg_score
-
                 }
-
             }
-
             save_json_file(CACHE_FILE, cache)
-
             res_payload = dict(cache["globalStats"])
-
             res_payload["lastSyncTimestamp"] = cache["lastSyncTimestamp"]
-
             res_payload["nextScheduledSync"] = cache["nextScheduledSync"]
-
+            res_payload["liveTenantsSynced"] = live_synced
+            res_payload["syncMode"] = cache["syncMode"]
             res_payload["success"] = True
-
             self.send_json_response(res_payload)
-
             return
 
         elif path == "/api/auth/test":
@@ -3920,247 +4797,189 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
                 ps_env["MSSP_CLIENT_ID"] = client_id
 
-            try:
+            report_lang = body.get("language", "tr")
+            is_async_job = bool(body.get("async", False))
 
+            def _execute_report_pipeline():
+                local_pdf_path = None
+                local_html_path = None
+                local_log = ""
                 try:
+                    try:
+                        proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=180, env=ps_env)
+                        local_log = (proc.stdout or "") + (proc.stderr or "")
+                        latest_pdf_mtime = 0
+                        latest_html_mtime = 0
+                        safe_folder = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+                        search_roots = [os.path.join(OUTPUT_DIR, safe_folder), OUTPUT_DIR]
+                        for s_root in search_roots:
+                            if os.path.exists(s_root):
+                                for r_dir, _, files in os.walk(s_root):
+                                    for f in files:
+                                        full_p = os.path.join(r_dir, f)
+                                        try:
+                                            mtime = os.path.getmtime(full_p)
+                                            if f.lower().endswith(".pdf") and mtime > latest_pdf_mtime:
+                                                local_pdf_path = full_p
+                                                latest_pdf_mtime = mtime
+                                            elif f.lower().endswith(".html") and mtime > latest_html_mtime:
+                                                local_html_path = full_p
+                                                latest_html_mtime = mtime
+                                        except Exception:
+                                            pass
+                                if local_html_path and s_root != OUTPUT_DIR:
+                                    break
+                    except Exception as pe:
+                        local_log += f"\n[WARN] PowerShell execution: {pe}"
 
-                    proc = subprocess.run(pwsh_args, cwd=os.path.join(ROOT_DIR, "Engine"), capture_output=True, text=True, errors="replace", timeout=180, env=ps_env)
+                    try:
+                        py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR, language=report_lang, tenant_id=tenant_id)
+                        if py_html and os.path.exists(py_html):
+                            local_html_path = py_html
+                        if py_pdf and os.path.exists(py_pdf):
+                            local_pdf_path = py_pdf
+                        local_log += f"\n[OK] CloudShield Kurumsal Rapor Motoru ({report_lang.upper()}) ile rapor başarıyla derlendi."
 
-                    proc_log = (proc.stdout or "") + (proc.stderr or "")
-
-                    # Dynamically locate the newest generated PDF and HTML reports specifically for this customer
-
-                    latest_pdf_mtime = 0
-
-                    latest_html_mtime = 0
-
-                    safe_folder = "".join(c for c in customer_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-
-                    search_roots = [os.path.join(OUTPUT_DIR, safe_folder), OUTPUT_DIR]
-
-                    for s_root in search_roots:
-
-                        if os.path.exists(s_root):
-
-                            for r_dir, _, files in os.walk(s_root):
-
-                                for f in files:
-
-                                    full_p = os.path.join(r_dir, f)
-
+                        try:
+                            from database.db import record_tenant_trend
+                            period_tag = datetime.now().strftime("%Y-%m")
+                            svc_tag = services[0] if (services and len(services) == 1) else "CONSOLIDATED"
+                            live_data = load_live_data(OUTPUT_DIR, customer_name, period_tag=period_tag)
+                            if live_data:
+                                def _num(val, default=0.0):
                                     try:
+                                        return float(val) if val is not None else default
+                                    except (ValueError, TypeError):
+                                        return default
 
-                                        mtime = os.path.getmtime(full_p)
+                                record_tenant_trend(tenant_id, period_tag, svc_tag, {
+                                    "secure_score": _num((live_data.get("SecurityScore") or {}).get("CurrentScore")),
+                                    "threats_blocked": int(_num((live_data.get("DefenderEndpoint") or {}).get("BlockedThreats"))),
+                                    "critical_incidents": int(_num((live_data.get("DefenderEndpoint") or {}).get("CriticalIncidents"))),
+                                    "dlp_violations": int(_num((live_data.get("PurviewDlp") or {}).get("TotalIncidents"))),
+                                    "phishing_blocked": int(_num((live_data.get("DefenderOffice365") or {}).get("PhishingBlocked"))),
+                                    "pim_activations": int(_num((live_data.get("EntraId") or {}).get("PimActivations"))),
+                                    "device_compliance_pct": _num((live_data.get("Intune") or {}).get("CompliancePct")),
+                                    "hours_saved": _num((live_data.get("OperationalValue") or {}).get("HoursSaved")),
+                                    "cost_avoidance_usd": _num((live_data.get("OperationalValue") or {}).get("CostAvoidanceUsd")),
+                                })
+                        except Exception as dbe:
+                            print(f"[WARN] Trend snapshot recording error: {dbe}")
+                    except Exception as pye:
+                        local_log += f"\n[ERROR] Python report engine error: {pye}"
 
-                                        if f.lower().endswith(".pdf") and mtime > latest_pdf_mtime:
-
-                                            latest_pdf_path = full_p
-
-                                            latest_pdf_mtime = mtime
-
-                                        elif f.lower().endswith(".html") and mtime > latest_html_mtime:
-
-                                            latest_html_path = full_p
-
-                                            latest_html_mtime = mtime
-
-                                    except Exception:
-
-                                        pass
-
-                            if latest_html_path and s_root != OUTPUT_DIR:
-
-                                break
-
-                except Exception as pe:
-
-                    proc_log += f"\n[WARN] PowerShell execution: {pe}"
-
-                # Invoke authoritative report_generator engine using collected data.json
-                try:
-                    report_lang = body.get("language", "tr")
-                    py_html, py_pdf = render_and_save_report(customer_name, services, OUTPUT_DIR, language=report_lang, tenant_id=tenant_id)
-                    if py_html and os.path.exists(py_html):
-                        latest_html_path = py_html
-                    if py_pdf and os.path.exists(py_pdf):
-                        latest_pdf_path = py_pdf
-                    proc_log += f"\n[OK] CloudShield Kurumsal Rapor Motoru ({report_lang.upper()}) ile rapor başarıyla derlendi."
-                    
-                    # Record metric snapshot into historical trends DB using real live data only
-                    try:
-                        from database.db import record_tenant_trend
-                        from report_generator import load_live_data
-                        period_tag = datetime.now().strftime("%Y-%m")
-                        svc_tag = services[0] if (services and len(services) == 1) else "CONSOLIDATED"
-                        live_data = load_live_data(OUTPUT_DIR, customer_name, period_tag=period_tag)
-                        if live_data:
-                            def _num(val, default=0.0):
-                                try:
-                                    return float(val) if val is not None else default
-                                except (ValueError, TypeError):
-                                    return default
-
-                            sec_score = _num((live_data.get("SecurityScore") or {}).get("CurrentScore"))
-                            threats_blk = int(_num((live_data.get("DefenderEndpoint") or {}).get("BlockedThreats")))
-                            crit_inc = int(_num((live_data.get("DefenderEndpoint") or {}).get("CriticalIncidents")))
-                            dlp_viols = int(_num((live_data.get("PurviewDlp") or {}).get("TotalIncidents")))
-                            phish_blk = int(_num((live_data.get("DefenderOffice365") or {}).get("PhishingBlocked")))
-                            pim_acts = int(_num((live_data.get("EntraId") or {}).get("PimActivations")))
-                            dev_comp = _num((live_data.get("Intune") or {}).get("CompliancePct"))
-                            hrs_saved = _num((live_data.get("OperationalValue") or {}).get("HoursSaved"))
-                            cost_avoid = _num((live_data.get("OperationalValue") or {}).get("CostAvoidanceUsd"))
-
-                            record_tenant_trend(tenant_id, period_tag, svc_tag, {
-                                "secure_score": sec_score,
-                                "threats_blocked": threats_blk,
-                                "critical_incidents": crit_inc,
-                                "dlp_violations": dlp_viols,
-                                "phishing_blocked": phish_blk,
-                                "pim_activations": pim_acts,
-                                "device_compliance_pct": dev_comp,
-                                "hours_saved": hrs_saved,
-                                "cost_avoidance_usd": cost_avoid
-                            })
-                    except Exception as dbe:
-                        print(f"[WARN] Trend snapshot recording error: {dbe}")
-                except Exception as pye:
-                    proc_log += f"\n[ERROR] Python report engine error: {pye}"
-
-                # If HTML exists but PDF was not generated, perform secondary headless render
-
-                if latest_html_path and (not latest_pdf_path or not os.path.exists(latest_pdf_path) or os.path.getsize(latest_pdf_path) == 0):
-
-                    candidate_pdf = os.path.splitext(latest_html_path)[0] + ".pdf"
-
-                    engine = find_pdf_engine()
-
-                    if engine:
-
-                        try:
-
-                            pdf_uri = "file:///" + os.path.abspath(latest_html_path).replace("\\", "/") if sys.platform == "win32" else "file://" + os.path.abspath(latest_html_path)
-
-                            cmd = [
-
-                                engine,
-
-                                "--headless=new",
-
-                                "--no-sandbox",
-
-                                "--disable-dev-shm-usage",
-
-                                "--disable-gpu",
-
-                                "--no-pdf-header-footer",
-
-                                f"--print-to-pdf={candidate_pdf}",
-
-                                pdf_uri
-
-                            ]
-
-                            subprocess.run(cmd, timeout=30, capture_output=True)
-
-                            if not os.path.exists(candidate_pdf) or os.path.getsize(candidate_pdf) == 0:
-
-                                cmd[1] = "--headless"
-
+                    if local_html_path and (not local_pdf_path or not os.path.exists(local_pdf_path) or os.path.getsize(local_pdf_path) == 0):
+                        candidate_pdf = os.path.splitext(local_html_path)[0] + ".pdf"
+                        engine = find_pdf_engine()
+                        if engine:
+                            try:
+                                pdf_uri = "file:///" + os.path.abspath(local_html_path).replace("\\", "/") if sys.platform == "win32" else "file://" + os.path.abspath(local_html_path)
+                                cmd = [
+                                    engine, "--headless=new", "--no-sandbox",
+                                    "--disable-dev-shm-usage", "--disable-gpu",
+                                    "--no-pdf-header-footer", f"--print-to-pdf={candidate_pdf}", pdf_uri
+                                ]
                                 subprocess.run(cmd, timeout=30, capture_output=True)
+                                if not os.path.exists(candidate_pdf) or os.path.getsize(candidate_pdf) == 0:
+                                    cmd[1] = "--headless"
+                                    subprocess.run(cmd, timeout=30, capture_output=True)
+                                if os.path.exists(candidate_pdf) and os.path.getsize(candidate_pdf) > 0:
+                                    local_pdf_path = candidate_pdf
+                                    local_log += f"\n[OK] Vektörel PDF başarıyla oluşturuldu: {candidate_pdf}"
+                            except Exception as pe:
+                                local_log += f"\n[WARN] Secondary PDF rendering error: {pe}"
 
-                            if os.path.exists(candidate_pdf) and os.path.getsize(candidate_pdf) > 0:
+                        if not local_pdf_path or not os.path.exists(local_pdf_path) or os.path.getsize(local_pdf_path) == 0:
+                            try:
+                                created_pdf = create_executive_pdf(customer_name, services, candidate_pdf)
+                                if os.path.exists(created_pdf) and os.path.getsize(created_pdf) > 0:
+                                    local_pdf_path = created_pdf
+                                    local_log += f"\n[OK] CloudShield Kurumsal Vektörel PDF Motoru ile rapor başarıyla derlendi: {created_pdf}"
+                            except Exception as pfe:
+                                local_log += f"\n[WARN] Pure Python PDF fallback error: {pfe}"
 
-                                latest_pdf_path = candidate_pdf
+                    if not local_html_path and not local_pdf_path:
+                        return 500, {
+                            "success": False,
+                            "error": f"Rapor dosyaları oluşturulamadı. Konsol izi: {local_log[-300:]}"
+                        }
 
-                                proc_log += f"\n[OK] Vektörel PDF başarıyla oluşturuldu: {candidate_pdf}"
+                    fresh_tenants = load_json_file(TENANTS_FILE, [])
+                    for ft in fresh_tenants:
+                        if ft.get("Id") == tenant_id or ft.get("TenantId") == tenant_id:
+                            ft["LastReportDate"] = datetime.now().strftime("%Y-%m-%d")
+                    save_json_file(TENANTS_FILE, fresh_tenants)
 
-                        except Exception as pe:
+                    creator_upn = (user or {}).get("upn") or "api"
+                    pdf_report_id = ""
+                    html_report_id = ""
+                    if local_pdf_path and os.path.exists(local_pdf_path):
+                        pdf_report_id, _ = register_report_artifact(tenant_id, customer_name, mode, services, "PDF", local_pdf_path, created_by=creator_upn)
+                    if local_html_path and os.path.exists(local_html_path):
+                        html_report_id, _ = register_report_artifact(tenant_id, customer_name, mode, services, "HTML", local_html_path, created_by=creator_upn)
 
-                            proc_log += f"\n[WARN] Secondary PDF rendering error: {pe}"
-
-                    # If still not generated, invoke pure-Python vector PDF generator
-
-                    if not latest_pdf_path or not os.path.exists(latest_pdf_path) or os.path.getsize(latest_pdf_path) == 0:
-
+                    primary_report_id = pdf_report_id or html_report_id
+                    return 200, {
+                        "success": True,
+                        "reportId": primary_report_id,
+                        "pdfReportId": pdf_report_id,
+                        "htmlReportId": html_report_id,
+                        "customer": customer_name,
+                        "isSimulation": is_simulation,
+                        "services": services,
+                        "pdfUrl": f"/api/reports/{pdf_report_id}/download" if pdf_report_id else "",
+                        "htmlUrl": f"/api/reports/{html_report_id}/download" if html_report_id else "",
+                        "outputLog": local_log[-500:] if local_log else "Rapor başarıyla tamamlandı."
+                    }
+                except Exception as ex:
+                    return 500, {"success": False, "error": str(ex)}
+                finally:
+                    if os.path.exists(cust_cfg_path):
                         try:
+                            os.remove(cust_cfg_path)
+                        except Exception:
+                            pass
 
-                            created_pdf = create_executive_pdf(customer_name, services, candidate_pdf)
-
-                            if os.path.exists(created_pdf) and os.path.getsize(created_pdf) > 0:
-
-                                latest_pdf_path = created_pdf
-
-                                proc_log += f"\n[OK] CloudShield Kurumsal Vektörel PDF Motoru ile rapor başarıyla derlendi: {created_pdf}"
-
-                        except Exception as pfe:
-
-                            proc_log += f"\n[WARN] Pure Python PDF fallback error: {pfe}"
-
-                # If still neither exists, return clear error
-
-                if not latest_html_path and not latest_pdf_path:
-
-                    self.send_json_response({
-
-                        "success": False,
-
-                        "error": f"Rapor dosyaları oluşturulamadı. Konsol izi: {proc_log[-300:]}"
-
-                    }, status=500)
-
-                    return
-
-                pdf_rel_path = os.path.relpath(latest_pdf_path, OUTPUT_DIR).replace("\\", "/") if latest_pdf_path else ""
-
-                html_rel_path = os.path.relpath(latest_html_path, OUTPUT_DIR).replace("\\", "/") if latest_html_path else ""
-
-                # Update tenant last report date
-
-                target_tenant["LastReportDate"] = datetime.now().strftime("%Y-%m-%d")
-
-                save_json_file(TENANTS_FILE, tenants)
-
-                pdf_report_id = ""
-                html_report_id = ""
-                if latest_pdf_path and os.path.exists(latest_pdf_path):
-                    pdf_report_id, _ = register_report_artifact(tenant_id, customer_name, mode, services, "PDF", latest_pdf_path)
-                if latest_html_path and os.path.exists(latest_html_path):
-                    html_report_id, _ = register_report_artifact(tenant_id, customer_name, mode, services, "HTML", latest_html_path)
-
-                primary_report_id = pdf_report_id or html_report_id
-                pdf_url = f"/api/reports/{pdf_report_id}/download" if pdf_report_id else ""
-                html_url = f"/api/reports/{html_report_id}/download" if html_report_id else ""
-
-                self.send_json_response({
-                    "success": True,
-                    "reportId": primary_report_id,
-                    "pdfReportId": pdf_report_id,
-                    "htmlReportId": html_report_id,
+            if is_async_job:
+                job_id = f"job-{uuid.uuid4().hex[:12]}"
+                job_entry = {
+                    "jobId": job_id,
+                    "tenantId": tenant_id,
                     "customer": customer_name,
-                    "isSimulation": is_simulation,
                     "services": services,
-                    "pdfUrl": pdf_url,
-                    "htmlUrl": html_url,
-                    "outputLog": proc_log[-500:] if proc_log else "Rapor ba?ar?yla tamamland?."
-                })
-            except Exception as e:
+                    "mode": mode,
+                    "status": "Running",
+                    "startedAtUtc": datetime.now(timezone.utc).isoformat(),
+                    "createdBy": (user or {}).get("upn") or "api",
+                }
+                with _REPORT_JOBS_LOCK:
+                    REPORT_JOBS[job_id] = job_entry
+                    persisted = load_json_file(REPORT_JOBS_FILE, {})
+                    if not isinstance(persisted, dict):
+                        persisted = {}
+                    persisted[job_id] = job_entry
+                    save_json_file(REPORT_JOBS_FILE, persisted)
 
-                self.send_json_response({"success": False, "error": str(e)}, status=500)
+                def _bg_worker():
+                    st_code, res_dict = _execute_report_pipeline()
+                    with _REPORT_JOBS_LOCK:
+                        fin = dict(job_entry)
+                        fin.update(res_dict)
+                        fin["status"] = "Completed" if st_code == 200 and res_dict.get("success") else "Failed"
+                        fin["completedAtUtc"] = datetime.now(timezone.utc).isoformat()
+                        REPORT_JOBS[job_id] = fin
+                        persisted_fin = load_json_file(REPORT_JOBS_FILE, {})
+                        if not isinstance(persisted_fin, dict):
+                            persisted_fin = {}
+                        persisted_fin[job_id] = fin
+                        save_json_file(REPORT_JOBS_FILE, persisted_fin)
 
-            finally:
+                threading.Thread(target=_bg_worker, daemon=True, name=f"ReportJob-{job_id}").start()
+                self.send_json_response({"success": True, "async": True, "jobId": job_id, "status": "Running"}, status=202)
+                return
 
-                # Cleanup isolated config file to leave zero credential footprint
-
-                if os.path.exists(cust_cfg_path):
-
-                    try:
-
-                        os.remove(cust_cfg_path)
-
-                    except Exception:
-
-                        pass
-
+            http_st, payload_out = _execute_report_pipeline()
+            self.send_json_response(payload_out, status=http_st)
             return
 
         elif path.startswith("/api/tenants/") and path.endswith("/test"):
@@ -4573,23 +5392,24 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             user_id = path.replace("/api/users/", "").strip()
-
             users = load_json_file(USERS_FILE, [])
-
             idx = next((i for i, u in enumerate(users) if u.get("Id") == user_id), None)
-
-            if idx is not None:
-
-                users[idx].update(body)
-
-                save_json_file(USERS_FILE, users)
-
-                self.send_json_response({"success": True, "user": users[idx]})
-
-            else:
-
+            existing_unified = next((u for u in _list_unified_users() if u.get("Id") == user_id), None)
+            if idx is None and not existing_unified:
                 self.send_json_response({"success": False, "error": "User not found"}, status=404)
+                return
 
+            merged = dict(existing_unified or (users[idx] if idx is not None else {}))
+            merged.update(body)
+            merged["Id"] = user_id
+            stored_copy = {k: v for k, v in merged.items() if k != "Password"}
+            if idx is not None:
+                users[idx] = stored_copy
+            else:
+                users.append(stored_copy)
+            save_json_file(USERS_FILE, users)
+            _sync_user_dict_to_db(merged)
+            self.send_json_response({"success": True, "user": stored_copy})
             return
 
         elif path == "/api/auth/config":
@@ -4638,26 +5458,28 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             tenant_id = path.replace("/api/tenants/", "").strip()
-
             tenants = load_json_file(TENANTS_FILE, [])
-
             new_tenants = [t for t in tenants if t.get("Id") != tenant_id]
+            db_deleted = False
+            try:
+                conn = get_db()
+                cur = conn.cursor()
+                cur.execute("DELETE FROM access_assignments WHERE customer_id = ?", (tenant_id,))
+                cur.execute("DELETE FROM customers WHERE id = ?", (tenant_id,))
+                db_deleted = cur.rowcount > 0
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
 
-            if len(new_tenants) < len(tenants):
-
+            if len(new_tenants) < len(tenants) or db_deleted:
                 save_json_file(TENANTS_FILE, new_tenants)
-
                 self.send_json_response({"success": True})
-
             else:
-
                 self.send_json_response({"success": False, "error": "Tenant not found"}, status=404)
-
             return
 
         elif path.startswith("/api/users/"):
-
-            # W10 (Stage 1B): user deletion is an administrative lifecycle mutation.
             _wu = self.get_current_user()
             _wip = self.client_address[0] if self.client_address else "127.0.0.1"
             _allow, _ = evaluate_access(_wu, "roles:manage", resource=path, ip_address=_wip)
@@ -4671,21 +5493,14 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             user_id = path.replace("/api/users/", "").strip()
-
             users = load_json_file(USERS_FILE, [])
-
             new_users = [u for u in users if u.get("Id") != user_id]
-
-            if len(new_users) < len(users):
-
+            db_deleted = _delete_user_from_db(user_id)
+            if len(new_users) < len(users) or db_deleted:
                 save_json_file(USERS_FILE, new_users)
-
                 self.send_json_response({"success": True})
-
             else:
-
                 self.send_json_response({"success": False, "error": "User not found"}, status=404)
-
             return
 
         self.send_error(404, "Endpoint Not Found")
@@ -4699,40 +5514,70 @@ def start_dispatch_scheduler():
                 now = datetime.now()
                 updated = False
                 for t in tenants:
+                    if not t.get("IsDispatchActive", True):
+                        continue
                     freq = t.get("ScheduleFrequency")
                     if not freq or freq == "None":
                         continue
-                    last_str = t.get("LastReportDate")
+
+                    # Respect DispatchTime (HH:MM) and DispatchDay when configured
+                    disp_time_str = str(t.get("DispatchTime") or "09:00").strip()
+                    try:
+                        target_hr = int(disp_time_str.split(":")[0])
+                    except Exception:
+                        target_hr = 9
+                    if now.hour < target_hr:
+                        continue
+                    if freq == "Monthly":
+                        try:
+                            target_day = max(1, min(28, int(t.get("DispatchDay") or 1)))
+                        except Exception:
+                            target_day = 1
+                        if now.day < target_day:
+                            continue
+
+                    last_str = (t.get("LastReportDate") or "").split(" ")[0]
                     should_run = False
                     if not last_str:
                         should_run = True
                     else:
                         try:
                             last_date = datetime.strptime(last_str, "%Y-%m-%d")
-                            if freq == "Daily" and (now - last_date).days >= 1:
+                            if freq == "Daily" and (now.date() > last_date.date()):
                                 should_run = True
                             elif freq == "Weekly" and (now - last_date).days >= 7:
                                 should_run = True
-                            elif freq == "Monthly" and (now - last_date).days >= 28:
+                            elif freq == "Monthly" and (now.year > last_date.year or now.month > last_date.month):
                                 should_run = True
                         except Exception:
                             pass
+
                     if should_run:
                         tid = t.get("Id")
                         tname = t.get("Name", "Customer")
                         services = t.get("ActiveServices", ["SVC-MDE"])
                         period_tag = now.strftime("%Y-%m")
-                        print(f"[SCHEDULER] Otomatik zamanlanmış rapor üretimi: {tname} ({tid}) - Frekans: {freq}")
+                        print(f"[SCHEDULER] Otomatik zamanlanmış rapor toplama ve dağıtım: {tname} ({tid}) - Frekans: {freq}")
                         try:
                             render_and_save_report(tname, services, OUTPUT_DIR, period_tag=period_tag, tenant_id=tid)
+                            disp_log = execute_report_dispatch(
+                                t,
+                                attach_pdf=bool(t.get("AttachPdf", True)),
+                                attach_html=bool(t.get("AttachHtml", True)),
+                                mode=freq,
+                                dry_run=bool(t.get("IsSimulation", False)),
+                                created_by="scheduler@cloudshield-mssp.com",
+                            )
                             t["LastReportDate"] = now.strftime("%Y-%m-%d")
+                            t["LastDispatchDate"] = now.strftime("%Y-%m-%d %H:%M")
+                            t["LastDispatchStatus"] = disp_log.get("status", "ArchivedOnly")
                             updated = True
                             record_audit_event("SCHEDULED_REPORT_DISPATCH", user_id="system-scheduler",
                                                user_upn="scheduler@cloudshield-mssp.com", resource=f"/api/tenants/{tid}/reports",
-                                               decision="ALLOW", reason=f"ScheduledExecution_{freq}", ip_address="127.0.0.1",
-                                               details={"tenantId": tid, "frequency": freq, "period": period_tag})
+                                               decision="ALLOW", reason=f"ScheduledExecution_{freq}_{disp_log.get('status')}", ip_address="127.0.0.1",
+                                               details={"tenantId": tid, "frequency": freq, "period": period_tag, "dispatchId": disp_log.get("id")})
                         except Exception as ex:
-                            print(f"[SCHEDULER] Rapor üretim hatası ({tid}): {ex}")
+                            print(f"[SCHEDULER] Rapor üretim/dağıtım hatası ({tid}): {ex}")
                 if updated:
                     save_json_file(TENANTS_FILE, tenants)
             except Exception as e:

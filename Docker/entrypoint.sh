@@ -22,18 +22,26 @@ pwsh -v || echo "[WARN] pwsh not in path"
 echo -n "[INFO] Python Runtime: "
 python3 --version || echo "[WARN] python3 not in path"
 
-# Verify Chromium for PDF export
-if command -v chromium-browser &> /dev/null; then
+# Verify Chrome/Chromium for PDF export
+if command -v google-chrome &> /dev/null; then
+    echo "[INFO] Headless PDF Engine: $(google-chrome --version 2>/dev/null || echo 'Google Chrome ready')"
+elif command -v chromium-browser &> /dev/null; then
     echo "[INFO] Headless PDF Engine: $(chromium-browser --version 2>/dev/null || echo 'Chromium ready')"
 elif command -v chromium &> /dev/null; then
     echo "[INFO] Headless PDF Engine: $(chromium --version 2>/dev/null || echo 'Chromium ready')"
 else
-    echo "[WARN] Chromium not found; PDF generation will fallback to HTML report output."
+    echo "[WARN] Chrome/Chromium not found; PDF generation will fallback to HTML report output."
 fi
 
-# Ensure Output and Data directories exist
-mkdir -p /app/Engine/Output
-mkdir -p /app/Data
+# Persist report artifacts inside the mounted /app/Data volume so restarts/revisions never wipe PDFs/HTMLs
+mkdir -p /app/Data/Reports
+if [ -d "/app/Engine/Output" ] && [ ! -L "/app/Engine/Output" ]; then
+    cp -rn /app/Engine/Output/. /app/Data/Reports/ 2>/dev/null || true
+    rm -rf /app/Engine/Output
+fi
+if [ ! -e "/app/Engine/Output" ]; then
+    ln -s /app/Data/Reports /app/Engine/Output
+fi
 
 echo "[INFO] Starting REST API and Web Portal on 0.0.0.0:${PORT}..."
 exec python3 /app/Portal/api/server.py "${PORT}"

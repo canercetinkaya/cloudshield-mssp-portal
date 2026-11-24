@@ -1,4 +1,4 @@
-# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderIdentity/DefenderIdentity.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Identity (MDI) Service Plugin.
 [CmdletBinding()]
 param()
@@ -98,6 +98,7 @@ function Get-ServiceRawData {
     $uri = "https://graph.microsoft.com/v1.0/security/alerts_v2?`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=50"
 
     $alerts = @()
+    $riskyUsers = @()
     try {
         $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
         $alerts = @($resp.value)
@@ -105,12 +106,26 @@ function Get-ServiceRawData {
     catch {
         Write-Warning "MDI alarmları çekilemedi: $($_.Exception.Message)"
     }
+    try {
+        $ruResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/identityProtection/riskyUsers?`$filter=riskState%20eq%20'atRisk'&`$top=50" -AccessToken $token
+        if ($ruResp.value) {
+            foreach ($ru in $ruResp.value) {
+                $riskyUsers += [pscustomobject]@{
+                    User       = $ru.userPrincipalName
+                    RiskLevel  = $ru.riskLevel
+                    RiskDetail = $ru.riskDetail
+                }
+            }
+        }
+    }
+    catch {}
 
     return [pscustomobject]@{
-        Alerts    = $alerts
-        StartDate = $StartDate
-        EndDate   = $EndDate
-        IsMock    = $false
+        Alerts     = $alerts
+        RiskyUsers = $riskyUsers
+        StartDate  = $StartDate
+        EndDate    = $EndDate
+        IsMock     = $false
     }
 }
 
@@ -141,13 +156,14 @@ function Get-ServiceKpis {
     }
 
     $a = @($RawData.Alerts)
+    $ru = if ($RawData.RiskyUsers) { @($RawData.RiskyUsers) } else { @() }
     return [ordered]@{
         ToplamDcSayisi      = 'N/A - Sensör telemetrisi yapılandırılmamış'
         SaglikliDcSayisi    = 'N/A - Sensör telemetrisi yapılandırılmamış'
         ToplamKimlikTehdidi = $a.Count
         SaldiriDetaylari    = @()
         NtlmV1CihazSayisi   = 'N/A - IdentityLogonEvents KQL izni gerekli'
-        RiskliKullanicilar  = @()
+        RiskliKullanicilar  = $ru
     }
 }
 
@@ -184,6 +200,13 @@ function Get-ServiceHtmlSection {
 
     $k = $KpiData
     $tehdit = if ($k.ToplamKimlikTehdidi -is [int]) { $k.ToplamKimlikTehdidi } else { 0 }
+    $ntlmNum = if ($k.NtlmV1CihazSayisi -is [int]) { $k.NtlmV1CihazSayisi } else { 0 }
+    $dcOran = if ($k.SaglikliDcSayisi -is [int] -and $k.ToplamDcSayisi -is [int] -and $k.ToplamDcSayisi -gt 0) {
+        "%$([math]::Round(($k.SaglikliDcSayisi / $k.ToplamDcSayisi) * 100, 1))"
+    } else { 'N/A' }
+    $dcMetin = if ($k.SaglikliDcSayisi -is [int] -and $k.ToplamDcSayisi -is [int]) {
+        "$($k.SaglikliDcSayisi) / $($k.ToplamDcSayisi)"
+    } else { "$($k.SaglikliDcSayisi)" }
 
     $html = @"
 <section class="service-section">
@@ -220,8 +243,8 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">DC Sensör Sağlığı</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">%$([math]::Round(($k.SaglikliDcSayisi / [math]::Max($k.ToplamDcSayisi, 1)) * 100, 1))</div>
-                    <span class="badge positive">%100 Aktif</span>
+                    <div class="kpi-value">$dcOran</div>
+                    <span class="badge positive">$(if ($dcOran -eq 'N/A') { 'Telemetri Bekleniyor' } else { 'Aktif' })</span>
                 </div>
                 <div class="kpi-description">Domain Controller ortamındaki sensör çalışma oranı</div>
             </div>
@@ -238,12 +261,11 @@ function Get-ServiceHtmlSection {
 
     <!-- ÜRÜNE ÖZEL ÇEKİRDEK GÜVENLİK METRİKLERİ -->
     <div class="kpi-grid">
-    <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-title">Domain Controller Sensörleri</div>
             <div class="kpi-value-row">
-                <div class="kpi-value">$($k.SaglikliDcSayisi) / $($k.ToplamDcSayisi)</div>
-                <span class="badge positive">%100 Aktif</span>
+                <div class="kpi-value">$dcMetin</div>
+                <span class="badge positive">$(if ($dcOran -eq 'N/A') { 'Yapılandırılmadı' } else { '%100 Aktif' })</span>
             </div>
             <div class="kpi-description">İzlenen Active Directory DC sunucuları</div>
         </div>
@@ -252,7 +274,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-title">Tespit Edilen Kimlik Tehdidi</div>
             <div class="kpi-value-row">
                 <div class="kpi-value">$($k.ToplamKimlikTehdidi)</div>
-                <span class="badge $(if ($k.ToplamKimlikTehdidi -gt 0) { 'negative' } else { 'positive' })">$(if ($k.ToplamKimlikTehdidi -gt 0) { 'İncelendi' } else { 'Tehdit Yok' })</span>
+                <span class="badge $(if ($tehdit -gt 0) { 'negative' } else { 'positive' })">$(if ($tehdit -gt 0) { 'İncelendi' } else { 'Tehdit Yok' })</span>
             </div>
             <div class="kpi-description">Kerberoasting, DCSync ve yanal hareketler</div>
         </div>
@@ -261,7 +283,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-title">Zayıf Protokol (NTLMv1) Kullanan</div>
             <div class="kpi-value-row">
                 <div class="kpi-value">$($k.NtlmV1CihazSayisi)</div>
-                <span class="badge $(if ($k.NtlmV1CihazSayisi -gt 0) { 'negative' } else { 'positive' })">Sıkılaştırma</span>
+                <span class="badge $(if ($ntlmNum -gt 0) { 'negative' } else { 'positive' })">Sıkılaştırma</span>
             </div>
             <div class="kpi-description">NTLMv1 trafiği üreten eski cihaz sayısı</div>
         </div>

@@ -374,24 +374,42 @@ class TestEntraIdOidcSSO(unittest.TestCase):
         self.assertIn("sessionStorage.setItem('cloudshield_auth_token'", html_output)
 
     def test_16_local_admin_authentication(self):
-        """Verify local authentication for 'admin' alias maps to usr-admin PlatformAdmin."""
+        """Verify local authentication for 'admin' alias maps to usr-admin PlatformAdmin when break-glass secret is configured."""
         from Portal.api.rbac_engine import authenticate_user
-        user, err = authenticate_user("admin", "LocalSecureAdmin2026!#")
-        self.assertIsNone(err)
-        self.assertIsNotNone(user)
-        self.assertEqual(user["id"], "usr-admin")
-        self.assertEqual(user["role"], "PlatformAdmin")
-        self.assertTrue(user["isPlatformAdmin"])
+        prev = os.environ.get("PORTAL_ADMIN_PASSWORD")
+        test_pass = "ephemeral-breakglass-unit-test-only"
+        os.environ["PORTAL_ADMIN_PASSWORD"] = test_pass
+        try:
+            user, err = authenticate_user("admin", test_pass)
+            self.assertIsNone(err)
+            self.assertIsNotNone(user)
+            self.assertEqual(user["id"], "usr-admin")
+            self.assertEqual(user["role"], "PlatformAdmin")
+            self.assertTrue(user["isPlatformAdmin"])
+        finally:
+            if prev is None:
+                os.environ.pop("PORTAL_ADMIN_PASSWORD", None)
+            else:
+                os.environ["PORTAL_ADMIN_PASSWORD"] = prev
 
     def test_17_local_caner_authentication(self):
-        """Verify local authentication for 'caner' alias maps to usr-001 PlatformAdmin."""
+        """Verify local authentication for 'caner' alias maps to usr-001 PlatformAdmin when break-glass secret is configured."""
         from Portal.api.rbac_engine import authenticate_user
-        user, err = authenticate_user("caner", "LocalSecureAdmin2026!#")
-        self.assertIsNone(err)
-        self.assertIsNotNone(user)
-        self.assertEqual(user["id"], "usr-001")
-        self.assertEqual(user["role"], "PlatformAdmin")
-        self.assertTrue(user["isPlatformAdmin"])
+        prev = os.environ.get("PORTAL_ADMIN_PASSWORD")
+        test_pass = "ephemeral-breakglass-unit-test-only"
+        os.environ["PORTAL_ADMIN_PASSWORD"] = test_pass
+        try:
+            user, err = authenticate_user("caner", test_pass)
+            self.assertIsNone(err)
+            self.assertIsNotNone(user)
+            self.assertEqual(user["id"], "usr-001")
+            self.assertEqual(user["role"], "PlatformAdmin")
+            self.assertTrue(user["isPlatformAdmin"])
+        finally:
+            if prev is None:
+                os.environ.pop("PORTAL_ADMIN_PASSWORD", None)
+            else:
+                os.environ["PORTAL_ADMIN_PASSWORD"] = prev
 
 if __name__ == "__main__":
     unittest.main()

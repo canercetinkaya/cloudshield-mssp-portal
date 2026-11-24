@@ -16,7 +16,7 @@ import subprocess
 from datetime import datetime
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUTPUT_DIR = os.path.join(ROOT_DIR, "Engine", "Output")
+OUTPUT_DIR = os.environ.get("CLOUDSHIELD_OUTPUT_DIR") or os.path.join(ROOT_DIR, "Engine", "Output")
 GOLDEN_CSS_PATH = os.path.join(ROOT_DIR, "Engine", "Templates", "GoldenStandard", "style.css")
 LOGOS_DIR = os.path.join(ROOT_DIR, "Data", "Logos")
 os.makedirs(LOGOS_DIR, exist_ok=True)

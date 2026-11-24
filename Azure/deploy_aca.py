@@ -155,15 +155,31 @@ def main():
         ], check=False)
 
 
-    # 2b. Configure ENTRA_CLIENT_SECRET if provided via environment or fallback
-    entra_secret = os.environ.get("ENTRA_CLIENT_SECRET", "").strip() or base64.b64decode("NlFOOFF+bUlsejFhTWpUWkFlSU9qM3NZamVDT1R6OTJjQ01+bGJiNA==").decode("utf-8")
+    # 2b. Synchronize secrets into ACA secret store (never pass plaintext secrets as container env vars)
+    entra_secret = os.environ.get("ENTRA_CLIENT_SECRET", "").strip()
+    session_secret = os.environ.get("CLOUDSHIELD_SESSION_SECRET", "").strip()
+    admin_password = os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip()
+    secret_pairs = []
     if entra_secret:
-        print("=== Storing ENTRA_CLIENT_SECRET in ACA secrets store ===")
-        run_cmd([
-            "az", "containerapp", "secret", "set",
-            "-n", app_name, "-g", resource_group,
-            "--secrets", f"entra-client-secret={entra_secret}"
-        ], check=False)
+        secret_pairs.append(f"entra-client-secret={entra_secret}")
+    if session_secret:
+        secret_pairs.append(f"session-secret={session_secret}")
+    if admin_password:
+        secret_pairs.append(f"portal-admin-password={admin_password}")
+    if secret_pairs:
+        print(f"=== Storing {len(secret_pairs)} secret(s) in ACA secrets store ===")
+        subprocess.run(
+            ["az", "containerapp", "secret", "set", "-n", app_name, "-g", resource_group, "--secrets", *secret_pairs],
+            capture_output=True, text=True, check=False
+        )
+
+    # 2c. Discover Key Vault URI in the same Resource Group for live multi-tenant auth
+    kv_res = run_cmd(["az", "keyvault", "list", "-g", resource_group, "--query", "[0].properties.vaultUri", "-o", "tsv"], check=False)
+    kv_url = os.environ.get("AZURE_KEYVAULT_URL", "").strip() or (kv_res.stdout.strip() if kv_res.returncode == 0 else "")
+
+    # 2d. Inspect existing ACA secret names so secretref bindings never reference a missing secret
+    sec_list_res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "properties.configuration.secrets[].name", "-o", "json"], check=False)
+    existing_secrets = set(json.loads(sec_list_res.stdout)) if (sec_list_res.returncode == 0 and sec_list_res.stdout.strip()) else set()
 
     # 3. Discover actual container name inside ACA (to avoid silent failures from name mismatch)
     print(f"=== Discovering actual container name inside {app_name} ===")
@@ -179,6 +195,7 @@ def main():
     # 3b. Update container image and ensure warm instance availability (default min: 1, max: 1)
     min_replicas = os.environ.get("ACA_MIN_REPLICAS", "1").strip()
     max_replicas = os.environ.get("ACA_MAX_REPLICAS", "1").strip()
+    allow_local_auth = os.environ.get("CLOUDSHIELD_ALLOW_LOCAL_AUTH", "false").strip().lower()
     rev_suffix = f"r{github_sha[:7]}" if github_sha and github_sha != "latest" else f"r{int(time.time()) % 1000000}"
     print(f"=== Updating container image to {image_tag} with revision suffix '{rev_suffix}' and replicas (min: {min_replicas}, max: {max_replicas}) ===")
     update_cmd = [
@@ -190,14 +207,18 @@ def main():
         "--min-replicas", min_replicas,
         "--max-replicas", max_replicas
     ]
-    session_secret = os.environ.get("CLOUDSHIELD_SESSION_SECRET") or hashlib.sha256(b"2fb2bcee-61be-48af-972c-0b11a606578f:15b69eff-dc1e-4bf3-9d72-ebda8d7fff40:CloudShield2026MasterSecret").hexdigest()
     env_vars = [
         "USE_SQLITE_NOLOCK=true",
-        "CLOUDSHIELD_ALLOW_LOCAL_AUTH=true",
-        f"CLOUDSHIELD_SESSION_SECRET={session_secret}",
-        f"ENTRA_CLIENT_SECRET={entra_secret}",
-        "PORTAL_ADMIN_PASSWORD=LocalSecureAdmin2026!#"
+        f"CLOUDSHIELD_ALLOW_LOCAL_AUTH={allow_local_auth}",
     ]
+    if kv_url:
+        env_vars.append(f"AZURE_KEYVAULT_URL={kv_url}")
+    if "entra-client-secret" in existing_secrets:
+        env_vars.append("ENTRA_CLIENT_SECRET=secretref:entra-client-secret")
+    if "session-secret" in existing_secrets:
+        env_vars.append("CLOUDSHIELD_SESSION_SECRET=secretref:session-secret")
+    if "portal-admin-password" in existing_secrets:
+        env_vars.append("PORTAL_ADMIN_PASSWORD=secretref:portal-admin-password")
     update_cmd.extend(["--set-env-vars", *env_vars])
     run_cmd(update_cmd)
 

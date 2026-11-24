@@ -377,8 +377,8 @@ def seed_default_data(conn):
         )
 
         # 7. Users
-    # W8 (Stage 1 Containment): Bootstrap admin & engineer credentials
-    admin_default_pass = os.environ.get("PORTAL_ADMIN_PASSWORD") or "LocalSecureAdmin2026!#"
+    # W8 (Stage 1 Containment): Bootstrap admin & engineer credentials (no hardcoded literal fallback)
+    admin_default_pass = os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip() or secrets.token_urlsafe(32)
     admin_pwd_hash, admin_pwd_salt = hash_password(admin_default_pass)
 
     cur.execute("SELECT id FROM users WHERE upn = ?", ("admin@cloudshield-mssp.com",))

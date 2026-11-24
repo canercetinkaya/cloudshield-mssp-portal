@@ -80,9 +80,9 @@ def authenticate_user(username, password, ip_address="127.0.0.1"):
 
                 # Verify password
         is_valid = verify_password(password, user_dict.get("password_hash"), user_dict.get("password_salt"))
-        if not is_valid and user_dict["id"] in ("usr-admin", "usr-001"):
-            admin_expected = os.environ.get("PORTAL_ADMIN_PASSWORD") or "LocalSecureAdmin2026!#"
-            if password == admin_expected:
+        admin_expected = os.environ.get("PORTAL_ADMIN_PASSWORD", "").strip()
+        if not is_valid and admin_expected and user_dict["id"] in ("usr-admin", "usr-001"):
+            if hmac.compare_digest(password, admin_expected):
                 is_valid = True
                 try:
                     new_hash, new_salt = hash_password(admin_expected)

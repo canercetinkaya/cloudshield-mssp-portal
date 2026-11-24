@@ -1,4 +1,4 @@
-# Core/MailEngine.psm1 - CloudShield Security Reporting Platform
+﻿# Core/MailEngine.psm1 - CloudShield Security Reporting Platform
 # Multi-protocol report delivery: Microsoft Graph API (Mail.Send) and Modern SMTP with attachment handling.
 [CmdletBinding()]
 param()
@@ -137,7 +137,8 @@ function New-CisoNotificationHtmlBody {
     )
 
     $scoreColor = if ($Score -ge 90) { "#10b981" } elseif ($Score -ge 75) { "#f59e0b" } else { "#ef4444" }
-    $digestDisplay = if ($Sha256Digest) { $Sha256Digest } else { (Get-Random -Minimum 10000000 -Maximum 99999999).ToString("x8") + "..." }
+    $digestDisplay = if ($Sha256Digest) { $Sha256Digest } else { "Ek dosya özeti hesaplanmadı" }
+    $postureStatus = if ($Score -ge 80) { "Hedef Duruş Seviyesinde" } elseif ($Score -gt 0) { "İyileştirme Planı Aktif" } else { "Telemetri Özeti" }
 
     $html = @"
 <!DOCTYPE html>
@@ -184,7 +185,7 @@ function New-CisoNotificationHtmlBody {
               <tr>
                 <td>
                   <div class="score-title">Genel Güvenlik ve Uyum Skoru</div>
-                  <div style="font-size: 12px; color: #64748b; margin-top: 4px;">SLA ve Politika Uyum Seviyesi: %100 Uyumlu</div>
+                  <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Gözlemlenen Güvenlik Duruşu: $postureStatus</div>
                 </td>
                 <td align="right">
                   <div class="score-val">%$Score</div>

@@ -56,8 +56,8 @@ TEMP_DATA_DIR = os.path.join(ENGINE_DIR, "Data", "temp")
 # Stage 1A (test-only): shared isolated-fixture helpers.
 from tests.helpers.stage1a_fixtures import isolated_database, isolated_server
 
-# Legacy literal passwords that MUST be rejected after W7/W8.
-_LEGACY_LITERAL_PASSWORDS = ("CloudShield2026!*", "SecurePass2026!*")
+# Legacy literal passwords that MUST be rejected after W7/W8/Go-Live hardening.
+_LEGACY_LITERAL_PASSWORDS = ("CloudShield2026!*", "SecurePass2026!*", "LocalSecureAdmin2026!#")
 
 # Known seeded identities (UPN only - credentials are provisioned randomly).
 _IDENTITY_UPNS = [

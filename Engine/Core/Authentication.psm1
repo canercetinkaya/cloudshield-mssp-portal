@@ -1,4 +1,4 @@
-# Core/Authentication.psm1 - CloudShield Security Reporting Platform
+﻿# Core/Authentication.psm1 - CloudShield Security Reporting Platform
 # RFC 7523 Certificate-Based Authentication (JWT Assertion), Client Secret, Token Caching, and Resilient REST Invoker.
 [CmdletBinding()]
 param()
@@ -334,12 +334,14 @@ function Get-ServiceToken {
             $plainSecret = $appConfig.ClientSecret
         }
         elseif ($appConfig.KeyVaultSecretName) {
-            $vaultUrl = if ($env:AZURE_KEYVAULT_URL) { $env:AZURE_KEYVAULT_URL } else { 'https://cs-kv-qwy6we.vault.azure.net' }
-            try {
-                $plainSecret = Get-PlatformKeyVaultSecret -SecretName $appConfig.KeyVaultSecretName -VaultUrl $vaultUrl
-            }
-            catch {
-                Write-Verbose "Key Vault secret okunamadı ($($appConfig.KeyVaultSecretName)): $($_.Exception.Message)"
+            $vaultUrl = if ($env:AZURE_KEYVAULT_URL) { $env:AZURE_KEYVAULT_URL } elseif ($PlatformConfig.KeyVaultUrl) { $PlatformConfig.KeyVaultUrl } else { $null }
+            if ($vaultUrl) {
+                try {
+                    $plainSecret = Get-PlatformKeyVaultSecret -SecretName $appConfig.KeyVaultSecretName -VaultUrl $vaultUrl
+                }
+                catch {
+                    Write-Verbose "Key Vault secret okunamadı ($($appConfig.KeyVaultSecretName)): $($_.Exception.Message)"
+                }
             }
         }
         elseif ($appConfig.SecretEncrypted) {

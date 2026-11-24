@@ -1,4 +1,4 @@
-# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/PurviewRiskCompliance/PurviewRiskCompliance.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Purview Insider Risk Management (IRM) & Communication Compliance Service Plugin (Isolated Privacy App).
 [CmdletBinding()]
 param()
@@ -157,13 +157,16 @@ function Get-ServiceManagedActions {
         $KpiData
     )
 
+    $irmNum = if ($KpiData.ToplamIcTehditAlarmi -is [int]) { $KpiData.ToplamIcTehditAlarmi } else { 0 }
+    $ccNum  = if ($KpiData.IletisimDenetimSayisi -is [int]) { $KpiData.IletisimDenetimSayisi } else { 0 }
+
     return [ordered]@{
         ServiceCode        = $Script:ServiceCode
         ServiceName        = 'Yönetilen İç Tehdit ve İletişim Uyumu'
         OtonomMudahaleler  = 0
-        ManuelAnalistEforu = $KpiData.ToplamIcTehditAlarmi + $KpiData.IletisimDenetimSayisi
-        KazanilanZamanSaat = 0
-        Aciklama           = "Gizlilik ve KVKK ilkeleri doğrultusunda $($KpiData.ToplamIcTehditAlarmi) adet içeriden risk sinyali ve $($KpiData.IletisimDenetimSayisi) adet iletişim gözetim kaydı yetkili analistler tarafından agregasyon düzeyinde incelenmiş, şirket dışına veri kaçırma riskleri önlenmiştir."
+        ManuelAnalistEforu = ($irmNum + $ccNum)
+        KazanilanZamanSaat = [math]::Round((($irmNum + $ccNum) * 30) / 60.0, 1)
+        Aciklama           = "Gizlilik ve KVKK ilkeleri doğrultusunda $($KpiData.ToplamIcTehditAlarmi) adet içeriden risk sinyali ve $($KpiData.IletisimDenetimSayisi) adet iletişim gözetim kaydı yetkili analistler tarafından agregasyon düzeyinde incelenmiştir."
     }
 }
 
@@ -179,6 +182,8 @@ function Get-ServiceHtmlSection {
     )
 
     $k = $KpiData
+    $irmNum = if ($k.ToplamIcTehditAlarmi -is [int]) { $k.ToplamIcTehditAlarmi } else { 0 }
+    $ccNum  = if ($k.IletisimDenetimSayisi -is [int]) { $k.IletisimDenetimSayisi } else { 0 }
 
     $html = @"
 <section class="service-section">
@@ -207,7 +212,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">CloudShield Uyum Uzman Eylemi</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.IletisimDenetimSayisi) Denetim</div>
+                    <div class="kpi-value">$($k.IletisimDenetimSayisi)</div>
                     <span class="badge positive">Uzman Eforu</span>
                 </div>
                 <div class="kpi-description">Teams, Exchange ve kurumsal kanallarda etik & regülasyon denetimleri</div>
@@ -215,7 +220,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Kuruma Kazandırılan Efor</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">+$([math]::Round((($k.ToplamIcTehditAlarmi + $k.IletisimDenetimSayisi) * 30) / 60.0, 1)) Saat</div>
+                    <div class="kpi-value">+$([math]::Round((($irmNum + $ccNum) * 30) / 60.0, 1)) Saat</div>
                     <span class="badge positive">Verimlilik</span>
                 </div>
                 <div class="kpi-description">İç soruşturma ve adli analiz eforlarında sağlanan danışmanlık tasarrufu</div>

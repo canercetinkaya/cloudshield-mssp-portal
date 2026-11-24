@@ -1,4 +1,4 @@
-# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
+﻿# Plugins/DefenderCloudApps/DefenderCloudApps.Plugin.psm1 - CloudShield Security Reporting Platform
 # Microsoft Defender for Cloud Apps (CASB) Service Plugin.
 [CmdletBinding()]
 param()
@@ -102,6 +102,7 @@ function Get-ServiceRawData {
     $uri = "https://graph.microsoft.com/v1.0/security/alerts_v2?`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=50"
 
     $alerts = @()
+    $oauthApps = @()
     try {
         $resp = Invoke-PlatformRestApi -Uri $uri -AccessToken $token
         $alerts = @($resp.value)
@@ -109,9 +110,15 @@ function Get-ServiceRawData {
     catch {
         Write-Warning "MDCA alarmları çekilemedi: $($_.Exception.Message)"
     }
+    try {
+        $appResp = Invoke-PlatformRestApi -Uri "https://graph.microsoft.com/v1.0/applications?`$select=id,displayName,requiredResourceAccess&`$top=100" -AccessToken $token
+        if ($appResp.value) { $oauthApps = @($appResp.value) }
+    }
+    catch {}
 
     return [pscustomobject]@{
         Alerts    = $alerts
+        OAuthApps = $oauthApps
         StartDate = $StartDate
         EndDate   = $EndDate
         IsMock    = $false
@@ -146,13 +153,15 @@ function Get-ServiceKpis {
     }
 
     $a = @($RawData.Alerts)
+    $oa = @($RawData.OAuthApps)
+    $highPrivCount = if ($oa.Count -gt 0) { @($oa | Where-Object { @($_.requiredResourceAccess).Count -ge 2 }).Count } else { 'N/A - Application.Read.All izni gerekli' }
     return [ordered]@{
         ToplamKesfedilenUygulama = 'N/A - CloudAppEvents KQL izni gerekli'
         YuksekRiskliUygulama     = if ($a.Count -gt 0) { $a.Count } else { 'N/A - Telemetri yapılandırılmamış' }
         EngellenenOnaysizApp     = 'N/A - MDE Entegrasyonu gerekli'
         OnayliKurumsalApp        = 'N/A - MDCA App Catalog yapılandırılmamış'
         EnRiskliYuklemeler       = @()
-        YuksekYetkiliOAuth       = 'N/A - Application.Read.All izni gerekli'
+        YuksekYetkiliOAuth       = $highPrivCount
         SupheliOAuthApp          = 'N/A - OAuth App Governance izni gerekli'
         SaaSAnomalileri          = @($a)
     }
@@ -194,6 +203,13 @@ function Get-ServiceHtmlSection {
     )
 
     $k = $KpiData
+    $engNum     = if ($k.EngellenenOnaysizApp -is [int]) { $k.EngellenenOnaysizApp } else { 0 }
+    $riskliNum  = if ($k.YuksekRiskliUygulama -is [int]) { $k.YuksekRiskliUygulama } else { 0 }
+    $oauthNum   = if ($k.YuksekYetkiliOAuth -is [int]) { $k.YuksekYetkiliOAuth } else { 0 }
+    $supheliNum = if ($k.SupheliOAuthApp -is [int]) { $k.SupheliOAuthApp } else { 0 }
+    $hijyenOran = if ($k.OnayliKurumsalApp -is [int] -and $k.ToplamKesfedilenUygulama -is [int] -and $k.ToplamKesfedilenUygulama -gt 0) {
+        "%$([math]::Round(($k.OnayliKurumsalApp / $k.ToplamKesfedilenUygulama) * 100, 1))"
+    } else { 'N/A' }
 
     $html = @"
 <section class="service-section">
@@ -222,7 +238,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">CloudShield Bulut Uzman Eylemi</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">$($k.YuksekRiskliUygulama + $k.YuksekYetkiliOAuth)</div>
+                    <div class="kpi-value">$($riskliNum + $oauthNum)</div>
                     <span class="badge positive">Uzman Eforu</span>
                 </div>
                 <div class="kpi-description">İncelenen yüksek riskli bulut servisleri ve yetkili OAuth izin denetimleri</div>
@@ -230,7 +246,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Kuruma Kazandırılan Efor</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">+$([math]::Round(($k.EngellenenOnaysizApp * 20) / 60.0, 1)) Saat</div>
+                    <div class="kpi-value">+$([math]::Round(($engNum * 20) / 60.0, 1)) Saat</div>
                     <span class="badge positive">Verimlilik</span>
                 </div>
                 <div class="kpi-description">Gölge BT risk analizleri ve erişim kontrol politikaları ile kazanılan mesai</div>
@@ -238,7 +254,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-card" style="background:#FFFFFF;">
                 <div class="kpi-title">Onaylı Bulut Hijyeni</div>
                 <div class="kpi-value-row">
-                    <div class="kpi-value">%$([math]::Round((($k.OnayliKurumsalApp) / [math]::Max($k.ToplamKesfedilenUygulama, 1)) * 100, 1))</div>
+                    <div class="kpi-value">$hijyenOran</div>
                     <span class="badge positive">Uyumlu</span>
                 </div>
                 <div class="kpi-description">Kurumsal politika ile onaylanmış güvenli bulut servis oranı</div>
@@ -248,7 +264,6 @@ function Get-ServiceHtmlSection {
 
     <!-- ÜRÜNE ÖZEL ÇEKİRDEK GÜVENLİK METRİKLERİ -->
     <div class="kpi-grid">
-    <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-title">Keşfedilen Gölge BT (Shadow IT)</div>
             <div class="kpi-value-row">
@@ -257,7 +272,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-description">Ağda ve uç noktalarda tespit edilen SaaS servisleri</div>
         </div>
 
-        <div class="kpi-card $(if ($k.YuksekRiskliUygulama -gt 0) { 'highlight' })">
+        <div class="kpi-card $(if ($riskliNum -gt 0) { 'highlight' })">
             <div class="kpi-title">Yüksek Riskli Uygulama</div>
             <div class="kpi-value-row">
                 <div class="kpi-value">$($k.YuksekRiskliUygulama)</div>
@@ -279,7 +294,7 @@ function Get-ServiceHtmlSection {
             <div class="kpi-title">Yüksek Yetkili OAuth Apps</div>
             <div class="kpi-value-row">
                 <div class="kpi-value">$($k.YuksekYetkiliOAuth)</div>
-                <span class="badge $(if ($k.SupheliOAuthApp -gt 0) { 'negative' } else { 'neutral' })">$(if ($k.SupheliOAuthApp -gt 0) { "$($k.SupheliOAuthApp) Şüpheli" } else { 'Uyumlu' })</span>
+                <span class="badge $(if ($supheliNum -gt 0) { 'negative' } else { 'neutral' })">$(if ($supheliNum -gt 0) { "$supheliNum Şüpheli" } else { 'Uyumlu' })</span>
             </div>
             <div class="kpi-description">Posta veya dosyalara tam erişim yetkisi olanlar</div>
         </div>

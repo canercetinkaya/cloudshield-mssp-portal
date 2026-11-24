@@ -43,6 +43,9 @@ accessTokens.json
 Engine/Config/*.local.json
 Data/*.local.json
 Data/tenants.local.json
+Data/tenant_decisions.json
+Data/report_jobs.json
+Data/Reports/
 Data/Logos/*
 !Data/Logos/.gitkeep
 
