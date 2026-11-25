@@ -5902,13 +5902,12 @@ let allUsers = [];
             }
         }
 
-        function openReportPreviewModal(url) {
+        async function openReportPreviewModal(url) {
             const modal = document.getElementById('reportPreviewModal');
-            const frame = document.getElementById('reportPreviewFrame');
+            const frame = document.getElementById('reportPreviewIframe') || document.getElementById('reportPreviewFrame');
             const downloadBtn = document.getElementById('reportPreviewDownloadBtn');
-            const newTabBtn = document.getElementById('reportPreviewNewTabBtn');
+            const newTabBtn = document.getElementById('modalExternalOpenLink') || document.getElementById('reportPreviewNewTabBtn');
 
-            if (frame) frame.src = url;
             if (downloadBtn) {
                 downloadBtn.href = url;
                 downloadBtn.download = 'CloudShield_Executive_Report.html';
@@ -5918,12 +5917,29 @@ let allUsers = [];
                 newTabBtn.target = '_blank';
             }
             if (modal) modal.classList.remove('hidden');
+            if (frame) {
+                try {
+                    const resp = await fetch(url);
+                    if (resp.ok) {
+                        frame.srcdoc = await resp.text();
+                    } else {
+                        frame.removeAttribute('srcdoc');
+                        frame.src = url;
+                    }
+                } catch (_err) {
+                    frame.removeAttribute('srcdoc');
+                    frame.src = url;
+                }
+            }
         }
 
         function closeReportPreviewModal() {
             const modal = document.getElementById('reportPreviewModal');
-            const frame = document.getElementById('reportPreviewFrame');
-            if (frame) frame.src = 'about:blank';
+            const frame = document.getElementById('reportPreviewIframe') || document.getElementById('reportPreviewFrame');
+            if (frame) {
+                frame.removeAttribute('srcdoc');
+                frame.src = 'about:blank';
+            }
             if (modal) modal.classList.add('hidden');
         }
 

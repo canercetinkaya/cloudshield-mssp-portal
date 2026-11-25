@@ -194,6 +194,18 @@ class TestGoLivePhases(unittest.TestCase):
         self.assertEqual(final_job["status"], "Completed")
         self.assertTrue(final_job.get("htmlUrl") or final_job.get("pdfUrl"))
 
+        # Verify in-portal HTML preview modal framing headers (SAMEORIGIN only on report preview, DENY elsewhere)
+        if final_job.get("htmlUrl"):
+            prev_req = urllib.request.Request(
+                f"{self.base_url}{final_job['htmlUrl']}",
+                headers={"Authorization": f"Bearer {self.admin_token}"},
+            )
+            with urllib.request.urlopen(prev_req, timeout=15) as prev_resp:
+                self.assertEqual(prev_resp.headers.get("X-Frame-Options"), "SAMEORIGIN")
+                self.assertIn("frame-ancestors 'self'", prev_resp.headers.get("Content-Security-Policy", ""))
+        _, _, h_headers = self._req("GET", "/api/health")
+        self.assertEqual(h_headers.get("X-Frame-Options"), "DENY")
+
     def test_06_license_pdf_and_permissions_modal_contracts(self):
         # 1. License PDF endpoint must return HTTP 200 and non-empty PDF bytes (no tuple unpack crash)
         req = urllib.request.Request(

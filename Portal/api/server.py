@@ -1702,12 +1702,16 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
 
         self.send_header("X-Portal-Version", vinfo.get("version", "3.0.0"))
         self.send_header("X-Portal-Release", vinfo.get("release", "v3.0.0-ENTERPRISE"))
+        sameorigin_frame = bool(getattr(self, "_allow_sameorigin_frame", False))
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Frame-Options", "SAMEORIGIN" if sameorigin_frame else "DENY")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         self.send_header("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';")
+        frame_ancestors = "'self'" if sameorigin_frame else "'none'"
+        self.send_header("Content-Security-Policy", f"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-ancestors {frame_ancestors}; base-uri 'self'; form-action 'self';")
+        if sameorigin_frame:
+            self._allow_sameorigin_frame = False
 
         super().end_headers()
 
@@ -2717,6 +2721,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             tenants = load_json_file(TENANTS_FILE, [])
             t_meta = next((t for t in tenants if t.get("Id") == tenant_id or t.get("TenantId") == tenant_id), None)
             html = generate_license_health_report(data, t_meta)
+            self._allow_sameorigin_frame = True
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             html_bytes = html.encode("utf-8")
@@ -3591,6 +3596,7 @@ class MSSPPortalHandler(http.server.BaseHTTPRequestHandler):
             ascii_name = basename.encode("ascii", "replace").decode("ascii").replace("?", "_")
             quoted_name = urllib.parse.quote(basename)
 
+            self._allow_sameorigin_frame = True
             self.send_response(200)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(file_size))
