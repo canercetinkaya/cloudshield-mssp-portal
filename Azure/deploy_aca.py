@@ -295,17 +295,7 @@ def main():
                 print(f"Deactivating stale revision: {old_rev}")
                 run_cmd(["az", "containerapp", "revision", "deactivate", "-n", app_name, "-g", resource_group, "--revision", old_rev], check=False)
 
-    print("=== Ensuring serverless scale-to-zero: strictly single-replica (min=0 max=1) ===")
-    second_update_cmd = [
-        "az", "containerapp", "update",
-        "-n", app_name, "-g", resource_group,
-        "--container-name", actual_container_name,
-        "--min-replicas", "0",
-        "--max-replicas", "1"
-    ]
-    if entra_secret:
-        second_update_cmd.extend(["--set-env-vars", "ENTRA_CLIENT_SECRET=secretref:entra-client-secret"])
-    run_cmd(second_update_cmd, check=False)
+    print("=== Keeping warm single-replica mode (min=1 max=1) to preserve local ext4 runtime DB and eliminate cold starts ===")
 
     # 5. Resolve FQDN dynamically
     fqdn_res = run_cmd(["az", "containerapp", "show", "-n", app_name, "-g", resource_group, "--query", "properties.configuration.ingress.fqdn", "-o", "tsv"], check=False)

@@ -31,26 +31,34 @@ def _use_local_runtime_shadow(requested_path=None):
 
 
 def _sync_runtime_db_to_share():
-    """Atomically snapshot local runtime SQLite DB back to persistent /app/Data share."""
+    """Atomically snapshot local ext4 runtime SQLite DB back to persistent /app/Data share without SMB POSIX locks."""
     if not _RUNTIME_SHADOW_ACTIVE or not os.path.exists(_LOCAL_RUNTIME_DB_PATH):
         return
     with _DB_SYNC_LOCK:
+        local_snap_path = _LOCAL_RUNTIME_DB_PATH + ".snap"
         tmp_share_path = DB_PATH + ".sync_tmp"
         try:
-            src = sqlite3.connect(_LOCAL_RUNTIME_DB_PATH, timeout=10.0)
-            dst = sqlite3.connect(tmp_share_path, timeout=10.0)
+            if os.path.exists(local_snap_path):
+                os.remove(local_snap_path)
+            src = sqlite3.connect(_LOCAL_RUNTIME_DB_PATH, timeout=5.0)
+            dst = sqlite3.connect(local_snap_path, timeout=5.0)
             try:
                 src.backup(dst)
             finally:
                 dst.close()
                 src.close()
-            shutil.move(tmp_share_path, DB_PATH)
-        except Exception as ex:
             try:
-                if os.path.exists(tmp_share_path):
-                    os.remove(tmp_share_path)
-            except Exception:
-                pass
+                shutil.copyfile(local_snap_path, tmp_share_path)
+                os.replace(tmp_share_path, DB_PATH)
+            except OSError:
+                shutil.copyfile(local_snap_path, DB_PATH)
+        except Exception as ex:
+            for p in (local_snap_path, tmp_share_path):
+                try:
+                    if os.path.exists(p):
+                        os.remove(p)
+                except Exception:
+                    pass
             print(f"[WARN] Periodic DB snapshot warning: {ex}")
 
 def verify_replica_safety():
@@ -163,33 +171,40 @@ def init_db(db_path=None):
     if _use_local_runtime_shadow(db_path):
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         share_healthy = False
+        probe_path = "/tmp/cloudshield_share_probe.db"
         if os.path.exists(DB_PATH) and os.path.getsize(DB_PATH) > 0:
             try:
-                uri = pathlib.Path(os.path.abspath(DB_PATH)).as_uri() + "?nolock=1"
-                chk_conn = sqlite3.connect(uri, uri=True, timeout=5.0)
+                shutil.copyfile(DB_PATH, probe_path)
+                chk_conn = sqlite3.connect(probe_path, timeout=5.0)
                 chk_conn.row_factory = sqlite3.Row
-                ic = chk_conn.execute("PRAGMA integrity_check;").fetchall()
-                share_healthy = len(ic) == 1 and ic[0][0] == "ok"
+                try:
+                    ic = chk_conn.execute("PRAGMA integrity_check;").fetchall()
+                    share_healthy = len(ic) == 1 and ic[0][0] == "ok"
+                except Exception as ic_ex:
+                    print(f"[RECOVERY] Shared SQLite integrity_check raised ({ic_ex}); attempting session salvage...")
+                    share_healthy = False
                 if not share_healthy:
-                    print(f"[RECOVERY] Malformed shared SQLite detected ({ic[:2]}). Salvaging live sessions & rebuilding clean local DB...")
+                    print("[RECOVERY] Malformed shared SQLite detected. Salvaging live sessions & rebuilding clean local DB...")
                     try:
                         salvaged_sessions = [tuple(r) for r in chk_conn.execute("SELECT token, user_id, created_at, expires_at, user_data_json FROM user_sessions").fetchall()]
-                    except Exception:
-                        pass
-                    try:
-                        salvaged_customers = [dict(r) for r in chk_conn.execute("SELECT * FROM customers").fetchall()]
+                        print(f"[RECOVERY] Salvaged {len(salvaged_sessions)} session(s) from shared DB.")
                     except Exception:
                         pass
                 chk_conn.close()
             except Exception as cex:
-                print(f"[RECOVERY] Shared SQLite check failed ({cex}); initializing fresh runtime DB.")
+                print(f"[RECOVERY] Shared SQLite probe failed ({cex}); initializing fresh runtime DB.")
                 share_healthy = False
 
-        if share_healthy:
-            shutil.copy2(DB_PATH, _LOCAL_RUNTIME_DB_PATH)
+        if share_healthy and os.path.exists(probe_path):
+            shutil.copy2(probe_path, _LOCAL_RUNTIME_DB_PATH)
         elif os.path.exists(_LOCAL_RUNTIME_DB_PATH):
             try:
                 os.remove(_LOCAL_RUNTIME_DB_PATH)
+            except Exception:
+                pass
+        if os.path.exists(probe_path):
+            try:
+                os.remove(probe_path)
             except Exception:
                 pass
         _RUNTIME_SHADOW_ACTIVE = True
@@ -246,15 +261,15 @@ def init_db(db_path=None):
     seed_default_data(conn)
     conn.close()
 
-    if _RUNTIME_SHADOW_ACTIVE:
-        _sync_runtime_db_to_share()
-        if not _DB_SYNC_STARTED:
-            _DB_SYNC_STARTED = True
-            def _bg_sync_loop():
-                while True:
-                    time.sleep(10)
-                    _sync_runtime_db_to_share()
-            threading.Thread(target=_bg_sync_loop, daemon=True, name="CloudShieldDbSnapshotter").start()
+    if _RUNTIME_SHADOW_ACTIVE and not _DB_SYNC_STARTED:
+        _DB_SYNC_STARTED = True
+        def _bg_sync_loop():
+            time.sleep(2)
+            _sync_runtime_db_to_share()
+            while True:
+                time.sleep(15)
+                _sync_runtime_db_to_share()
+        threading.Thread(target=_bg_sync_loop, daemon=True, name="CloudShieldDbSnapshotter").start()
 
     print("[DB] Database initialization and seed complete.")
 
