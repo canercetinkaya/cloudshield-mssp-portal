@@ -313,13 +313,13 @@ function loadRbacAssignments() {
                     </td>
                     <td class="py-3 px-4 text-xs font-semibold text-ks-navy">${a.role_display || a.role_name}</td>
                     <td class="py-3 px-4 text-xs">
-                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${a.customer_scope === 'ALL' ? 'bg-purple-100 text-purple-800' : 'bg-blue-50 text-blue-700'}">
-                            ${a.customer_scope === 'ALL' ? '🌐 Tüm Müşteriler' : (a.customer_name || a.customer_id)}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-semibold border ${a.customer_scope === 'ALL' ? 'bg-slate-100 text-slate-800 border-slate-300' : 'bg-sky-50 text-sky-800 border-sky-200'}">
+                            ${a.customer_scope === 'ALL' ? 'Tüm Müşteriler' : (a.customer_name || a.customer_id)}
                         </span>
                     </td>
                     <td class="py-3 px-4 text-xs">
-                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${a.service_scope === 'ALL' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-50 text-emerald-700'}">
-                            ${a.service_scope === 'ALL' ? '⚡ Tüm Servisler' : (a.service_code || a.service_id)}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-semibold border ${a.service_scope === 'ALL' ? 'bg-slate-100 text-slate-800 border-slate-300' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}">
+                            ${a.service_scope === 'ALL' ? 'Tüm Servisler' : (a.service_code || a.service_id)}
                         </span>
                     </td>
                     <td class="py-3 px-4 text-xs text-slate-500">
